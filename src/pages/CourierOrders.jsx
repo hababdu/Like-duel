@@ -24,10 +24,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  TextField,
   useMediaQuery,
   ThemeProvider,
-  createTheme
+  createTheme,
+  Snackbar
 } from '@mui/material';
 import {
   Restaurant,
@@ -39,7 +39,6 @@ import {
   ArrowBack,
   LocalShipping,
   CheckCircle,
-  Person,
   Close,
   ExpandMore,
   ExpandLess,
@@ -81,7 +80,9 @@ const OrderDetails = () => {
   const isMobile = useMediaQuery('(max-width:600px)');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState(0);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -105,7 +106,7 @@ const OrderDetails = () => {
 
     try {
       const response = await axios.get(ORDERS_API, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       const ordersData = Array.isArray(response.data) ? response.data : [response.data];
@@ -148,9 +149,7 @@ const OrderDetails = () => {
       'yetkazib_berildi': { label: 'Yetkazib berildi', color: 'success', icon: <CheckCircle /> },
       'buyurtma_tushdi': { label: 'Yangi', color: 'primary', icon: <AccessTime /> },
       'oshxona_vaqt_belgiladi': { label: 'Oshxona vaqt belgilaydi', color: 'warning', icon: <AccessTime /> }
-    };
-
-    const config = statusMap[status] || { label: status, color: 'default', icon: <AccessTime /> };
+    };    const config = statusMap[status] || { label: status, color: 'default', icon: <AccessTime /> };
     return (
       <Chip
         label={config.label}
@@ -174,55 +173,47 @@ const OrderDetails = () => {
 
   const handleConfirmAction = async () => {
     if (confirmDialog.action) {
+      setActionLoading(true);
       await confirmDialog.action();
+      setActionLoading(false);
     }
     setConfirmDialog({ ...confirmDialog, open: false });
   };
 
-  const handleMarkOnWay = async (orderId) => {
+  const handleApiRequest = async (url, successMessage) => {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      alert('Autentifikatsiya talab qilinadi');
+      setError('Autentifikatsiya talab qilinadi');
+      localStorage.removeItem('authToken');
+      navigate('/login');
       return;
     }
 
     try {
-      await axios.post(
-        `${MARK_ON_WAY_API}${orderId}/mark-on-way/`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchOrders(); // Yangilash
+      await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setSuccess(successMessage);
+      fetchOrders();
     } catch (err) {
-      let errorMessage = 'Buyurtmani yetkazilmoqda deb belgilashda xatolik';
+      let errorMessage = 'Xatolik yuz berdi';
       if (err.response) {
         errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
       }
-      alert(errorMessage);
+      setError(errorMessage);
     }
   };
 
-  const handleMarkDelivered = async (orderId) => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      alert('Autentifikatsiya talab qilinadi');
-      return;
-    }
+  const handleMarkOnWay = async (orderId) => {
+    await handleApiRequest(
+      `${MARK_ON_WAY_API}${orderId}/mark-on-way/`,
+      'Buyurtma yetkazilmoqda deb belgilandi!'
+    );
+  };
 
-    try {
-      await axios.post(
-        `${MARK_DELIVERED_API}${orderId}/mark-delivered/`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      fetchOrders(); // Yangilash
-    } catch (err) {
-      let errorMessage = 'Buyurtmani yetkazib berildi deb belgilashda xatolik';
-      if (err.response) {
-        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
-      }
-      alert(errorMessage);
-    }
+  const handleMarkDelivered = async (orderId) => {
+    await handleApiRequest(
+      `${MARK_DELIVERED_API}${orderId}/mark-delivered/`,
+      'Buyurtma yetkazib berildi deb belgilandi!'
+    );
   };
 
   if (loading) {
@@ -244,10 +235,10 @@ const OrderDetails = () => {
     );
   }
 
-  const activeOrders = orders.filter(order => 
+  const activeOrders = orders.filter(order =>
     ['kuryer_oldi', 'yetkazilmoqda'].includes(order.status)
   );
-  const completedOrders = orders.filter(order => 
+  const completedOrders = orders.filter(order =>
     order.status === 'yetkazib_berildi'
   );
 
@@ -262,55 +253,55 @@ const OrderDetails = () => {
           <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>
             Mening buyurtmalarim
           </Typography>
-          
         </Stack>
 
         {/* Tablar */}
-        <Tabs 
-          value={activeTab} 
-          onChange={handleTabChange} 
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
           variant="fullWidth"
           sx={{ mb: 2 }}
         >
-          <Tab 
+          <Tab
             label={
               <Stack direction="row" alignItems="center" spacing={1}>
                 <LocalShipping fontSize="small" />
                 <span>Faol ({activeOrders.length})</span>
               </Stack>
-            } 
+            }
           />
-          <Tab 
+          <Tab
             label={
               <Stack direction="row" alignItems="center" spacing={1}>
                 <CheckCircle fontSize="small" />
                 <span>Yakunlangan ({completedOrders.length})</span>
               </Stack>
-            } 
+            }
           />
-          <Tab 
+          <Tab
             label={
               <Stack direction="row" alignItems="center" spacing={1}>
                 <Notifications fontSize="small" />
                 <span>Barcha ({orders.length})</span>
               </Stack>
-            } 
+            }
           />
-        </Tabs>
-
-        {/* Buyurtmalar ro'yxati */}
+        </Tabs>        {/* Buyurtmalar ro'yxati */}
         <Box sx={{ mb: 8 }}>
           {activeTab === 0 && (
             activeOrders.length > 0 ? (
               activeOrders.map((order) => (
-                <OrderCard 
-                  key={order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order.id}
+                  order={order}
                   isMobile={isMobile}
                   expanded={expandedOrder === order.id}
                   onToggleExpand={toggleOrderExpand}
                   getStatusChip={getStatusChip}
                   showConfirmation={showConfirmation}
+                  handleMarkOnWay={handleMarkOnWay}
+                  handleMarkDelivered={handleMarkDelivered}
+                  actionLoading={actionLoading}
                 />
               ))
             ) : (
@@ -323,14 +314,17 @@ const OrderDetails = () => {
           {activeTab === 1 && (
             completedOrders.length > 0 ? (
               completedOrders.map((order) => (
-                <OrderCard 
-                  key={order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order.id}
+                  order={order}
                   isMobile={isMobile}
                   expanded={expandedOrder === order.id}
                   onToggleExpand={toggleOrderExpand}
                   getStatusChip={getStatusChip}
                   showConfirmation={showConfirmation}
+                  handleMarkOnWay={handleMarkOnWay}
+                  handleMarkDelivered={handleMarkDelivered}
+                  actionLoading={actionLoading}
                 />
               ))
             ) : (
@@ -343,14 +337,17 @@ const OrderDetails = () => {
           {activeTab === 2 && (
             orders.length > 0 ? (
               orders.map((order) => (
-                <OrderCard 
-                  key={order.id} 
-                  order={order} 
+                <OrderCard
+                  key={order.id}
+                  order={order}
                   isMobile={isMobile}
                   expanded={expandedOrder === order.id}
                   onToggleExpand={toggleOrderExpand}
                   getStatusChip={getStatusChip}
                   showConfirmation={showConfirmation}
+                  handleMarkOnWay={handleMarkOnWay}
+                  handleMarkDelivered={handleMarkDelivered}
+                  actionLoading={actionLoading}
                 />
               ))
             ) : (
@@ -373,33 +370,56 @@ const OrderDetails = () => {
             <Typography>{confirmDialog.message}</Typography>
           </DialogContent>
           <DialogActions>
-            <Button 
+            <Button
               onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
               color="primary"
+              disabled={actionLoading}
             >
               Bekor qilish
             </Button>
-            <Button 
-              onClick={handleConfirmAction} 
+            <Button
+              onClick={handleConfirmAction}
               color="primary"
               variant="contained"
+              disabled={actionLoading}
             >
-              Tasdiqlash
+              {actionLoading ? <CircularProgress size={24} /> : 'Tasdiqlash'}
             </Button>
           </DialogActions>
-        </Dialog>
+        </Dialog>        {/* Xato va muvaffaqiyat xabarlari uchun Snackbar */}
+        <Snackbar
+          open={!!error}
+          autoHideDuration={6000}
+          onClose={() => setError('')}
+        >
+          <Alert severity="error" onClose={() => setError('')}>
+            {error}
+          </Alert>
+        </Snackbar>
+        <Snackbar
+          open={!!success}
+          autoHideDuration={6000}
+          onClose={() => setSuccess('')}
+        >
+          <Alert severity="success" onClose={() => setSuccess('')}>
+            {success}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   );
 };
 
-const OrderCard = ({ 
-  order, 
-  isMobile, 
-  expanded, 
-  onToggleExpand, 
+const OrderCard = ({
+  order,
+  isMobile,
+  expanded,
+  onToggleExpand,
   getStatusChip,
-  showConfirmation
+  showConfirmation,
+  handleMarkOnWay,
+  handleMarkDelivered,
+  actionLoading
 }) => {
   const navigate = useNavigate();
 
@@ -419,9 +439,9 @@ const OrderCard = ({
     <Card variant="outlined" sx={{ mb: 2 }}>
       <CardContent sx={{ p: isMobile ? 1 : 2 }}>
         {/* Sarlavha qismi */}
-        <Stack 
-          direction="row" 
-          justifyContent="space-between" 
+        <Stack
+          direction="row"
+          justifyContent="space-between"
           alignItems="center"
           onClick={() => onToggleExpand(order.id)}
           sx={{ cursor: 'pointer' }}
@@ -431,7 +451,7 @@ const OrderCard = ({
           </Typography>
           <Stack direction="row" alignItems="center" spacing={1}>
             {getStatusChip(order.status)}
-            <IconButton size="small">
+            <IconButton size="small" disabled={actionLoading}>
               {expanded ? <ExpandLess /> : <ExpandMore />}
             </IconButton>
           </Stack>
@@ -457,13 +477,14 @@ const OrderCard = ({
               <Stack direction="row" spacing={1} alignItems="center">
                 <Phone fontSize="small" color="action" />
                 <Typography variant="body2">
-                  {order.contact_number}
+                  {order.contact_number || 'Noma\'lum'}
                 </Typography>
-                <Button 
-                  variant="outlined" 
-                  size="small" 
+                <Button
+                  variant="outlined"
+                  size="small"
                   onClick={handleCallCustomer}
                   sx={{ ml: 'auto' }}
+                  disabled={actionLoading || !order.contact_number}
                 >
                   Qo'ng'iroq
                 </Button>
@@ -472,21 +493,20 @@ const OrderCard = ({
               <Stack direction="row" spacing={1} alignItems="flex-start">
                 <LocationOn fontSize="small" color="action" />
                 <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                  {order.shipping_address}
+                  {order.shipping_address || 'Noma\'lum manzil'}
                 </Typography>
                 {order.latitude && order.longitude && (
-                  <Button 
-                    variant="outlined" 
-                    size="small" 
+                  <Button
+                    variant="outlined"
+                    size="small"
                     onClick={handleOpenMaps}
                     startIcon={<LocationOn />}
+                    disabled={actionLoading}
                   >
                     Xarita
                   </Button>
                 )}
-              </Stack>
-
-              <Stack direction="row" spacing={1} alignItems="center">
+              </Stack>              <Stack direction="row" spacing={1} alignItems="center">
                 <Payment fontSize="small" color="action" />
                 <Typography variant="body2">
                   To'lov: {order.payment === 'naqd' ? 'Naqd' : 'Karta'}
@@ -505,63 +525,71 @@ const OrderCard = ({
 
             {/* Mahsulotlar ro'yxati */}
             <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-              Mahsulotlar ({order.items.length})
+              Mahsulotlar ({order.items?.length || 0})
             </Typography>
             <List dense disablePadding>
-              {order.items.map((item, index) => (
-                <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
-                  <ListItemAvatar>
-                    <Avatar
-                      variant="rounded"
-                      src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : undefined}
-                      sx={{ width: 32, height: 32, bgcolor: 'background.default' }}
-                    >
-                      <Restaurant fontSize="small" />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={
-                      <Typography variant="body2">
-                        {item.product?.title || 'Noma\'lum mahsulot'}
-                      </Typography>
-                    }
-                    secondary={`${item.quantity} × ${item.price} so'm`}
-                  />
-                  <Typography variant="body2" fontWeight="bold">
-                    {item.quantity * parseFloat(item.price)} so'm
-                  </Typography>
-                </ListItem>
-              ))}
+              {order.items && order.items.length > 0 ? (
+                order.items.map((item, index) => (
+                  <ListItem key={index} disablePadding sx={{ py: 0.5 }}>
+                    <ListItemAvatar>
+                      <Avatar
+                        variant="rounded"
+                        src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : undefined}
+                        sx={{ width: 32, height: 32, bgcolor: 'background.default' }}
+                      >
+                        <Restaurant fontSize="small" />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2">
+                          {item.product?.title || 'Noma\'lum mahsulot'}
+                        </Typography>
+                      }
+                      secondary={`${item.quantity} × ${item.price} so'm`}
+                    />
+                    <Typography variant="body2" fontWeight="bold">
+                      {(item.quantity * parseFloat(item.price)).toLocaleString('uz-UZ')} so'm
+                    </Typography>
+                  </ListItem>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Mahsulotlar mavjud emas
+                </Typography>
+              )}
             </List>
 
             {/* Amallar */}
-            <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+            <Stack direction={isMobile ? 'column' : 'row'} spacing={1} sx={{ mt: 2 }}>
               {order.status === 'kuryer_oldi' && (
                 <Button
                   variant="contained"
                   color="warning"
-                  fullWidth
+                  fullWidth={isMobile}
                   startIcon={<LocalShipping />}
                   onClick={() => showConfirmation(
                     'Yetkazilmoqda',
                     'Buyurtmani yetkazilmoqda deb belgilaysizmi?',
                     () => handleMarkOnWay(order.id)
                   )}
+                  disabled={actionLoading}
                 >
                   Yetkazilmoqda
                 </Button>
               )}
-              {order.status === 'yetkazilmoqda' && (
+              {order.status === 'kuryer_yolda' && (
                 <Button
                   variant="contained"
                   color="success"
-                  fullWidth
+                  fullWidth={isMobile}
                   startIcon={<CheckCircle />}
                   onClick={() => showConfirmation(
                     'Yetkazib berildi',
                     'Buyurtmani yetkazib berildi deb belgilaysizmi?',
                     () => handleMarkDelivered(order.id)
                   )}
+                  disabled={actionLoading}
                 >
                   Yetkazib berildi
                 </Button>

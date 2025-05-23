@@ -109,7 +109,6 @@ const OrderDetails = () => {
       });
 
       const ordersData = Array.isArray(response.data) ? response.data : [response.data];
-      console.log('Buyurtmalar:', ordersData);
       setOrders(ordersData);
     } catch (err) {
       let errorMessage = 'Buyurtma ma\'lumotlarini olishda xatolik';

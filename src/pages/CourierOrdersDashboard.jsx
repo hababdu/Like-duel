@@ -256,7 +256,9 @@ const CourierOrdersDashboard = () => {
                     <Typography variant="subtitle1" fontWeight="bold">
                       Buyurtma #{order.id}
                     </Typography>
-                    {getStatusChip(order.kitchen_time)}
+                   <Box sx={{ flexGrow: 1 }} />
+                   Oshxona vaqti:
+                   {getStatusChip(order.kitchen_time)}
                   </Stack>
 
                   <Stack direction="row" spacing={1} alignItems="center" mb={1}>

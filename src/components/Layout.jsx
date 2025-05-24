@@ -32,21 +32,7 @@ function Layout() {
                    Olingan buyurtmalar
                   </div>
                 </NavLink>
-                <NavLink
-                  to="/dash"
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                    }`
-                  }
-                >
-                  <div className="flex items-center">
-                    <ChartBarIcon className="h-5 w-5 mr-2" />
-                    Dashboard
-                  </div>
-                </NavLink>
+                
                 <NavLink
                   to="/profile"
                   className={({ isActive }) => 
@@ -90,17 +76,7 @@ function Layout() {
             <ShoppingCartIcon className="h-6 w-6" />
             <span className="mt-1">Orders</span>
           </NavLink>
-          <NavLink
-            to="/dash"
-            className={({ isActive }) => 
-              `flex flex-col items-center py-3 px-4 text-xs ${
-                isActive ? 'text-blue-600' : 'text-gray-600'
-              }`
-            }
-          >
-            <ChartBarIcon className="h-6 w-6" />
-            <span className="mt-1">Dashboard</span>
-          </NavLink>
+         
           <NavLink
             to="/profile"
             className={({ isActive }) => 

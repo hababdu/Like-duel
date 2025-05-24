@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box, Typography, CircularProgress, Alert, Avatar, Button, Card, CardContent,
-  Divider, Grid, Paper, List, ListItem, ListItemText, ListItemAvatar, IconButton,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Snackbar, Tooltip
+  Divider, Grid, Paper, List, ListItem, ListItemText, ListItemAvatar,
+  Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Tooltip
 } from '@mui/material';
 import {
-  ExitToApp as LogoutIcon, Edit as EditIcon, Phone as PhoneIcon, Badge as BadgeIcon,
+  ExitToApp as LogoutIcon, Phone as PhoneIcon, Badge as BadgeIcon,
   Person as PersonIcon, Check as CheckIcon, Close as CloseIcon, Work as WorkIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
@@ -17,9 +17,6 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editData, setEditData] = useState({});
-  const [editErrors, setEditErrors] = useState({});
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -144,61 +141,6 @@ const Profile = () => {
     navigate('/login', { replace: true });
   };
 
-  const handleEditClick = () => {
-    setEditData({
-      phone_number: profile.courier_profile?.phone_number || '',
-      passport_number: profile.courier_profile?.passport_number || '',
-      passport_series: profile.courier_profile?.passport_series || ''
-    });
-    setEditErrors({});
-    setEditMode(true);
-  };
-
-  const handleEditChange = (e) => {
-    const { name, value } = e.target;
-    setEditData(prev => ({ ...prev, [name]: value }));
-    let error = '';
-    if (name === 'phone_number' && value && !/^\+?[1-9]\d{1,14}$/.test(value)) {
-      error = 'Telefon raqami noto‘g‘ri formatda';
-    } else if (name === 'passport_number' && value && !/^\d{7,9}$/.test(value)) {
-      error = 'Pasport raqami 7-9 raqamdan iborat bo‘lishi kerak';
-    } else if (name === 'passport_series' && value && !/^[A-Z]{1,2}\d{0,7}$/.test(value)) {
-      error = 'Pasport seriyasi noto‘g‘ri formatda';
-    }
-    setEditErrors(prev => ({ ...prev, [name]: error }));
-  };
-
-  const handleSaveChanges = async () => {
-    if (Object.values(editErrors).some(error => error)) {
-      setError('Iltimos, xatolarni tuzating');
-      return;
-    }
-
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      setError('Tizimga kirish talab qilinadi. Iltimos, login qiling.');
-      navigate('/login', { replace: true });
-      return;
-    }
-
-    try {
-      const response = await axios.patch(
-        PROFILE_URL,
-        { courier_profile: editData },
-        getAxiosConfig(token)
-      );
-
-      setProfile(response.data);
-      console.log('Profil yangilandi:', response.data);
-      localStorage.setItem('userProfile', JSON.stringify(response.data));
-      setSnackbarMessage('Profil muvaffaqiyatli yangilandi!');
-      setSnackbarOpen(true);
-      setEditMode(false);
-    } catch (err) {
-      handleError(err, 'Profilni yangilashda xato yuz berdi');
-    }
-  };
-
   const handleToggleWorkStatus = async () => {
     if (longPress) {
       console.log('Long press aniqlandi, toggle ishlamaydi');
@@ -219,7 +161,9 @@ const Profile = () => {
     }
 
     const newStatus = !profile.courier_profile.is_active;
-    const updateUrl = `${COURIER_PROFILE_URL}${profile.courier_profile.id}/`;    try {
+    const updateUrl = `${COURIER_PROFILE_URL}${profile.courier_profile.id}/`;
+
+    try {
       setIsToggling(true);
       console.log('PATCH so‘rov:', {
         url: updateUrl,
@@ -279,9 +223,7 @@ const Profile = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      await axios.delete(deleteUrl, getAxiosConfig(token));
-
-      console.log('Profil o‘chirildi');
+      await axios.delete(deleteUrl, getAxiosConfig(token));      console.log('Profil o‘chirildi');
       setSnackbarMessage('Kuryer profili o‘chirildi!');
       setSnackbarOpen(true);
       clearLocalStorage();
@@ -349,7 +291,9 @@ const Profile = () => {
                 <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
                   {error}
                 </Alert>
-              )}              {profile && (
+              )}
+
+              {profile && (
                 <>
                   <Paper elevation={0} sx={{ 
                     p: 3, 
@@ -394,8 +338,7 @@ const Profile = () => {
                       <Button
                         variant="contained"
                         color={profile.courier_profile?.is_active ? "secondary" : "primary"}
-                        startIcon={<WorkIcon />}
-                        onClick={handleToggleWorkStatus}
+                        startIcon={<WorkIcon />}                        onClick={handleToggleWorkStatus}
                         onMouseDown={handleMouseDown}
                         onMouseUp={handleMouseUp}
                         onMouseLeave={handleMouseUp}
@@ -409,39 +352,18 @@ const Profile = () => {
                         )}
                       </Button>
                     </Tooltip>
-                  </Paper>                  {profile.courier_profile && (
+                  </Paper>
+
+                  {profile.courier_profile && (
                     <Paper elevation={0} sx={{ 
                       p: 3,
                       backgroundColor: 'background.paper',
-                      borderRadius: 2,
-                      position: 'relative'
+                      borderRadius: 2
                     }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        mb: 2
-                      }}>
-                        <Typography variant="h6" fontWeight="bold" color="primary">
-                          Kuryer Ma’lumotlari
-                        </Typography>
-                        <IconButton 
-                          color="primary"
-                          onClick={handleEditClick}
-                          sx={{ 
-                            backgroundColor: 'primary.light',
-                            '&:hover': {
-                              backgroundColor: 'primary.main',
-                              color: 'white'
-                            }
-                          }}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </Box>
-
+                      <Typography variant="h6" fontWeight="bold" color="primary" mb={2}>
+                        Kuryer Ma’lumotlari
+                      </Typography>
                       <Divider sx={{ my: 2 }} />
-
                       <List disablePadding>
                         <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemAvatar>
@@ -455,7 +377,6 @@ const Profile = () => {
                             secondaryTypographyProps={{ color: 'text.primary' }}
                           />
                         </ListItem>
-
                         <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemAvatar>
                             <Avatar sx={{ bgcolor: 'secondary.light' }}>
@@ -468,7 +389,6 @@ const Profile = () => {
                             secondaryTypographyProps={{ color: 'text.primary' }}
                           />
                         </ListItem>
-
                         <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemAvatar>
                             <Avatar sx={{ bgcolor: 'secondary.light' }}>
@@ -480,7 +400,8 @@ const Profile = () => {
                             secondary={profile.courier_profile.phone_number || 'Kiritilmagan'}
                             secondaryTypographyProps={{ color: 'text.primary' }}
                           />
-                        </ListItem>                        <ListItem disableGutters sx={{ py: 1.5 }}>
+                        </ListItem>
+                        <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemAvatar>
                             <Avatar sx={{ bgcolor: 'secondary.light' }}>
                               <WorkIcon />
@@ -500,84 +421,7 @@ const Profile = () => {
             </CardContent>
           </Card>
         </Grid>
-      </Grid>
-
-      <Dialog open={editMode} onClose={() => setEditMode(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          bgcolor: 'primary.main',
-          color: 'white'
-        }}>
-          <span>Profilni Tahrirlash</span>
-          <IconButton onClick={() => setEditMode(false)} color="inherit">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Telefon Raqami"
-                name="phone_number"
-                value={editData.phone_number}
-                onChange={handleEditChange}
-                variant="outlined"
-                margin="normal"
-                error={!!editErrors.phone_number}
-                helperText={editErrors.phone_number}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Pasport Raqami"
-                name="passport_number"
-                value={editData.passport_number}
-                onChange={handleEditChange}
-                variant="outlined"
-                margin="normal"
-                error={!!editErrors.passport_number}
-                helperText={editErrors.passport_number}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Pasport Seriyasi"
-                name="passport_series"
-                value={editData.passport_series}
-                onChange={handleEditChange}
-                variant="outlined"
-                margin="normal"
-                error={!!editErrors.passport_series}
-                helperText={editErrors.passport_series}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button 
-            onClick={() => setEditMode(false)}
-            variant="outlined"
-            color="secondary"
-            startIcon={<CloseIcon />}
-          >
-            Bekor Qilish
-          </Button>
-          <Button 
-            onClick={handleSaveChanges}
-            variant="contained"
-            color="primary"
-            startIcon={<CheckIcon />}
-            disabled={Object.values(editErrors).some(error => error)}
-          >
-            Saqlash
-          </Button>
-        </DialogActions>
-      </Dialog>      <Dialog open={confirmDeleteOpen} onClose={handleConfirmDeleteClose} fullWidth maxWidth="xs">
+      </Grid>      <Dialog open={confirmDeleteOpen} onClose={handleConfirmDeleteClose} fullWidth maxWidth="xs">
         <DialogTitle sx={{ bgcolor: 'error.main', color: 'white' }}>
           Kuryer Profilini O‘chirish
         </DialogTitle>

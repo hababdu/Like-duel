@@ -73,11 +73,13 @@ const CourierOrdersDashboard = () => {
       });
 
       const ordersData = Array.isArray(response.data) ? response.data : [];
+      console.log('Fetched orders:', ordersData);
       const newOrders = ordersData.filter(
         newOrder => !orders.some(prevOrder => prevOrder.id === newOrder.id)
       );
       setNewOrdersCount(newOrders.length);
       setOrders(ordersData);
+      
       setLastFetch(new Date().toISOString());
     } catch (err) {
       handleFetchError(err);
@@ -266,14 +268,16 @@ const CourierOrdersDashboard = () => {
                     <Typography variant="body2">
                       {order.kitchen?.name || 'Noma\'lum oshxona'}
                     </Typography>
+                   
                   </Stack>
-
                   <Stack direction="row" spacing={1} alignItems="center" mb={1}>
                     <LocationOn fontSize="small" color="action" />
-                    <Typography variant="body2" noWrap>
-                      {order.shipping_address}
+                    <Typography variant="body2">
+                      {order.full_time }
                     </Typography>
                   </Stack>
+
+                  
 
                   <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
                     <Typography variant="body2" fontWeight="bold">

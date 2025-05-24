@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import {
   Box,
@@ -27,7 +27,9 @@ import {
   useMediaQuery,
   ThemeProvider,
   createTheme,
-  Snackbar
+  Snackbar,
+  Badge,
+  Tooltip
 } from '@mui/material';
 import {
   Restaurant,
@@ -42,9 +44,16 @@ import {
   Close,
   ExpandMore,
   ExpandLess,
-  Notifications
+  Timer,
+  MonetizationOn,
+  Today,
+  History,
+  Directions,
+  Map
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { formatDistanceToNow } from 'date-fns';
+import { uz } from 'date-fns/locale';
 
 const BASE_URL = 'https://hosilbek.pythonanywhere.com';
 const ORDERS_API = `${BASE_URL}/api/user/courier-own-orders/`;
@@ -52,24 +61,67 @@ const MARK_ON_WAY_API = `${BASE_URL}/api/user/orders/`;
 const MARK_DELIVERED_API = `${BASE_URL}/api/user/orders/`;
 
 const theme = createTheme({
+  palette: {
+    primary: { main: '#1976d2' },
+    secondary: { main: '#9c27b0' },
+    error: { main: '#d32f2f' },
+    warning: { main: '#ed6c02' },
+    success: { main: '#2e7d32' },
+    info: { main: '#0288d1' }
+  },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: '12px',
-          padding: '8px 12px',
+          padding: '8px 16px',
           fontSize: '0.875rem',
-          margin: '4px 0'
+          margin: '4px 0',
+          textTransform: 'none',
+          fontWeight: 500
         }
       }
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: '12px',
-          marginBottom: '12px'
+          borderRadius: '16px',
+          marginBottom: '16px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          transition: 'box-shadow 0.3s ease',
+          '&:hover': {
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }
         }
       }
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: '8px',
+          fontWeight: 500
+        }
+      }
+    }
+  },
+  typography: {
+    fontFamily: [
+      '-apple-system',
+      'BlinkMacSystemFont',
+      '"Segoe UI"',
+      'Roboto',
+      '"Helvetica Neue"',
+      'Arial',
+      'sans-serif',
+      '"Apple Color Emoji"',
+      '"Segoe UI Emoji"',
+      '"Segoe UI Symbol"',
+    ].join(','),
+    h6: {
+      fontWeight: 600
+    },
+    subtitle1: {
+      fontWeight: 500
     }
   }
 });
@@ -78,6 +130,9 @@ const OrderDetails = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
   const [orders, setOrders] = useState([]);
+  const [completedOrdersLocal, setCompletedOrdersLocal] = useState([]);
+  const [sessionCompletedOrders, setSessionCompletedOrders] = useState([]);
+  const [sessionTime, setSessionTime] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState('');
@@ -90,6 +145,32 @@ const OrderDetails = () => {
     message: '',
     action: null
   });
+  const [timers, setTimers] = useState({});
+  const timerRefs = useRef({});
+  const [soundEnabled] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const notificationSound = new Audio('/sounds/notification.mp3');
+
+  useEffect(() => {
+    const storedOrders = localStorage.getItem('completed_orders');
+    if (storedOrders) {
+      try {
+        setCompletedOrdersLocal(JSON.parse(storedOrders));
+      } catch (e) {
+        console.error('Failed to parse completed orders', e);
+        localStorage.removeItem('completed_orders');
+        setCompletedOrdersLocal([]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSessionTime(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -110,6 +191,17 @@ const OrderDetails = () => {
 
       const ordersData = Array.isArray(response.data) ? response.data : [response.data];
       setOrders(ordersData);
+      setLastUpdated(new Date());
+
+      ordersData.forEach(order => {
+        if (order.kitchen_time && order.status === 'oshxona_vaqt_belgiladi') {
+          startTimer(order.id, order.kitchen_time, order.kitchen_time_set_at, 'oshxona');
+        } else if (order.kitchen_time && order.status === 'kuryer_oldi') {
+          startTimer(order.id, order.kitchen_time, null, 'kuryer_oldi');
+        } else if (['kuryer_yolda', 'buyurtma_topshirildi'].includes(order.status)) {
+          stopTimer(order.id);
+        }
+      });
     } catch (err) {
       let errorMessage = 'Buyurtma ma\'lumotlarini olishda xatolik';
       if (err.response) {
@@ -120,6 +212,8 @@ const OrderDetails = () => {
         } else {
           errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
         }
+      } else if (err.request) {
+        errorMessage = 'Tarmoq xatosi. Iltimos, ulanishingizni tekshiring';
       }
       setError(errorMessage);
     } finally {
@@ -130,8 +224,109 @@ const OrderDetails = () => {
   useEffect(() => {
     fetchOrders();
     const interval = setInterval(fetchOrders, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      Object.values(timerRefs.current).forEach(clearInterval);
+    };
   }, []);
+
+  const startTimer = (orderId, kitchenTime, setAt, timerType) => {
+    let totalSeconds;
+    if (typeof kitchenTime === 'string' && kitchenTime.includes(':')) {
+      const [hours, minutes] = kitchenTime.split(':').map(Number);
+      totalSeconds = (hours * 3600) + (minutes * 60);
+    } else {
+      totalSeconds = parseInt(kitchenTime) * 60;
+    }
+
+    let remainingSeconds = totalSeconds;
+    const timerKey = timerType === 'oshxona' ? `timer_start_${orderId}` : `timer_start_kuryer_oldi_${orderId}`;
+
+    if (setAt) {
+      const setTime = new Date(setAt).getTime();
+      const now = new Date().getTime();
+      const elapsedSeconds = Math.floor((now - setTime) / 1000);
+      remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+    } else {
+      let startTime = localStorage.getItem(timerKey);
+      if (!startTime) {
+        startTime = new Date().toISOString();
+        localStorage.setItem(timerKey, startTime);
+      }
+      const setTime = new Date(startTime).getTime();
+      const now = new Date().getTime();
+      const elapsedSeconds = Math.floor((now - setTime) / 1000);
+      remainingSeconds = Math.max(0, totalSeconds - elapsedSeconds);
+    }
+
+    if (timerRefs.current[orderId]) {
+      clearInterval(timerRefs.current[orderId]);
+    }
+
+    setTimers(prev => ({ ...prev, [orderId]: remainingSeconds }));
+
+    timerRefs.current[orderId] = setInterval(() => {
+      setTimers(prev => {
+        const newTime = prev[orderId] - 1;
+        if (newTime < 0 && soundEnabled && prev[orderId] === 0) {
+          notificationSound.play().catch(err => console.error('Timer ovoz xatosi:', err));
+        }
+        return { ...prev, [orderId]: Math.max(-3600, newTime) };
+      });
+    }, 1000);
+  };
+
+  const stopTimer = (orderId) => {
+    if (timerRefs.current[orderId]) {
+      clearInterval(timerRefs.current[orderId]);
+      delete timerRefs.current[orderId];
+      setTimers(prev => {
+        const newTimers = { ...prev };
+        delete newTimers[orderId];
+        return newTimers;
+      });
+      localStorage.removeItem(`timer_start_${orderId}`);
+      localStorage.removeItem(`timer_start_kuryer_oldi_${orderId}`);
+    }
+  };
+
+  const formatTimer = (seconds) => {
+    if (seconds === undefined || seconds === null) return 'Belgilanmagan';
+    const isNegative = seconds < 0;
+    const absSeconds = Math.abs(seconds);
+    const hours = Math.floor(absSeconds / 3600);
+    const minutes = Math.floor((absSeconds % 3600) / 60);
+    const secs = absSeconds % 60;
+    const timeString = `${hours > 0 ? `${String(hours).padStart(2, '0')}:` : ''}${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return isNegative ? `-${timeString}` : timeString;
+  };
+
+  const formatTime = (kitchenTime) => {
+    if (!kitchenTime) return 'Belgilanmagan';
+    if (typeof kitchenTime === 'string' && kitchenTime.includes(':')) {
+      const [hours, minutes] = kitchenTime.split(':').map(Number);
+      return `${hours > 0 ? `${hours} soat` : ''} ${minutes > 0 ? `${minutes} minut` : ''}`.trim();
+    }
+    const hours = Math.floor(kitchenTime / 60);
+    const mins = kitchenTime % 60;
+    return `${hours > 0 ? `${hours} soat` : ''} ${mins > 0 ? `${mins} minut` : ''}`.trim();
+  };
+
+  const formatSessionTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '';
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale: uz });
+    } catch {
+      return dateString;
+    }
+  };
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -144,8 +339,8 @@ const OrderDetails = () => {
   const getStatusChip = (status) => {
     const statusMap = {
       'buyurtma_tushdi': { label: 'Yangi', color: 'primary', icon: <AccessTime /> },
-      'kuryer_oldi': { label: 'Kuryer oldi', color: 'info', icon: <CheckCircle /> },
       'oshxona_vaqt_belgiladi': { label: 'Oshxona vaqt belgilaydi', color: 'warning', icon: <AccessTime /> },
+      'kuryer_oldi': { label: 'Kuryer oldi', color: 'info', icon: <CheckCircle /> },
       'kuryer_yolda': { label: 'Yetkazilmoqda', color: 'warning', icon: <LocalShipping /> },
       'buyurtma_topshirildi': { label: 'Yetkazib berildi', color: 'success', icon: <CheckCircle /> }
     };
@@ -157,7 +352,7 @@ const OrderDetails = () => {
         icon={config.icon}
         size="small"
         variant="filled"
-        sx={{ fontWeight: 'bold', borderRadius: '8px' }}
+        sx={{ fontWeight: 'bold' }}
       />
     );
   };
@@ -174,13 +369,18 @@ const OrderDetails = () => {
   const handleConfirmAction = async () => {
     if (confirmDialog.action) {
       setActionLoading(true);
-      await confirmDialog.action();
-      setActionLoading(false);
+      try {
+        await confirmDialog.action();
+      } catch (err) {
+        setError('Amal bajarilmadi. Iltimos, qayta urinib ko\'ring');
+      } finally {
+        setActionLoading(false);
+      }
     }
     setConfirmDialog({ ...confirmDialog, open: false });
   };
 
-  const handleApiRequest = async (url, successMessage) => {
+  const handleApiRequest = async (url, successMessage, orderId) => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       setError('Autentifikatsiya talab qilinadi');
@@ -190,13 +390,38 @@ const OrderDetails = () => {
     }
 
     try {
-      await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
       setSuccess(successMessage);
+
+      if (url.includes('mark-delivered')) {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          const completedOrder = {
+            ...order,
+            status: 'buyurtma_topshirildi',
+            completed_at: new Date().toISOString()
+          };
+          const localOrders = JSON.parse(localStorage.getItem('completed_orders') || '[]')
+            .filter(o => o.id !== order.id)
+            .concat([completedOrder]);
+          localStorage.setItem('completed_orders', JSON.stringify(localOrders));
+          setCompletedOrdersLocal(localOrders);
+
+          setSessionCompletedOrders(prev =>
+            prev.filter(o => o.id !== order.id).concat([completedOrder])
+          );
+        }
+      }
+
       fetchOrders();
     } catch (err) {
-      let errorMessage = 'Xatolik yuz berdi';
+      let errorMessage = 'Amal bajarilmadi';
       if (err.response) {
         errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+        if (err.response.status === 401) {
+          localStorage.removeItem('authToken');
+          navigate('/login');
+        }
       }
       setError(errorMessage);
     }
@@ -205,18 +430,38 @@ const OrderDetails = () => {
   const handleMarkOnWay = async (orderId) => {
     await handleApiRequest(
       `${MARK_ON_WAY_API}${orderId}/mark-on-way/`,
-      'Buyurtma yetkazilmoqda deb belgilandi!'
+      'Buyurtma yetkazilmoqda deb belgilandi!',
+      orderId
     );
+    stopTimer(orderId);
   };
 
   const handleMarkDelivered = async (orderId) => {
     await handleApiRequest(
       `${MARK_DELIVERED_API}${orderId}/mark-delivered/`,
-      'Buyurtma yetkazib berildi deb belgilandi!'
+      'Buyurtma yetkazib berildi deb belgilandi!',
+      orderId
+    );
+    stopTimer(orderId);
+  };
+
+  const handleRefresh = () => {
+    fetchOrders();
+  };
+
+  const handleClearCompleted = () => {
+    showConfirmation(
+      'Tarixni tozalash',
+      'Barcha yakunlangan buyurtmalar tarixini tozalashni xohlaysizmi?',
+      () => {
+        localStorage.removeItem('completed_orders');
+        setCompletedOrdersLocal([]);
+        setSuccess('Yakunlangan buyurtmalar tarixi tozalandi');
+      }
     );
   };
 
-  if (loading) {
+  if (loading && !orders.length) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress size={isMobile ? 40 : 60} />
@@ -224,43 +469,44 @@ const OrderDetails = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ m: 2, borderRadius: 2 }}>
-        {error}
-        <Button onClick={fetchOrders} sx={{ ml: 2 }} variant="contained" color="error" size="small">
-          Qayta urinish
-        </Button>
-      </Alert>
-    );
-  }
+  const newOrders = orders.filter(order => ['kuryer_oldi'].includes(order.status));
+  const activeOrders = orders.filter(order => ['kuryer_yolda'].includes(order.status));
+  const completedOrders = completedOrdersLocal;
 
-  // Filter orders based on status
-  const newOrders = orders.filter(order =>
-    ['kuryer_oldi'].includes(order.status)
-  );
-  const activeOrders = orders.filter(order =>
-    [ 'kuryer_yolda'].includes(order.status)
-  );
-  const completedOrders = orders.filter(order =>
-    order.status === 'buyurtma_topshirildi'
+  const today = new Date().toISOString().split('T')[0];
+  const todayOrders = completedOrders.filter(order =>
+    order.completed_at && order.completed_at.startsWith(today)
   );
 
-  // Calculate total courier salary for completed orders
-  const totalCompletedSalary = completedOrders.reduce((sum, order) => {
-    return sum + (parseFloat(order.courier_salary) || 0);
-  }, 0);
+  const totalCompletedSalary = completedOrders.reduce((sum, order) => sum + (parseFloat(order.courier_salary) || 0), 0);
+  const sessionSalary = sessionCompletedOrders.reduce((sum, order) => sum + (parseFloat(order.courier_salary) || 0), 0);
+  const todaySalary = todayOrders.reduce((sum, order) => sum + (parseFloat(order.courier_salary) || 0), 0);
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ p: isMobile ? 1 : 2 }}>
+      <Box sx={{ p: isMobile ? 1 : 2, maxWidth: 800, margin: '0 auto' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-          <IconButton onClick={() => navigate('/')} size="small">
+          <IconButton onClick={() => navigate('/')} size="small" sx={{ color: 'primary.main' }}>
             <ArrowBack />
           </IconButton>
           <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>
             Mening buyurtmalarim
           </Typography>
+          <Tooltip title="Yangilash">
+            <IconButton onClick={handleRefresh} size="small" disabled={loading}>
+              <Badge
+                color="primary"
+                invisible={!lastUpdated}
+                badgeContent={
+                  <Typography variant="caption">
+                    {lastUpdated && formatDateTime(lastUpdated)}
+                  </Typography>
+                }
+              >
+                <History fontSize="small" />
+              </Badge>
+            </IconButton>
+          </Tooltip>
         </Stack>
 
         <Tabs
@@ -268,6 +514,8 @@ const OrderDetails = () => {
           onChange={handleTabChange}
           variant="fullWidth"
           sx={{ mb: 2 }}
+          indicatorColor="primary"
+          textColor="primary"
         >
           <Tab
             label={
@@ -293,14 +541,6 @@ const OrderDetails = () => {
               </Stack>
             }
           />
-          <Tab
-            label={
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Notifications fontSize="small" />
-                <span>Barcha ({orders.length})</span>
-              </Stack>
-            }
-          />
         </Tabs>
 
         <Box sx={{ mb: 8 }}>
@@ -318,11 +558,26 @@ const OrderDetails = () => {
                   handleMarkOnWay={handleMarkOnWay}
                   handleMarkDelivered={handleMarkDelivered}
                   actionLoading={actionLoading}
+                  timers={timers}
+                  formatTimer={formatTimer}
+                  formatTime={formatTime}
+                  formatDateTime={formatDateTime}
                 />
               ))
             ) : (
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="body2">Yangi buyurtmalar mavjud emas</Typography>
+              <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
+                <Typography variant="body1" color="text.secondary">
+                  Yangi buyurtmalar mavjud emas
+                </Typography>
+                <Button
+                  onClick={handleRefresh}
+                  variant="outlined"
+                  size="small"
+                  sx={{ mt: 1 }}
+                  startIcon={<History />}
+                >
+                  Yangilash
+                </Button>
               </Paper>
             )
           )}
@@ -341,66 +596,87 @@ const OrderDetails = () => {
                   handleMarkOnWay={handleMarkOnWay}
                   handleMarkDelivered={handleMarkDelivered}
                   actionLoading={actionLoading}
+                  timers={timers}
+                  formatTimer={formatTimer}
+                  formatTime={formatTime}
+                  formatDateTime={formatDateTime}
                 />
               ))
             ) : (
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="body2">Faol buyurtmalar mavjud emas</Typography>
+              <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
+                <Typography variant="body1" color="text.secondary">
+                  Faol buyurtmalar mavjud emas
+                </Typography>
               </Paper>
             )
           )}
 
           {activeTab === 2 && (
             <Box>
-              <Paper sx={{ p: 2, mb: 2, textAlign: 'center' }}>
-                <Typography variant="subtitle1" fontWeight="bold" color="success.main">
-                  Umumiy kuryer maoshi: {totalCompletedSalary.toLocaleString('uz-UZ')} so'm
-                </Typography>
+              <Paper sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+                <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between">
+                  <Stack spacing={1}>
+                    <Typography variant="subtitle1" fontWeight="bold" color="success.main">
+                      <MonetizationOn fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      Umumiy daromad: {totalCompletedSalary.toLocaleString('uz-UZ')} so'm
+                    </Typography>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      <Today fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      Bugun: {todayOrders.length} ta buyurtma, {todaySalary.toLocaleString('uz-UZ')} so'm
+                    </Typography>
+                  </Stack>
+                  <Stack spacing={1}>
+                    <Typography variant="subtitle2" fontWeight="bold" color="primary.main">
+                      <Timer fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      Seans vaqti: {formatSessionTime(sessionTime)}
+                    </Typography>
+                    <Typography variant="subtitle2" color="primary.main">
+                      <MonetizationOn fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      Seans daromadi: {sessionSalary.toLocaleString('uz-UZ')} so'm
+                    </Typography>
+                  </Stack>
+                </Stack>
               </Paper>
+
               {completedOrders.length > 0 ? (
-                completedOrders.map((order) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    isMobile={isMobile}
-                    expanded={expandedOrder === order.id}
-                    onToggleExpand={toggleOrderExpand}
-                    getStatusChip={getStatusChip}
-                    showConfirmation={showConfirmation}
-                    handleMarkOnWay={handleMarkOnWay}
-                    handleMarkDelivered={handleMarkDelivered}
-                    actionLoading={actionLoading}
-                  />
-                ))
+                <>
+                  <Button
+                    onClick={handleClearCompleted}
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    sx={{ mb: 2 }}
+                    startIcon={<Close />}
+                  >
+                    Tarixni tozalash
+                  </Button>
+                  {completedOrders.map((order) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      isMobile={isMobile}
+                      expanded={expandedOrder === order.id}
+                      onToggleExpand={toggleOrderExpand}
+                      getStatusChip={getStatusChip}
+                      showConfirmation={showConfirmation}
+                      handleMarkOnWay={handleMarkOnWay}
+                      handleMarkDelivered={handleMarkDelivered}
+                      actionLoading={actionLoading}
+                      timers={timers}
+                      formatTimer={formatTimer}
+                      formatTime={formatTime}
+                      formatDateTime={formatDateTime}
+                    />
+                  ))}
+                </>
               ) : (
-                <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="body2">Yakunlangan buyurtmalar mavjud emas</Typography>
+                <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Yakunlangan buyurtmalar mavjud emas
+                  </Typography>
                 </Paper>
               )}
             </Box>
-          )}
-
-          {activeTab === 3 && (
-            orders.length > 0 ? (
-              orders.map((order) => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  isMobile={isMobile}
-                  expanded={expandedOrder === order.id}
-                  onToggleExpand={toggleOrderExpand}
-                  getStatusChip={getStatusChip}
-                  showConfirmation={showConfirmation}
-                  handleMarkOnWay={handleMarkOnWay}
-                  handleMarkDelivered={handleMarkDelivered}
-                  actionLoading={actionLoading}
-                />
-              ))
-            ) : (
-              <Paper sx={{ p: 2, textAlign: 'center' }}>
-                <Typography variant="body2">Buyurtmalar mavjud emas</Typography>
-              </Paper>
-            )
           )}
         </Box>
 
@@ -437,8 +713,9 @@ const OrderDetails = () => {
           open={!!error}
           autoHideDuration={6000}
           onClose={() => setError('')}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         >
-          <Alert severity="error" onClose={() => setError('')}>
+          <Alert severity="error" onClose={() => setError('')} sx={{ width: '100%' }}>
             {error}
           </Alert>
         </Snackbar>
@@ -446,8 +723,9 @@ const OrderDetails = () => {
           open={!!success}
           autoHideDuration={6000}
           onClose={() => setSuccess('')}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
         >
-          <Alert severity="success" onClose={() => setSuccess('')}>
+          <Alert severity="success" onClose={() => setSuccess('')} sx={{ width: '100%' }}>
             {success}
           </Alert>
         </Snackbar>
@@ -465,10 +743,12 @@ const OrderCard = ({
   showConfirmation,
   handleMarkOnWay,
   handleMarkDelivered,
-  actionLoading
+  actionLoading,
+  timers,
+  formatTimer,
+  formatTime,
+  formatDateTime
 }) => {
-  const navigate = useNavigate();
-
   const handleCallCustomer = () => {
     window.location.href = `tel:${order.contact_number}`;
   };
@@ -481,9 +761,36 @@ const OrderCard = ({
     }
   };
 
+  const handleOpenNavigation = () => {
+    if (isMobile) {
+      window.open(`google.navigation:q=${order.latitude},${order.longitude}`);
+    } else {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`);
+    }
+  };
+
+  const getTimerColor = (seconds) => {
+    if (seconds === undefined || seconds === null) return 'text.secondary';
+    if (seconds < 0) return 'error.main';
+    if (seconds < 300) return 'warning.main';
+    return 'success.main';
+  };
+
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
-      <CardContent sx={{ p: isMobile ? 1 : 2 }}>
+    <Card
+      variant="outlined"
+      sx={{
+        mb: 2,
+        borderLeft: `4px solid ${
+          order.status === 'buyurtma_topshirildi' ?
+            theme.palette.success.main :
+            order.status === 'kuryer_yolda' ?
+              theme.palette.warning.main :
+              theme.palette.primary.main
+        }`
+      }}
+    >
+      <CardContent sx={{ p: isMobile ? 2 : 3 }}>
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -491,9 +798,16 @@ const OrderCard = ({
           onClick={() => onToggleExpand(order.id)}
           sx={{ cursor: 'pointer' }}
         >
-          <Typography variant="subtitle1" fontWeight="bold">
-            #{order.id}
-          </Typography>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Typography variant="subtitle1" fontWeight="bold" color="primary">
+              #{order.id}
+            </Typography>
+            {order.completed_at && (
+              <Typography variant="caption" color="text.secondary">
+                {formatDateTime(order.completed_at)}
+              </Typography>
+            )}
+          </Stack>
           <Stack direction="row" alignItems="center" spacing={1}>
             {getStatusChip(order.status)}
             <IconButton size="small" disabled={actionLoading}>
@@ -503,19 +817,45 @@ const OrderCard = ({
         </Stack>
 
         <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
-          <Typography variant="body2">
+          <Typography variant="body2" color="text.secondary">
             {order.kitchen?.name || 'Noma\'lum oshxona'}
           </Typography>
-          <Typography variant="body2" fontWeight="bold">
-            {order.total_amount} so'm
+          <Typography variant="body2" fontWeight="bold" color="text.primary">
+            Umumiy: {(parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
           </Typography>
         </Stack>
+
+        <Stack direction="row" justifyContent="space-between" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Masofa: {order.full_time ? `${order.full_time} km` : 'N/A'}
+          </Typography>
+          <Typography variant="body2" fontWeight="bold" color="success.main">
+            Daromad: {(parseFloat(order.courier_salary) || 0).toLocaleString('uz-UZ')} so'm
+          </Typography>
+        </Stack>
+
+        <Typography
+          variant="body2"
+          color={getTimerColor(timers[order.id])}
+          sx={{
+            mt: 1,
+            fontWeight: timers[order.id] < 0 ? 'bold' : 'normal',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <Timer fontSize="small" />
+          {(order.status === 'oshxona_vaqt_belgiladi' || order.status === 'kuryer_oldi') && timers[order.id] !== undefined
+            ? `Qolgan vaqt: ${formatTimer(timers[order.id])}`
+            : `Oshxona vaqti: ${formatTime(order.kitchen_time)}`}
+        </Typography>
 
         {expanded && (
           <Box sx={{ mt: 2 }}>
             <Divider sx={{ mb: 2 }} />
 
-            <Stack spacing={1.5} sx={{ mb: 2 }}>
+            <Stack spacing={2} sx={{ mb: 2 }}>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Phone fontSize="small" color="action" />
                 <Typography variant="body2">
@@ -527,6 +867,7 @@ const OrderCard = ({
                   onClick={handleCallCustomer}
                   sx={{ ml: 'auto' }}
                   disabled={actionLoading || !order.contact_number}
+                  startIcon={<Phone />}
                 >
                   Qo'ng'iroq
                 </Button>
@@ -535,18 +876,29 @@ const OrderCard = ({
               <Stack direction="row" spacing={1} alignItems="flex-start">
                 <LocationOn fontSize="small" color="action" />
                 <Typography variant="body2" sx={{ flexGrow: 1 }}>
-                  {order.shipping_address || 'Noma\'lum manzil'}
+                  {order.shipping_address || 'Manzil kiritilmagan'}
                 </Typography>
                 {order.latitude && order.longitude && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={handleOpenMaps}
-                    startIcon={<LocationOn />}
-                    disabled={actionLoading}
-                  >
-                    Xarita
-                  </Button>
+                  <Stack direction={isMobile ? 'column' : 'row'} spacing={1}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleOpenMaps}
+                      startIcon={<Map />}
+                      disabled={actionLoading}
+                    >
+                      Xarita
+                    </Button>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleOpenNavigation}
+                      startIcon={<Directions />}
+                      disabled={actionLoading}
+                    >
+                      Navigatsiya
+                    </Button>
+                  </Stack>
                 )}
               </Stack>
 
@@ -589,10 +941,10 @@ const OrderCard = ({
                           {item.product?.title || 'Noma\'lum mahsulot'}
                         </Typography>
                       }
-                      secondary={`${item.quantity} × ${item.price} so'm`}
+                      secondary={`${item.quantity} × ${(parseFloat(item.price) || 0).toLocaleString('uz-UZ')} so'm`}
                     />
                     <Typography variant="body2" fontWeight="bold">
-                      {(item.quantity * parseFloat(item.price)).toLocaleString('uz-UZ')} so'm
+                      {(item.quantity * (parseFloat(item.price) || 0)).toLocaleString('uz-UZ')} so'm
                     </Typography>
                   </ListItem>
                 ))
@@ -610,11 +962,13 @@ const OrderCard = ({
                   color="warning"
                   fullWidth={isMobile}
                   startIcon={<LocalShipping />}
-                  onClick={() => showConfirmation(
-                    'Yetkazilmoqda',
-                    'Buyurtmani yetkazilmoqda deb belgilaysizmi?',
-                    () => handleMarkOnWay(order.id)
-                  )}
+                  onClick={() =>
+                    showConfirmation(
+                      'Yetkazilmoqda',
+                      'Buyurtmani yetkazilmoqda deb belgilaysizmi?',
+                      () => handleMarkOnWay(order.id)
+                    )
+                  }
                   disabled={actionLoading}
                 >
                   Yetkazilmoqda
@@ -626,11 +980,13 @@ const OrderCard = ({
                   color="success"
                   fullWidth={isMobile}
                   startIcon={<CheckCircle />}
-                  onClick={() => showConfirmation(
-                    'Yetkazib berildi',
-                    'Buyurtmani yetkazib berildi deb belgilaysizmi?',
-                    () => handleMarkDelivered(order.id)
-                  )}
+                  onClick={() =>
+                    showConfirmation(
+                      'Yetkazib berildi',
+                      'Buyurtmani yetkazib berildi deb belgilaysizmi?',
+                      () => handleMarkDelivered(order.id)
+                    )
+                  }
                   disabled={actionLoading}
                 >
                   Yetkazib berildi

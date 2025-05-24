@@ -78,16 +78,7 @@ function Layout() {
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-200">
         <nav className="flex justify-around">
-          <NavLink
-            to="/login"
-            className={({ isActive }) => 
-              `flex flex-col items-center py-3 px-4 text-xs ${
-                isActive ? 'text-blue-600' : 'text-gray-600'
-              }`
-            }
-          >
-            <span className="mt-1">Login</span>
-          </NavLink>
+          
           <NavLink
             to="/orders"
             className={({ isActive }) => 

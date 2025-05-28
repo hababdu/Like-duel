@@ -65,7 +65,7 @@ const Login = ({ onLogin }) => {
       }
 
       // Always navigate to /profile after successful login
-      navigate('/profile', { replace: true });
+      navigate('/', { replace: true });
     } catch (err) {
       let errorMessage = 'Kirish muvaffaqiyatsiz. Hisob maʼlumotlaringizni tekshiring.';
       if (err.response) {

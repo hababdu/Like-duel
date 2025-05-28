@@ -9,51 +9,7 @@ import {
 function Layout() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-blue-600">Food Delivery App</h1>
-            <div className="hidden md:block">
-              <nav className="flex space-x-8">
-             
-                <NavLink
-                  to="/orders"
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                    }`
-                  }
-                >
-                  <div className="flex items-center">
-                    <ShoppingCartIcon className="h-5 w-5 mr-2" />
-                   Olingan buyurtmalar
-                  </div>
-                </NavLink>
-                
-                <NavLink
-                  to="/profile"
-                  className={({ isActive }) => 
-                    `px-3 py-2 rounded-md text-sm font-medium ${
-                      isActive 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                    }`
-                  }
-                >
-                  <div className="flex items-center">
-                    <UserIcon className="h-5 w-5 mr-2" />
-                    Profile
-                  </div>
-                </NavLink>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    
       {/* Main Content */}
       <main className="flex-grow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -78,7 +34,7 @@ function Layout() {
           </NavLink>
          
           <NavLink
-            to="/profile"
+            to="/"
             className={({ isActive }) => 
               `flex flex-col items-center py-3 px-4 text-xs ${
                 isActive ? 'text-blue-600' : 'text-gray-600'

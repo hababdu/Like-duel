@@ -1,16 +1,15 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import {
   Box, Typography, CircularProgress, Alert, Stack, Button, Card, CardContent, Divider,
   Chip, List, ListItem, ListItemText, ListItemAvatar, Avatar, Paper, Tabs, Tab,
   IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Badge,
-  Tooltip, useMediaQuery, ThemeProvider, createTheme
+  Tooltip, useMediaQuery, ThemeProvider, createTheme, Fab, Menu, MenuItem, TextField
 } from '@mui/material';
 import {
   Refresh, CheckCircle, LocalShipping, Restaurant, Payment, LocationOn, Phone,
   AccessTime, Notifications, ExpandMore, ExpandLess, Check, Assignment, ArrowBack,
-  Timer, MonetizationOn, Today, Close, Directions, Map
+  Timer, MonetizationOn, Today, Close, Directions, Map, Sort, Search
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -42,30 +41,32 @@ const AVAILABLE_ORDERS_API = `${BASE_URL}/api/user/available-orders-couryer/`;
 const OWN_ORDERS_API = `${BASE_URL}/api/user/courier-own-orders/`;
 const ORDER_API = `${BASE_URL}/api/user/orders/`;
 
+// Modern and vibrant theme
 const theme = createTheme({
   palette: {
-    primary: { main: '#1976d2' },
-    secondary: { main: '#9c27b0' },
+    primary: { main: '#0288d1' }, // Bright blue for primary actions
+    secondary: { main: '#7b1fa2' }, // Deep purple for secondary actions
     error: { main: '#d32f2f' },
-    warning: { main: '#ed6c02' },
-    success: { main: '#2e7d32' },
+    warning: { main: '#f57c00' }, // Vibrant orange
+    success: { main: '#388e3c' }, // Green for success states
     info: { main: '#0288d1' },
-    background: { default: '#f5f5f5' },
+    background: { default: '#f4f6f8', paper: '#ffffff' }, // Light gray background
+    text: { primary: '#212121', secondary: '#757575' },
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: '12px',
-          padding: '10px 20px',
-          fontSize: '0.9rem',
-          margin: '6px 0',
+          padding: '12px 24px',
+          fontSize: '0.95rem',
+          fontWeight: 700,
           textTransform: 'none',
-          fontWeight: 600,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          boxShadow: '0 3px 6px rgba(0,0,0,0.1)',
           '&:hover': {
-            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+            boxShadow: '0 5px 10px rgba(0,0,0,0.15)',
           },
+          minWidth: '120px', // Ensure buttons are wide enough for touch
         },
       },
     },
@@ -73,12 +74,12 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: '16px',
-          marginBottom: '20px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          marginBottom: '16px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           transition: 'transform 0.2s ease, box-shadow 0.2s ease',
           '&:hover': {
             transform: 'translateY(-4px)',
-            boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
           },
         },
       },
@@ -86,9 +87,10 @@ const theme = createTheme({
     MuiChip: {
       styleOverrides: {
         root: {
-          borderRadius: '8px',
+          borderRadius: '10px',
           fontWeight: 600,
-          padding: '4px 8px',
+          padding: '6px 12px',
+          fontSize: '0.85rem',
         },
       },
     },
@@ -98,6 +100,7 @@ const theme = createTheme({
           borderBottom: '1px solid #e0e0e0',
           backgroundColor: '#fff',
           borderRadius: '12px 12px 0 0',
+          padding: '0 8px',
         },
       },
     },
@@ -107,26 +110,33 @@ const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           padding: '12px 16px',
+          fontSize: '0.9rem',
+          minHeight: '48px', // Larger touch target
+        },
+      },
+    },
+    MuiTypography: {
+      styleOverrides: {
+        root: {
+          lineHeight: 1.5,
         },
       },
     },
   },
   typography: {
     fontFamily: [
+      '"Inter"',
       '-apple-system',
       'BlinkMacSystemFont',
       '"Segoe UI"',
       'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
       'sans-serif',
-      '"Apple Color Emoji"',
-      '"Segoe UI Emoji"',
-      '"Segoe UI Symbol"',
     ].join(','),
-    h6: { fontWeight: 700, fontSize: '1.25rem' },
-    subtitle1: { fontWeight: 600 },
-    body2: { fontSize: '0.9rem' },
+    h6: { fontWeight: 700, fontSize: '1.3rem' },
+    subtitle1: { fontWeight: 600, fontSize: '1rem' },
+    body1: { fontSize: '0.95rem' },
+    body2: { fontSize: '0.85rem' },
+    caption: { fontSize: '0.8rem' },
   },
 });
 
@@ -154,6 +164,9 @@ const CourierDashboard = () => {
   const timerRefs = useRef({});
   const [lastUpdated, setLastUpdated] = useState(null);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortAnchorEl, setSortAnchorEl] = useState(null);
+  const [sortOption, setSortOption] = useState('default');
 
   useEffect(() => {
     const storedOrders = localStorage.getItem('completed_orders');
@@ -220,7 +233,6 @@ const CourierDashboard = () => {
       });
 
       const ordersData = Array.isArray(response.data) ? response.data : [response.data];
-      // Eski taymerlarni tozalash
       Object.keys(timerRefs.current).forEach(orderId => {
         if (!ordersData.some(order => order.id === parseInt(orderId))) {
           stopTimer(orderId);
@@ -292,7 +304,7 @@ const CourierDashboard = () => {
       const setTime = new Date(setAt).getTime();
       const now = new Date().getTime();
       const elapsedSeconds = Math.floor((now - setTime) / 1000);
-      remainingSeconds = totalSeconds - elapsedSeconds; // Allow negative for overdue
+      remainingSeconds = totalSeconds - elapsedSeconds;
     } else {
       let startTime = localStorage.getItem(timerKey);
       if (!startTime) {
@@ -302,7 +314,7 @@ const CourierDashboard = () => {
       const setTime = new Date(startTime).getTime();
       const now = new Date().getTime();
       const elapsedSeconds = Math.floor((now - setTime) / 1000);
-      remainingSeconds = totalSeconds - elapsedSeconds; // Allow negative for overdue
+      remainingSeconds = totalSeconds - elapsedSeconds;
     }
 
     if (timerRefs.current[orderId]) {
@@ -346,7 +358,7 @@ const CourierDashboard = () => {
     const minutes = Math.floor((absSeconds % 3600) / 60);
     const secs = absSeconds % 60;
     const timeString = `${hours > 0 ? `${String(hours).padStart(2, '0')}:` : ''}${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    return isNegative ? `Oshxonaga kechikish: ${timeString}` : `Qolgan: ${timeString}`;
+    return isNegative ? `Kechikish: ${timeString}` : `Qolgan: ${timeString}`;
   };
 
   const formatTime = kitchenTime => {
@@ -378,6 +390,8 @@ const CourierDashboard = () => {
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+    setSearchQuery('');
+    setSortOption('default');
   };
 
   const toggleOrderExpand = orderId => {
@@ -387,10 +401,10 @@ const CourierDashboard = () => {
   const getStatusChip = status => {
     const statusMap = {
       buyurtma_tushdi: { label: 'Yangi', color: 'primary', icon: <AccessTime /> },
-      oshxona_vaqt_belgiladi: { label: 'Oshxona vaqt belgilaydi', color: 'warning', icon: <AccessTime /> },
-      kuryer_oldi: { label: 'Kuryer oldi', color: 'info', icon: <CheckCircle /> },
+      oshxona_vaqt_belgiladi: { label: 'Oshxona tayyorlanmoqda', color: 'warning', icon: <AccessTime /> },
+      kuryer_oldi: { label: 'Qabul qilindi', color: 'info', icon: <CheckCircle /> },
       kuryer_yolda: { label: 'Yetkazilmoqda', color: 'warning', icon: <LocalShipping /> },
-      buyurtma_topshirildi: { label: 'Yetkazib berildi', color: 'success', icon: <CheckCircle /> },
+      buyurtma_topshirildi: { label: 'Yetkazildi', color: 'success', icon: <CheckCircle /> },
       qabul_qilindi: { label: 'Qabul qilindi', color: 'secondary', icon: <CheckCircle /> },
     };
     const config = statusMap[status] || { label: status, color: 'default', icon: <AccessTime /> };
@@ -401,7 +415,7 @@ const CourierDashboard = () => {
         icon={config.icon}
         size="small"
         variant="filled"
-        sx={{ fontWeight: 'bold' }}
+        sx={{ fontWeight: 'bold', bgcolor: config.color + '.light', color: config.color + '.dark' }}
       />
     );
   };
@@ -527,6 +541,8 @@ const CourierDashboard = () => {
 
   const handleRefresh = () => {
     fetchOrders();
+    setSearchQuery('');
+    setSortOption('default');
   };
 
   const handleClearCompleted = () => {
@@ -536,6 +552,7 @@ const CourierDashboard = () => {
       () => {
         localStorage.removeItem('completed_orders');
         setCompletedOrders([]);
+        setSessionCompletedOrders([]);
         setSuccess('Yakunlangan buyurtmalar tarixi tozalandi');
       }
     );
@@ -568,6 +585,37 @@ const CourierDashboard = () => {
     return 'success.main';
   };
 
+  const handleSortOpen = event => {
+    setSortAnchorEl(event.currentTarget);
+  };
+
+  const handleSortClose = () => {
+    setSortAnchorEl(null);
+  };
+
+  const handleSortSelect = option => {
+    setSortOption(option);
+    handleSortClose();
+  };
+
+  const filterAndSortOrders = orders => {
+    let filteredOrders = orders.filter(order =>
+      order.id.toString().includes(searchQuery) ||
+      order.kitchen?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.shipping_address?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (sortOption === 'amount') {
+      filteredOrders.sort((a, b) => (parseFloat(b.total_amount) || 0) - (parseFloat(a.total_amount) || 0));
+    } else if (sortOption === 'distance') {
+      filteredOrders.sort((a, b) => (parseFloat(b.full_time) || 0) - (parseFloat(a.full_time) || 0));
+    } else if (sortOption === 'time') {
+      filteredOrders.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    }
+
+    return filteredOrders;
+  };
+
   if (loading && !availableOrders.length && !ownOrders.length) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -576,8 +624,8 @@ const CourierDashboard = () => {
     );
   }
 
-  const newOrders = ownOrders.filter(order => ['kuryer_oldi'].includes(order.status));
-  const activeOrders = ownOrders.filter(order => ['kuryer_yolda'].includes(order.status));
+  const newOrders = filterAndSortOrders(ownOrders.filter(order => ['kuryer_oldi'].includes(order.status)));
+  const activeOrders = filterAndSortOrders(ownOrders.filter(order => ['kuryer_yolda'].includes(order.status)));
   const today = new Date().toISOString().split('T')[0];
   const todayOrders = completedOrders.filter(order => order.completed_at && order.completed_at.startsWith(today));
   const totalCompletedSalary = completedOrders.reduce((sum, order) => sum + (parseFloat(order.courier_salary) || 0), 0);
@@ -587,29 +635,65 @@ const CourierDashboard = () => {
   return (
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
-        <Box sx={{ p: isMobile ? 1 : 3, maxWidth: 900, margin: '0 auto', bgcolor: 'background.default' }}>
-          
+        <Box sx={{ p: isMobile ? 1 : 3, maxWidth: 1200, margin: '0 auto', bgcolor: 'background.default' }}>
+          {/* Header Section */}
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Kuryer Dashboard
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Tooltip title="Yangilash">
+                <IconButton onClick={handleRefresh} color="primary">
+                  <Refresh />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Saralash">
+                <IconButton onClick={handleSortOpen} color="primary">
+                  <Sort />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
 
+          {/* Search Bar */}
+          <TextField
+            fullWidth
+            variant="outlined"
+            placeholder="Buyurtma ID, oshxona yoki manzil bo'yicha qidirish..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            InputProps={{
+              startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+              sx: { borderRadius: '12px', bgcolor: 'white', mb: 2 },
+            }}
+          />
+
+          {/* Tabs */}
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
-            variant="fullWidth"
-            sx={{ mb: 3 }}
+            variant={isMobile ? 'scrollable' : 'fullWidth'}
+            scrollButtons="auto"
+            sx={{ mb: 2, bgcolor: 'white', borderRadius: '12px' }}
             indicatorColor="primary"
             textColor="primary"
           >
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <AccessTime fontSize="small" />
-                  <span>Tushdi ({availableOrders.length})</span>
+                  <Badge badgeContent={availableOrders.length} color="primary">
+                    <AccessTime fontSize="small" />
+                  </Badge>
+                  <span>Mavjud ({availableOrders.length})</span>
                 </Stack>
               }
             />
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <AccessTime fontSize="small" />
+                  <Badge badgeContent={newOrders.length} color="info">
+                    <CheckCircle fontSize="small" />
+                  </Badge>
                   <span>Olindi ({newOrders.length})</span>
                 </Stack>
               }
@@ -617,7 +701,9 @@ const CourierDashboard = () => {
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <LocalShipping fontSize="small" />
+                  <Badge badgeContent={activeOrders.length} color="warning">
+                    <LocalShipping fontSize="small" />
+                  </Badge>
                   <span>Yolda ({activeOrders.length})</span>
                 </Stack>
               }
@@ -625,17 +711,20 @@ const CourierDashboard = () => {
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <CheckCircle fontSize="small" />
+                  <Badge badgeContent={completedOrders.length} color="success">
+                    <CheckCircle fontSize="small" />
+                  </Badge>
                   <span>Yakunlangan ({completedOrders.length})</span>
                 </Stack>
               }
             />
           </Tabs>
 
-          <Box sx={{ mb: 8 }}>
+          {/* Orders List */}
+          <Box sx={{ mb: isMobile ? 16 : 8 }}>
             {activeTab === 0 && (
-              availableOrders.length > 0 ? (
-                availableOrders.map(order => (
+              filterAndSortOrders(availableOrders).length > 0 ? (
+                filterAndSortOrders(availableOrders).map(order => (
                   <OrderCard
                     key={`available-${order.id}`}
                     order={order}
@@ -664,9 +753,10 @@ const CourierDashboard = () => {
                   </Typography>
                   <Button
                     onClick={handleRefresh}
-                    variant="outlined"
+                    variant="contained"
+                    color="primary"
                     size="medium"
-                    sx={{ mt: 2 }}
+                    sx={{ mt: 2, borderRadius: '10px' }}
                     startIcon={<Refresh />}
                   >
                     Yangilash
@@ -754,46 +844,47 @@ const CourierDashboard = () => {
                         <Today fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
                         Bugun: {todayOrders.length} ta buyurtma, {todaySalary.toLocaleString('uz-UZ')} so'm
                       </Typography>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        <Timer fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                        Sessiya vaqti: {formatSessionTime(sessionTime)}
+                      </Typography>
                     </Stack>
-                   
-                  </Stack>
-                </Paper>
-
-                {completedOrders.length > 0 ? (
-                  <>
                     <Button
                       onClick={handleClearCompleted}
                       variant="outlined"
                       color="error"
                       size="medium"
-                      sx={{ mb: 2, borderRadius: '10px' }}
+                      sx={{ borderRadius: '10px', alignSelf: isMobile ? 'stretch' : 'center' }}
                       startIcon={<Close />}
                     >
                       Tarixni tozalash
                     </Button>
-                    {completedOrders.map(order => (
-                      <OrderCard
-                        key={`completed-${order.id}`}
-                        order={order}
-                        isMobile={isMobile}
-                        expanded={expandedOrder === order.id}
-                        onToggleExpand={toggleOrderExpand}
-                        getStatusChip={getStatusChip}
-                        showConfirmation={showConfirmation}
-                        handleMarkOnWay={handleMarkOnWay}
-                        handleMarkDelivered={handleMarkDelivered}
-                        actionLoading={actionLoading}
-                        timers={timers}
-                        formatTimer={formatTimer}
-                        formatTime={formatTime}
-                        formatDateTime={formatDateTime}
-                        handleCallCustomer={handleCallCustomer}
-                        handleOpenMaps={handleOpenMaps}
-                        handleOpenNavigation={handleOpenNavigation}
-                        getTimerColor={getTimerColor}
-                      />
-                    ))}
-                  </>
+                  </Stack>
+                </Paper>
+
+                {completedOrders.length > 0 ? (
+                  filterAndSortOrders(completedOrders).map(order => (
+                    <OrderCard
+                      key={`completed-${order.id}`}
+                      order={order}
+                      isMobile={isMobile}
+                      expanded={expandedOrder === order.id}
+                      onToggleExpand={toggleOrderExpand}
+                      getStatusChip={getStatusChip}
+                      showConfirmation={showConfirmation}
+                      handleMarkOnWay={handleMarkOnWay}
+                      handleMarkDelivered={handleMarkDelivered}
+                      actionLoading={actionLoading}
+                      timers={timers}
+                      formatTimer={formatTimer}
+                      formatTime={formatTime}
+                      formatDateTime={formatDateTime}
+                      handleCallCustomer={handleCallCustomer}
+                      handleOpenMaps={handleOpenMaps}
+                      handleOpenNavigation={handleOpenNavigation}
+                      getTimerColor={getTimerColor}
+                    />
+                  ))
                 ) : (
                   <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                     <Typography variant="body1" color="text.secondary">
@@ -805,12 +896,45 @@ const CourierDashboard = () => {
             )}
           </Box>
 
+          {/* Floating Action Button for Quick Refresh */}
+          {isMobile && (
+            <Fab
+              color="primary"
+              onClick={handleRefresh}
+              sx={{ position: 'fixed', bottom: 80, right: 16 }}
+            >
+              <Refresh />
+            </Fab>
+          )}
+
+          {/* Sort Menu */}
+          <Menu
+            anchorEl={sortAnchorEl}
+            open={Boolean(sortAnchorEl)}
+            onClose={handleSortClose}
+            PaperProps={{ sx: { borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' } }}
+          >
+            <MenuItem onClick={() => handleSortSelect('default')} selected={sortOption === 'default'}>
+              Standart
+            </MenuItem>
+            <MenuItem onClick={() => handleSortSelect('amount')} selected={sortOption === 'amount'}>
+              Narx bo'yicha
+            </MenuItem>
+            <MenuItem onClick={() => handleSortSelect('distance')} selected={sortOption === 'distance'}>
+              Masofa bo'yicha
+            </MenuItem>
+            <MenuItem onClick={() => handleSortSelect('time')} selected={sortOption === 'time'}>
+              Vaqt bo'yicha
+            </MenuItem>
+          </Menu>
+
+          {/* Confirmation Dialog */}
           <Dialog
             open={confirmDialog.open}
             onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
             fullWidth
             maxWidth="xs"
-            sx={{ '& .MuiDialog-paper': { borderRadius: '16px', p: 1 } }}
+            sx={{ '& .MuiDialog-paper': { borderRadius: '16px', p: 2 } }}
           >
             <DialogTitle sx={{ fontWeight: 600 }}>{confirmDialog.title}</DialogTitle>
             <DialogContent>
@@ -837,6 +961,7 @@ const CourierDashboard = () => {
             </DialogActions>
           </Dialog>
 
+          {/* Snackbars */}
           <Snackbar
             open={!!error}
             autoHideDuration={6000}
@@ -898,238 +1023,248 @@ const OrderCard = ({
     <Card
       variant="outlined"
       sx={{
-      mb: 2,
-      borderLeft: `4px solid ${
-        order.status === 'buyurtma_topshirildi'
-        ? theme.palette.success.main
-        : order.status === 'kuryer_yolda'
-        ? theme.palette.warning.main
-        : theme.palette.primary.main
-      }`,
-      bgcolor: 'white',
+        mb: 2,
+        borderLeft: `4px solid ${
+          order.status === 'buyurtma_topshirildi'
+            ? theme.palette.success.main
+            : order.status === 'kuryer_yolda'
+            ? theme.palette.warning.main
+            : order.status === 'kuryer_oldi'
+            ? theme.palette.info.main
+            : theme.palette.primary.main
+        }`,
+        bgcolor: 'white',
+        borderRadius: '16px',
       }}
     >
       <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        onClick={() => onToggleExpand(order.id)}
-        sx={{ cursor: 'pointer', mb: 1 }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography variant="subtitle1" fontWeight="bold" color="primary">
-          #{order.id}
-        </Typography>
-        {order.completed_at && (
-          <Typography variant="caption" color="text.secondary">
-          {formatDateTime(order.completed_at)}
-          </Typography>
-        )}
-        </Stack>
-        <Stack direction="row" alignItems="center" spacing={1}>
-        {getStatusChip(order.status)}
-        <IconButton size="small" disabled={actionLoading}>
-          {expanded ? <ExpandLess /> : <ExpandMore />}
-        </IconButton>
-        </Stack>
-      </Stack>
-
-      <Stack direction={isMobile ? "column" : "row"} justifyContent="space-between" sx={{ mt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-        {order.kitchen?.name || 'Noma\'lum oshxona'}
-        </Typography>
-        <Typography variant="body2" fontWeight="bold" color="text.primary">
-       Oshxona: {(parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
-        </Typography>
-      </Stack>
-
-      <Stack direction={isMobile ? "column" : "row"} justifyContent="space-between" sx={{ mt: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-        Masofa: {order.full_time ? `${order.full_time} km` : 'N/A'}
-        </Typography>
-        <Typography variant="body2" fontWeight="bold" color="success.main">
-        Kuryer uchun: {(parseFloat(order.courier_salary) || 0).toLocaleString('uz-UZ')} so'm
-        </Typography>
-        <Typography variant="body2" fontWeight="bold" color="success.main">
-        Jami: {(parseFloat(order.courier_salary) + parseFloat(order.total_amount ) || 0).toLocaleString('uz-UZ')} so'm
-        </Typography>
-      </Stack>
-
-      <Stack direction={isMobile ? "column" : "row"} justifyContent="space-between" sx={{ mt: 1 }}>
-        <Typography
-        variant="body2"
-        color={getTimerColor(timers[order.id])}
-        sx={{
-          mt: 1,
-          fontWeight: timers[order.id] < 0 ? 'bold' : 'normal',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-        }}
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          onClick={() => onToggleExpand(order.id)}
+          sx={{ cursor: 'pointer', mb: 1 }}
         >
-        <Timer fontSize="small" />
-        {['oshxona_vaqt_belgiladi', 'kuryer_oldi'].includes(order.status) && timers[order.id] !== undefined
-          ? formatTimer(timers[order.id])
-          : `Oshxona vaqti: ${formatTime(order.kitchen_time)}`}
-        </Typography>
-        {isAvailableOrder && (order.status === 'buyurtma_tushdi' || order.status === 'oshxona_vaqt_belgiladi') && (
-        <Button
-          variant="contained"
-          color="success"
-          fullWidth={isMobile}
-          startIcon={<Check />}
-          onClick={() => handleAcceptOrder(order.id)}
-          disabled={actionLoading}
-          sx={{ borderRadius: '10px', py: 1.5 }}
-        >
-          Olish
-        </Button>
-        )}
-          {order.status === 'kuryer_oldi' && (
-          <Button
-            variant="contained"
-            color="warning"
-            fullWidth={isMobile}
-            startIcon={<LocalShipping />}
-            onClick={() =>
-            showConfirmation(
-              'Yetkazilmoqda',
-              'Buyurtmani yetkazilmoqda deb belgilaysizmi?',
-              () => handleMarkOnWay(order.id)
-            )
-            }
-            disabled={actionLoading}
-            sx={{ borderRadius: '10px', py: 1.5 }}
-          >
-            Yolga chiqish
-          </Button>
-          )}
-          {order.status === 'kuryer_yolda' && (
-          <Button
-            variant="contained"
-            color="success"
-            fullWidth={isMobile}
-            startIcon={<CheckCircle />}
-            onClick={() =>
-            showConfirmation(
-              'Yetkazib berildi',
-              'Buyurtmani yetkazib berildi deb belgilaysizmi?',
-              () => handleMarkDelivered(order.id)
-            )
-            }
-            disabled={actionLoading}
-            sx={{ borderRadius: '10px', py: 1.5 }}
-          >
-            Yetkazib berildi
-          </Button>
-          )}
-      </Stack>
-
-      {expanded && (
-        <Box sx={{ mt: 2 }}>
-        <Divider sx={{ mb: 2 }} />
-
-        <Stack spacing={2} sx={{ mb: 2 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-          <Phone fontSize="small" color="action" />
-          <Typography variant="body2">{order.contact_number || 'Noma\'lum'}</Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => handleCallCustomer(order.contact_number)}
-            sx={{ ml: 'auto', borderRadius: '10px' }}
-            disabled={actionLoading || !order.contact_number}
-            startIcon={<Phone />}
-          >
-            Qo'ng'iroq
-          </Button>
-          </Stack>
-
-          <Stack direction="row" spacing={1} alignItems="flex-start">
-          <LocationOn fontSize="small" color="action" />
-          <Typography variant="body2" sx={{ flexGrow: 1 }}>
-            {order.shipping_address || 'Manzil kiritilmagan'}
-          </Typography>
-          {order.latitude && order.longitude && (
-            <Stack direction={isMobile ? 'column' : 'row'} spacing={1}>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => handleOpenMaps(order.latitude, order.longitude)}
-              startIcon={<Map />}
-              disabled={actionLoading}
-              sx={{ borderRadius: '10px' }}
-            >
-              Xarita
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => handleOpenNavigation(order.latitude, order.longitude)}
-              startIcon={<Directions />}
-              disabled={actionLoading}
-              sx={{ borderRadius: '10px' }}
-            >
-              Navigatsiya
-            </Button>
-            </Stack>
-          )}
-          </Stack>
-
-          <Stack direction="row" spacing={1} alignItems="center">
-          <Payment fontSize="small" color="action" />
-          <Typography variant="body2">
-            To'lov: {order.payment === 'naqd' ? 'Naqd' : 'Karta'}
-          </Typography>
-          </Stack>
-
-          {order.notes && (
-          <Stack direction="row" spacing={1} alignItems="flex-start">
-            <Assignment fontSize="small" color="action" />
-            <Typography variant="body2">Eslatma: {order.notes}</Typography>
-          </Stack>
-          )}
-        </Stack>
-
-        <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-          Mahsulotlar ({order.items?.length || 0})
-        </Typography>
-        <List dense disablePadding>
-          {order.items && order.items.length > 0 ? (
-          order.items.map((item, index) => (
-            <ListItem key={`${order.id}-item-${index}`} disablePadding sx={{ py: 0.5 }}>
-            <ListItemAvatar>
-              <Avatar
-              variant="rounded"
-              src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : undefined}
-              sx={{ width: 32, height: 32, bgcolor: 'background.default' }}
-              >
-              <Restaurant fontSize="small" />
-              </Avatar>
-            </ListItemAvatar>
-            <ListItemText
-              primary={<Typography variant="body2">{item.product?.title || 'Noma\'lum mahsulot'}</Typography>}
-              secondary={`${item.quantity} × ${(parseFloat(item.price) || 0).toLocaleString('uz-UZ')} so'm`}
-            />
-            <Typography variant="body2" fontWeight="bold">
-              {(item.quantity * (parseFloat(item.price) || 0)).toLocaleString('uz-UZ')} so'm
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Typography variant="subtitle1" fontWeight="bold" color="primary">
+              #{order.id}
             </Typography>
-            </ListItem>
-          ))
-          ) : (
-          <Typography variant="body2" color="text.secondary">
-            Mahsulotlar mavjud emas
-          </Typography>
-          )}
-        </List>
+            {order.completed_at && (
+              <Typography variant="caption" color="text.secondary">
+                {formatDateTime(order.completed_at)}
+              </Typography>
+            )}
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {getStatusChip(order.status)}
+            <IconButton size="small" disabled={actionLoading}>
+              {expanded ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
+          </Stack>
+        </Stack>
 
-       
-        </Box>
-      )}
+        <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" sx={{ mt: 1, gap: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+            {order.kitchen?.name || 'Noma\'lum oshxona'}
+          </Typography>
+          <Typography variant="body2" fontWeight="bold" color="text.primary">
+            Oshxona: {(parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
+          </Typography>
+        </Stack>
+
+        <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" sx={{ mt: 1, gap: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Masofa: {order.full_time ? `${order.full_time} km` : 'N/A'}
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <Typography variant="body2" fontWeight="bold" color="success.main">
+              Kuryer: {(parseFloat(order.courier_salary) || 0).toLocaleString('uz-UZ')} so'm
+            </Typography>
+            <Typography variant="body2" fontWeight="bold" color="primary.main">
+              Jami: {(parseFloat(order.courier_salary) + parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
+            </Typography>
+          </Stack>
+        </Stack>
+
+        <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} sx={{ mt: 2, gap: 1 }}>
+          <Typography
+            variant="body2"
+            color={getTimerColor(timers[order.id])}
+            sx={{
+              fontWeight: timers[order.id] < 0 ? 'bold' : 'normal',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <Timer fontSize="small" />
+            {['oshxona_vaqt_belgiladi', 'kuryer_oldi'].includes(order.status) && timers[order.id] !== undefined
+              ? formatTimer(timers[order.id])
+              : `Oshxona vaqti: ${formatTime(order.kitchen_time)}`}
+          </Typography>
+          <Stack direction={isMobile ? 'column' : 'row'} spacing={1} sx={{ width: isMobile ? '100%' : 'auto' }}>
+            {isAvailableOrder && (order.status === 'buyurtma_tushdi' || order.status === 'oshxona_vaqt_belgiladi') && (
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth={isMobile}
+                startIcon={<Check />}
+                onClick={() =>
+                  showConfirmation(
+                    'Buyurtmani olish',
+                    `Buyurtma #${order.id} ni qabul qilmoqchimisiz?`,
+                    () => handleAcceptOrder(order.id)
+                  )
+                }
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Olish
+              </Button>
+            )}
+            {order.status === 'kuryer_oldi' && (
+              <Button
+                variant="contained"
+                color="warning"
+                fullWidth={isMobile}
+                startIcon={<LocalShipping />}
+                onClick={() =>
+                  showConfirmation(
+                    'Yetkazilmoqda',
+                    `Buyurtma #${order.id} yetkazilmoqda deb belgilaysizmi?`,
+                    () => handleMarkOnWay(order.id)
+                  )
+                }
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Yolga chiqish
+              </Button>
+            )}
+            {order.status === 'kuryer_yolda' && (
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth={isMobile}
+                startIcon={<CheckCircle />}
+                onClick={() =>
+                  showConfirmation(
+                    'Yetkazib berildi',
+                    `Buyurtma #${order.id} yetkazib berildi deb belgilaysizmi?`,
+                    () => handleMarkDelivered(order.id)
+                  )
+                }
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Yetkazildi
+              </Button>
+            )}
+          </Stack>
+        </Stack>
+
+        {expanded && (
+          <Box sx={{ mt: 2 }}>
+            <Divider sx={{ my: 2 }} />
+
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Phone fontSize="small" color="action" />
+                <Typography variant="body2">{order.contact_number || 'Noma\'lum'}</Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleCallCustomer(order.contact_number)}
+                  sx={{ ml: 'auto', borderRadius: '10px', fontWeight: 600 }}
+                  disabled={actionLoading || !order.contact_number}
+                  startIcon={<Phone />}
+                >
+                  Qo'ng'iroq
+                </Button>
+              </Stack>
+
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <LocationOn fontSize="small" color="action" />
+                <Typography variant="body2" sx={{ flexGrow: 1 }}>
+                  {order.shipping_address || 'Manzil kiritilmagan'}
+                </Typography>
+                {order.latitude && order.longitude && (
+                  <Stack direction={isMobile ? 'column' : 'row'} spacing={1}>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleOpenMaps(order.latitude, order.longitude)}
+                      startIcon={<Map />}
+                      disabled={actionLoading}
+                      sx={{ borderRadius: '10px', fontWeight: 600 }}
+                    >
+                      Xarita
+                    </Button>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => handleOpenNavigation(order.latitude, order.longitude)}
+                      startIcon={<Directions />}
+                      disabled={actionLoading}
+                      sx={{ borderRadius: '10px', fontWeight: 600 }}
+                    >
+                      Navigatsiya
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Payment fontSize="small" color="action" />
+                <Typography variant="body2">
+                  To'lov: {order.payment === 'naqd' ? 'Naqd' : 'Karta'}
+                </Typography>
+              </Stack>
+
+              {order.notes && (
+                <Stack direction="row" spacing={1} alignItems="flex-start">
+                  <Assignment fontSize="small" color="action" />
+                  <Typography variant="body2">Eslatma: {order.notes}</Typography>
+                </Stack>
+              )}
+            </Stack>
+
+            <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 2, mb: 1 }}>
+              Mahsulotlar ({order.items?.length || 0})
+            </Typography>
+            <List dense disablePadding>
+              {order.items && order.items.length > 0 ? (
+                order.items.map((item, index) => (
+                  <ListItem key={`${order.id}-item-${index}`} disablePadding sx={{ py: 0.5 }}>
+                    <ListItemAvatar>
+                      <Avatar
+                        variant="rounded"
+                        src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : undefined}
+                        sx={{ width: 36, height: 36, bgcolor: 'background.default' }}
+                      >
+                        <Restaurant fontSize="small" />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={<Typography variant="body2">{item.product?.title || 'Noma\'lum mahsulot'}</Typography>}
+                      secondary={`${item.quantity} × ${(parseFloat(item.price) || 0).toLocaleString('uz-UZ')} so'm`}
+                    />
+                    <Typography variant="body2" fontWeight="bold">
+                      {(item.quantity * (parseFloat(item.price) || 0)).toLocaleString('uz-UZ')} so'm
+                    </Typography>
+                  </ListItem>
+                ))
+              ) : (
+                <Typography variant="body2" color="text.secondary">
+                  Mahsulotlar mavjud emas
+                </Typography>
+              )}
+            </List>
+          </Box>
+        )}
       </CardContent>
     </Card>
-    );
+  );
 };
 
 export default CourierDashboard;

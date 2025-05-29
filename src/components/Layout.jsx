@@ -22,7 +22,7 @@ function Layout() {
         <nav className="flex justify-around">
           
           <NavLink
-            to="/orders"
+            to="/"
             className={({ isActive }) => 
               `flex flex-col items-center py-3 px-4 text-xs ${
                 isActive ? 'text-blue-600' : 'text-gray-600'
@@ -34,7 +34,7 @@ function Layout() {
           </NavLink>
          
           <NavLink
-            to="/"
+            to="/orders"
             className={({ isActive }) => 
               `flex flex-col items-center py-3 px-4 text-xs ${
                 isActive ? 'text-blue-600' : 'text-gray-600'

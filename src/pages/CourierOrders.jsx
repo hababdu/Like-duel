@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box, Typography, CircularProgress, Alert, Stack, Button, Card, CardContent, Divider,
   Chip, List, ListItem, ListItemText, ListItemAvatar, Avatar, Paper, Tabs, Tab,
-  Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, useMediaQuery, ThemeProvider, createTheme
+  IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar,
+  useMediaQuery, ThemeProvider, createTheme, Fab
 } from '@mui/material';
 import {
-  CheckCircle, LocalShipping, Restaurant, Payment, LocationOn, Phone,
-  AccessTime, Check, Assignment, Directions, MonetizationOn, Today, Timer, ShoppingCart
+  CheckCircle, LocalShipping, ShoppingCart, Directions, Timer, MonetizationOn, Today,
+  Close, Work as WorkIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { uz } from 'date-fns/locale';
 
@@ -33,11 +34,6 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-
-const BASE_URL = 'https://hosilbek.pythonanywhere.com';
-const AVAILABLE_ORDERS_API = `${BASE_URL}/api/user/available-orders-couryer/`;
-const OWN_ORDERS_API = `${BASE_URL}/api/user/courier-own-orders/`;
-const ORDER_API = `${BASE_URL}/api/user/orders/`;
 
 // Modern and vibrant theme
 const theme = createTheme({
@@ -138,6 +134,13 @@ const theme = createTheme({
   },
 });
 
+const BASE_URL = 'https://hosilbek.pythonanywhere.com';
+const AVAILABLE_ORDERS_API = `${BASE_URL}/api/user/available-orders-couryer/`;
+const OWN_ORDERS_API = `${BASE_URL}/api/user/courier-own-orders/`;
+const ORDER_API = `${BASE_URL}/api/user/orders/`;
+const COURIER_PROFILE_URL = `${BASE_URL}/api/user/couriers/`;
+const PROFILE_URL = `${BASE_URL}/api/user/me/`;
+
 const CourierDashboard = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
@@ -161,6 +164,8 @@ const CourierDashboard = () => {
   const [timers, setTimers] = useState({});
   const timerRefs = useRef({});
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     const storedOrders = localStorage.getItem('completed_orders');
@@ -178,6 +183,8 @@ const CourierDashboard = () => {
       setSessionTime(prev => prev + 1);
     }, 1000);
 
+    fetchProfile();
+
     return () => {
       clearInterval(sessionInterval);
       Object.keys(timerRefs.current).forEach(orderId => {
@@ -186,6 +193,83 @@ const CourierDashboard = () => {
       });
     };
   }, []);
+
+  const fetchProfile = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setError('Tizimga kirish talab qilinadi. Iltimos, login qiling.');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    try {
+      const response = await axios.get(PROFILE_URL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const userProfile = response.data;
+
+      userProfile.courier_profile = {
+        id: userProfile.courier_profile?.id || null,
+        is_active: userProfile.courier_profile?.is_active ?? false,
+        ...userProfile.courier_profile,
+      };
+
+      localStorage.setItem('userProfile', JSON.stringify(userProfile));
+      setProfile(userProfile);
+
+      if (!userProfile.roles?.is_courier) {
+        setError('Siz kuryer sifatida ro‘yxatdan o‘tmagansiz.');
+        clearLocalStorage();
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      if (!userProfile.courier_profile.id) {
+        setError('Kuryer profili ID si topilmadi.');
+      }
+    } catch (err) {
+      handleFetchError(err, 'Profil ma’lumotlarini olishda xato yuz berdi');
+    }
+  };
+
+  const handleToggleWorkStatus = async () => {
+    if (!profile?.courier_profile?.id) {
+      setError('Kuryer profili ID si topilmadi.');
+      return;
+    }
+
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setError('Tizimga kirish talab qilinadi.');
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    const newStatus = !profile.courier_profile.is_active;
+    const updateUrl = `${COURIER_PROFILE_URL}${profile.courier_profile.id}/`;
+
+    try {
+      setIsToggling(true);
+      await axios.patch(updateUrl, { is_active: newStatus }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile(prev => ({
+        ...prev,
+        courier_profile: { ...prev.courier_profile, is_active: newStatus },
+      }));
+      setSuccess(newStatus ? 'Siz ishga chiqdingiz!' : 'Siz ishni tugatdingiz!');
+    } catch (err) {
+      handleFetchError(err, 'Ish holatini yangilashda xato yuz berdi');
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  const clearLocalStorage = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userProfile');
+  };
 
   const fetchAvailableOrders = async () => {
     const token = localStorage.getItem('authToken');
@@ -262,12 +346,12 @@ const CourierDashboard = () => {
     };
   }, []);
 
-  const handleFetchError = err => {
-    let errorMessage = 'Ma\'lumot olishda xatolik';
+  const handleFetchError = (err, defaultMessage = 'Ma\'lumot olishda xatolik') => {
+    let errorMessage = defaultMessage;
     if (err.response) {
       if (err.response.status === 401) {
         errorMessage = 'Sessiya muddati tugagan. Iltimos, qayta kiring';
-        localStorage.removeItem('authToken');
+        clearLocalStorage();
         navigate('/login');
       } else {
         errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
@@ -388,14 +472,14 @@ const CourierDashboard = () => {
 
   const getStatusChip = status => {
     const statusMap = {
-      buyurtma_tushdi: { label: 'Yangi', color: 'primary', icon: <AccessTime /> },
-      oshxona_vaqt_belgiladi: { label: 'Oshxona tayyorlanmoqda', color: 'warning', icon: <AccessTime /> },
+      buyurtma_tushdi: { label: 'Yangi', color: 'primary', icon: <CheckCircle /> },
+      oshxona_vaqt_belgiladi: { label: 'Oshxona tayyorlanmoqda', color: 'warning', icon: <CheckCircle /> },
       kuryer_oldi: { label: 'Qabul qilindi', color: 'info', icon: <CheckCircle /> },
       kuryer_yolda: { label: 'Yetkazilmoqda', color: 'warning', icon: <LocalShipping /> },
       buyurtma_topshirildi: { label: 'Yetkazildi', color: 'success', icon: <CheckCircle /> },
       qabul_qilindi: { label: 'Qabul qilindi', color: 'secondary', icon: <CheckCircle /> },
     };
-    const config = statusMap[status] || { label: status, color: 'default', icon: <AccessTime /> };
+    const config = statusMap[status] || { label: status, color: 'default', icon: <CheckCircle /> };
     return (
       <Chip
         label={config.label}
@@ -427,17 +511,19 @@ const CourierDashboard = () => {
   };
 
   const handleAcceptOrder = async orderId => {
+    const activeOrderCount = ownOrders.filter(order =>
+      ['kuryer_oldi', 'kuryer_yolda'].includes(order.status)
+    ).length;
+
+    if (activeOrderCount >= 4) {
+      setError('Siz faqat 4 tagacha buyurtma olishingiz mumkin!');
+      return;
+    }
+
     const token = localStorage.getItem('authToken');
     if (!token) {
       setError('Autentifikatsiya talab qilinadi');
       navigate('/login');
-      return;
-    }
-
-    // Check if the user already has 4 active orders
-    const activeOrderCount = ownOrders.filter(order => ['kuryer_oldi', 'kuryer_yolda'].includes(order.status)).length;
-    if (activeOrderCount >= 4) {
-      setError('Siz faqat 4 tagacha buyurtma olishingiz mumkin!');
       return;
     }
 
@@ -457,7 +543,7 @@ const CourierDashboard = () => {
           errorMessage = 'Buyurtma topilmadi';
         } else if (err.response.status === 401) {
           errorMessage = 'Sessiya muddati tugagan';
-          localStorage.removeItem('authToken');
+          clearLocalStorage();
           navigate('/login');
         } else if (err.response.status === 400) {
           errorMessage = err.response.data.detail || 'Buyurtma holati mos emas';
@@ -526,7 +612,7 @@ const CourierDashboard = () => {
       if (err.response) {
         errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
         if (err.response.status === 401) {
-          localStorage.removeItem('authToken');
+          clearLocalStorage();
           navigate('/login');
         }
       }
@@ -548,10 +634,26 @@ const CourierDashboard = () => {
   };
 
   const handleOpenNavigation = (latitude, longitude) => {
-    if (isMobile) {
-      window.open(`google.navigation:q=${latitude},${longitude}`);
-    } else {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`);
+    if (
+      latitude == null || longitude == null ||
+      isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude)) ||
+      parseFloat(latitude) < -90 || parseFloat(latitude) > 90 ||
+      parseFloat(longitude) < -180 || parseFloat(longitude) > 180
+    ) {
+      setError('Yaroqsiz koordinatalar. Navigatsiya ochilmadi.');
+      return;
+    }
+
+    try {
+      const lat = parseFloat(latitude).toFixed(6);
+      const lon = parseFloat(longitude).toFixed(6);
+      const url = isMobile
+        ? `google.navigation:q=${lat},${lon}`
+        : `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+      window.open(url, '_blank');
+    } catch (err) {
+      setError('Navigatsiyani ochishda xatolik yuz berdi.');
+      console.error('Navigation error:', err);
     }
   };
 
@@ -582,9 +684,25 @@ const CourierDashboard = () => {
       <ThemeProvider theme={theme}>
         <Box sx={{ p: isMobile ? 1 : 3, maxWidth: 1200, margin: '0 auto', bgcolor: 'background.default' }}>
           {/* Header Section */}
-          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
-            Kuryer Dashboard
-          </Typography>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Kuryer Dashboard
+            </Typography>
+            <Button
+              variant="contained"
+              color={profile?.courier_profile?.is_active ? 'secondary' : 'primary'}
+              startIcon={<WorkIcon />}
+              onClick={handleToggleWorkStatus}
+              disabled={isToggling}
+              sx={{ borderRadius: '10px', py: 1.5 }}
+            >
+              {isToggling ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                profile?.courier_profile?.is_active ? 'Ishni tugatish' : 'Ishga chiqish'
+              )}
+            </Button>
+          </Stack>
 
           {/* Tabs */}
           <Tabs
@@ -599,24 +717,21 @@ const CourierDashboard = () => {
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <AccessTime fontSize="small" />
-                  <span>Mavjud ({availableOrders.length})</span>
+                  <Typography>Mavjud ({availableOrders.length})</Typography>
                 </Stack>
               }
             />
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <LocalShipping fontSize="small" />
-                  <span>Faol ({activeOrders.length})</span>
+                  <Typography>Faol ({activeOrders.length})</Typography>
                 </Stack>
               }
             />
             <Tab
               label={
                 <Stack direction="row" alignItems="center" spacing={1}>
-                  <CheckCircle fontSize="small" />
-                  <span>Yakunlangan ({completedOrders.length})</span>
+                  <Typography>Yakunlangan ({completedOrders.length})</Typography>
                 </Stack>
               }
             />
@@ -709,8 +824,8 @@ const CourierDashboard = () => {
                       variant="outlined"
                       color="error"
                       size="small"
-                      sx={{ borderRadius: '10px', alignSelf: isMobile ? 'stretch' : 'center', px: 2, py: 1 }}
-                      startIcon={<ShoppingCart fontSize="small" />}
+                      sx={{ borderRadius: '10px', alignSelf: isMobile ? 'stretch' : 'center', padding: '8px 16px' }}
+                      startIcon={<ShoppingCart />}
                     >
                       Tarixni tozalash
                     </Button>
@@ -748,6 +863,17 @@ const CourierDashboard = () => {
               </Box>
             )}
           </Box>
+
+          {/* Floating Action Button for Quick Refresh */}
+          {isMobile && (
+            <Fab
+              color="primary"
+              onClick={fetchOrders}
+              sx={{ position: 'fixed', bottom: 80, right: 16 }}
+            >
+              <CheckCircle />
+            </Fab>
+          )}
 
           {/* Confirmation Dialog */}
           <Dialog
@@ -838,6 +964,16 @@ const OrderCard = ({
   getTimerColor,
   isAvailableOrder,
 }) => {
+  const isValidCoordinates =
+    order.latitude != null &&
+    order.longitude != null &&
+    !isNaN(parseFloat(order.latitude)) &&
+    !isNaN(parseFloat(order.longitude)) &&
+    parseFloat(order.latitude) >= -90 &&
+    parseFloat(order.latitude) <= 90 &&
+    parseFloat(order.longitude) >= -180 &&
+    parseFloat(order.longitude) <= 180;
+
   return (
     <Card
       variant="outlined"
@@ -874,19 +1010,24 @@ const OrderCard = ({
               </Typography>
             )}
           </Stack>
-          {getStatusChip(order.status)}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {getStatusChip(order.status)}
+            <IconButton size="small" disabled={actionLoading}>
+              {expanded ? <Close /> : <CheckCircle />}
+            </IconButton>
+          </Stack>
         </Stack>
 
-        <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" sx={{ mt: 1, gap: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Masofa: {order.full_time ? `${order.full_time} km` : 'N/A'}
-          </Typography>
-          <Typography variant="body2" fontWeight="bold" color="success.main">
-            Kuryer: {(parseFloat(order.courier_salary) || 0).toLocaleString('uz-UZ')} so'm
-          </Typography>
-        </Stack>
-
-        {order.status !== 'oshxona_vaqt_belgiladi' && (
+        {order.status === 'oshxona_vaqt_belgiladi' ? (
+          <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" sx={{ mt: 1, gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Masofa: {order.full_time ? `${order.full_time} km` : 'N/A'}
+            </Typography>
+            <Typography variant="body2" fontWeight="bold" color="text.primary">
+              Narx: {(parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
+            </Typography>
+          </Stack>
+        ) : (
           <>
             <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" sx={{ mt: 1, gap: 1 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
@@ -898,102 +1039,110 @@ const OrderCard = ({
             </Stack>
 
             <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" sx={{ mt: 1, gap: 1 }}>
-              <Typography variant="body2" fontWeight="bold" color="primary.main">
-                Jami: {(parseFloat(order.courier_salary) + parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
+              <Typography variant="body2" color="text.secondary">
+                Masofa: {order.full_time ? `${order.full_time} km` : 'N/A'}
               </Typography>
-            </Stack>
-
-            <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} sx={{ mt: 2, gap: 1 }}>
-              <Typography
-                variant="body2"
-                color={getTimerColor(timers[order.id])}
-                sx={{
-                  fontWeight: timers[order.id] < 0 ? 'bold' : 'normal',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <Timer fontSize="small" />
-                {['oshxona_vaqt_belgiladi', 'kuryer_oldi'].includes(order.status) && timers[order.id] !== undefined
-                  ? formatTimer(timers[order.id])
-                  : `Oshxona vaqti: ${formatTime(order.kitchen_time)}`}
-              </Typography>
-              <Stack direction={isMobile ? 'column' : 'row'} spacing={1} sx={{ width: isMobile ? '100%' : 'auto' }}>
-                {isAvailableOrder && (order.status === 'buyurtma_tushdi' || order.status === 'oshxona_vaqt_belgiladi') && (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    fullWidth={isMobile}
-                    startIcon={<Check />}
-                    onClick={() =>
-                      showConfirmation(
-                        'Buyurtmani olish',
-                        `Buyurtma #${order.id} ni qabul qilmoqchimisiz?`,
-                        () => handleAcceptOrder(order.id)
-                      )
-                    }
-                    disabled={actionLoading}
-                    sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
-                  >
-                    Olish
-                  </Button>
-                )}
-                {order.status === 'kuryer_oldi' && (
-                  <Button
-                    variant="contained"
-                    color="warning"
-                    fullWidth={isMobile}
-                    startIcon={<LocalShipping />}
-                    onClick={() =>
-                      showConfirmation(
-                        'Yetkazilmoqda',
-                        `Buyurtma #${order.id} yetkazilmoqda deb belgilaysizmi?`,
-                        () => handleMarkOnWay(order.id)
-                      )
-                    }
-                    disabled={actionLoading}
-                    sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
-                  >
-                    Yolga chiqish
-                  </Button>
-                )}
-                {order.status === 'kuryer_yolda' && (
-                  <Button
-                    variant="contained"
-                    color="success"
-                    fullWidth={isMobile}
-                    startIcon={<CheckCircle />}
-                    onClick={() =>
-                      showConfirmation(
-                        'Yetkazib berildi',
-                        `Buyurtma #${order.id} yetkazib berildi deb belgilaysizmi?`,
-                        () => handleMarkDelivered(order.id)
-                      )
-                    }
-                    disabled={actionLoading}
-                    sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
-                  >
-                    Yetkazildi
-                  </Button>
-                )}
-                {order.latitude && order.longitude && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth={isMobile}
-                    startIcon={<Directions />}
-                    onClick={() => handleOpenNavigation(order.latitude, order.longitude)}
-                    disabled={actionLoading}
-                    sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
-                  >
-                    Yo'nalish
-                  </Button>
-                )}
+              <Stack direction="row" spacing={2}>
+                <Typography variant="body2" fontWeight="bold" color="success.main">
+                  Kuryer: {(parseFloat(order.courier_salary) || 0).toLocaleString('uz-UZ')} so'm
+                </Typography>
+                <Typography variant="body2" fontWeight="bold" color="primary.main">
+                  Jami: {(parseFloat(order.courier_salary) + parseFloat(order.total_amount) || 0).toLocaleString('uz-UZ')} so'm
+                </Typography>
               </Stack>
             </Stack>
           </>
         )}
+
+        <Stack direction={isMobile ? 'column' : 'row'} justifyContent="space-between" alignItems={isMobile ? 'stretch' : 'center'} sx={{ mt: 2, gap: 1 }}>
+          <Typography
+            variant="body2"
+            color={getTimerColor(timers[order.id])}
+            sx={{
+              fontWeight: timers[order.id] < 0 ? 'bold' : 'normal',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <Timer fontSize="small" />
+            {['oshxona_vaqt_belgiladi', 'kuryer_oldi'].includes(order.status) && timers[order.id] !== undefined
+              ? formatTimer(timers[order.id])
+              : `Oshxona vaqti: ${formatTime(order.kitchen_time)}`}
+          </Typography>
+          <Stack direction={isMobile ? 'column' : 'row'} spacing={1} sx={{ width: isMobile ? '100%' : 'auto' }}>
+            {isAvailableOrder && (order.status === 'buyurtma_tushdi' || order.status === 'oshxona_vaqt_belgiladi') && (
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth={isMobile}
+                startIcon={<CheckCircle />}
+                onClick={() =>
+                  showConfirmation(
+                    'Buyurtmani olish',
+                    `Buyurtma #${order.id} ni qabul qilmoqchimisiz?`,
+                    () => handleAcceptOrder(order.id)
+                  )
+                }
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Olish
+              </Button>
+            )}
+            {order.status === 'kuryer_oldi' && (
+              <Button
+                variant="contained"
+                color="warning"
+                fullWidth={isMobile}
+                startIcon={<LocalShipping />}
+                onClick={() =>
+                  showConfirmation(
+                    'Yetkazilmoqda',
+                    `Buyurtma #${order.id} yetkazilmoqda deb belgilaysizmi?`,
+                    () => handleMarkOnWay(order.id)
+                  )
+                }
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Yolga chiqish
+              </Button>
+            )}
+            {order.status === 'kuryer_yolda' && (
+              <Button
+                variant="contained"
+                color="success"
+                fullWidth={isMobile}
+                startIcon={<CheckCircle />}
+                onClick={() =>
+                  showConfirmation(
+                    'Yetkazib berildi',
+                    `Buyurtma #${order.id} yetkazib berildi deb belgilaysizmi?`,
+                    () => handleMarkDelivered(order.id)
+                  )
+                }
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Yetkazildi
+              </Button>
+            )}
+            {isValidCoordinates && (
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth={isMobile}
+                startIcon={<Directions />}
+                onClick={() => handleOpenNavigation(order.latitude, order.longitude)}
+                disabled={actionLoading}
+                sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
+              >
+                Yo'nalishni ko'rish
+              </Button>
+            )}
+          </Stack>
+        </Stack>
 
         {expanded && order.status !== 'oshxona_vaqt_belgiladi' && (
           <Box sx={{ mt: 2 }}>
@@ -1001,19 +1150,16 @@ const OrderCard = ({
 
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Phone fontSize="small" color="action" />
                 <Typography variant="body2">{order.contact_number || 'Noma\'lum'}</Typography>
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="flex-start">
-                <LocationOn fontSize="small" color="action" />
                 <Typography variant="body2" sx={{ flexGrow: 1 }}>
                   {order.shipping_address || 'Manzil kiritilmagan'}
                 </Typography>
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center">
-                <Payment fontSize="small" color="action" />
                 <Typography variant="body2">
                   To'lov: {order.payment === 'naqd' ? 'Naqd' : 'Karta'}
                 </Typography>
@@ -1021,7 +1167,6 @@ const OrderCard = ({
 
               {order.notes && (
                 <Stack direction="row" spacing={1} alignItems="flex-start">
-                  <Assignment fontSize="small" color="action" />
                   <Typography variant="body2">Eslatma: {order.notes}</Typography>
                 </Stack>
               )}
@@ -1037,10 +1182,10 @@ const OrderCard = ({
                     <ListItemAvatar>
                       <Avatar
                         variant="rounded"
-                        src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : undefined}
+                        src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : ''}
                         sx={{ width: 36, height: 36, bgcolor: 'background.default' }}
                       >
-                        <Restaurant fontSize="small" />
+                        <ShoppingCartIcon fontSize="small" />
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText

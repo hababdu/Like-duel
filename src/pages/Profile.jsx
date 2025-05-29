@@ -200,8 +200,6 @@ const Profile = () => {
     setError(errorMessage);
   };
 
-  
-
   const handleToggleWorkStatus = async () => {
     if (!profile?.courier_profile?.id) {
       setError('Kuryer profili ID si topilmadi. Backend bilan bog‘laning');
@@ -291,8 +289,6 @@ const Profile = () => {
           px: isMobile ? 2 : 4,
         }}
       >
-
-
         {error && (
           <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
             {error}
@@ -321,7 +317,6 @@ const Profile = () => {
                       <Typography variant="h6" fontWeight="bold" color="primary">
                         {profile.username || 'Foydalanuvchi nomi yo‘q'}
                       </Typography>
-                  
                       <Typography variant="caption" color="text.secondary">
                         Ro‘yxatdan o‘tgan sana: {new Date(profile.date_joined || Date.now()).toLocaleDateString('uz-UZ')}
                       </Typography>

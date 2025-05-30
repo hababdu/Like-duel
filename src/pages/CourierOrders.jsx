@@ -404,7 +404,7 @@ const CourierDashboard = () => {
       setTimers(prev => {
         if (!prev[orderId]) return prev;
         const newTime = prev[orderId] - 1;
-        if (newTime === 0) {
+        if (newTime <= 0) {
           setError(`Buyurtma #${orderId} uchun oshxona vaqti tugadi!`);
         }
         return { ...prev, [orderId]: newTime };
@@ -753,12 +753,13 @@ const CourierDashboard = () => {
                     handleAcceptOrder={handleAcceptOrder}
                     actionLoading={actionLoading}
                     timers={timers}
-                    formatTimer={formatTimer}
+                    format PattersonTimer={formatTimer}
                     formatTime={formatTime}
                     formatDateTime={formatDateTime}
                     handleOpenNavigation={handleOpenNavigation}
                     getTimerColor={getTimerColor}
                     isAvailableOrder
+                    profile={profile} // Pass profile prop
                   />
                 ))
               ) : (
@@ -790,6 +791,7 @@ const CourierDashboard = () => {
                     formatDateTime={formatDateTime}
                     handleOpenNavigation={handleOpenNavigation}
                     getTimerColor={getTimerColor}
+                    profile={profile} // Pass profile prop
                   />
                 ))
               ) : (
@@ -851,6 +853,7 @@ const CourierDashboard = () => {
                       formatDateTime={formatDateTime}
                       handleOpenNavigation={handleOpenNavigation}
                       getTimerColor={getTimerColor}
+                      profile={profile} // Pass profile prop
                     />
                   ))
                 ) : (
@@ -963,6 +966,7 @@ const OrderCard = ({
   handleOpenNavigation,
   getTimerColor,
   isAvailableOrder,
+  profile,
 }) => {
   const isValidCoordinates =
     order.latitude != null &&
@@ -1084,7 +1088,7 @@ const OrderCard = ({
                     () => handleAcceptOrder(order.id)
                   )
                 }
-                disabled={actionLoading}
+                disabled={actionLoading || !profile?.courier_profile?.is_active}
                 sx={{ borderRadius: '10px', py: 1.5, fontSize: '0.9rem' }}
               >
                 Olish

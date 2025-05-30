@@ -316,8 +316,8 @@ const CourierDashboard = () => {
       setLastUpdated(new Date());
 
       ordersData.forEach(order => {
-        if (order.kitchen_time && ['oshxona_vaqt_belgiladi', 'kuryer_oldi'].includes(order.status)) {
-          startTimer(order.id, order.kitchen_time, order.kitchen_time_set_at, order.status);
+        if (order.kitchen_time && order.status === 'kuryer_oldi') {
+          startTimer(order.id, order.kitchen_time, order.kitchen_time_set_at);
         } else {
           stopTimer(order.id);
         }
@@ -362,7 +362,9 @@ const CourierDashboard = () => {
     setError(errorMessage);
   };
 
-  const startTimer = (orderId, kitchenTime, setAt, status) => {
+  const startTimer = (orderId, kitchenTime, setAt) => {
+    if (!kitchenTime) return;
+
     let totalSeconds;
     if (typeof kitchenTime === 'string' && kitchenTime.includes(':')) {
       const [hours, minutes] = kitchenTime.split(':').map(Number);
@@ -372,7 +374,7 @@ const CourierDashboard = () => {
     }
 
     let remainingSeconds = totalSeconds;
-    const timerKey = `timer_start_${orderId}_${status}`;
+    const timerKey = `timer_start_${orderId}_kuryer_oldi`;
 
     if (setAt) {
       const setTime = new Date(setAt).getTime();
@@ -419,7 +421,6 @@ const CourierDashboard = () => {
         delete newTimers[orderId];
         return newTimers;
       });
-      localStorage.removeItem(`timer_start_${orderId}_oshxona_vaqt_belgiladi`);
       localStorage.removeItem(`timer_start_${orderId}_kuryer_oldi`);
     }
   };
@@ -659,9 +660,7 @@ const CourierDashboard = () => {
 
   const getTimerColor = seconds => {
     if (seconds === undefined || seconds === null) return 'text.secondary';
-    if (seconds < 0) return 'error.main';
-    if (seconds < 300) return 'warning.main';
-    return 'success.main';
+    return seconds <= 0 ? 'error.main' : seconds < 300 ? 'warning.main' : 'success.main';
   };
 
   if (loading && !availableOrders.length && !ownOrders.length) {
@@ -673,6 +672,7 @@ const CourierDashboard = () => {
   }
 
   const activeOrders = ownOrders.filter(order => ['kuryer_oldi', 'kuryer_yolda'].includes(order.status));
+  const hasActiveOrders = activeOrders.length > 0;
   const today = new Date().toISOString().split('T')[0];
   const todayOrders = completedOrders.filter(order => order.completed_at && order.completed_at.startsWith(today));
   const totalCompletedSalary = completedOrders.reduce((sum, order) => sum + (parseFloat(order.courier_salary) || 0), 0);
@@ -693,7 +693,7 @@ const CourierDashboard = () => {
               color={profile?.courier_profile?.is_active ? 'secondary' : 'primary'}
               startIcon={<WorkIcon />}
               onClick={handleToggleWorkStatus}
-              disabled={isToggling}
+              disabled={isToggling || hasActiveOrders}
               sx={{ borderRadius: '10px', py: 1.5 }}
             >
               {isToggling ? (
@@ -1059,14 +1059,14 @@ const OrderCard = ({
             variant="body2"
             color={getTimerColor(timers[order.id])}
             sx={{
-              fontWeight: timers[order.id] < 0 ? 'bold' : 'normal',
+              fontWeight: timers[order.id] <= 0 ? 'bold' : 'normal',
               display: 'flex',
               alignItems: 'center',
               gap: 1,
             }}
           >
             <Timer fontSize="small" />
-            {['oshxona_vaqt_belgiladi', 'kuryer_oldi'].includes(order.status) && timers[order.id] !== undefined
+            {order.status === 'kuryer_oldi' && timers[order.id] !== undefined
               ? formatTimer(timers[order.id])
               : `Oshxona vaqti: ${formatTime(order.kitchen_time)}`}
           </Typography>
@@ -1150,7 +1150,14 @@ const OrderCard = ({
 
             <Stack spacing={2}>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2">{order.contact_number || 'Noma\'lum'}</Typography>
+                <Typography variant="body2">
+                  <a
+                    href={`tel:${order.contact_number}`}
+                    style={{ color: theme.palette.primary.main, textDecoration: 'underline' }}
+                  >
+                    {order.contact_number || 'Noma\'lum'}
+                  </a>
+                </Typography>
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="flex-start">
@@ -1185,7 +1192,7 @@ const OrderCard = ({
                         src={item.product?.photo ? `${BASE_URL}${item.product.photo}` : ''}
                         sx={{ width: 36, height: 36, bgcolor: 'background.default' }}
                       >
-                        <ShoppingCartIcon fontSize="small" />
+                        <ShoppingCart fontSize="small" />
                       </Avatar>
                     </ListItemAvatar>
                     <ListItemText

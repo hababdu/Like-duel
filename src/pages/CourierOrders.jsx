@@ -135,7 +135,7 @@ const theme = createTheme({
 });
 
 const BASE_URL = 'https://hosilbek.pythonanywhere.com';
-const AVAILABLE_ORDERS_API = `${BASE_URL}/api/user/available-orders-couryer/`;
+const AVAILABLE_ORDERS_API = `${BASE_URL}/api/user/available-orders-courier/`;
 const OWN_ORDERS_API = `${BASE_URL}/api/user/courier-own-orders/`;
 const ORDER_API = `${BASE_URL}/api/user/orders/`;
 const COURIER_PROFILE_URL = `${BASE_URL}/api/user/couriers/`;

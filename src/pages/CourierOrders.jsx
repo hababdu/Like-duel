@@ -8,13 +8,14 @@ import {
 } from '@mui/material';
 import {
   CheckCircle, LocalShipping, ShoppingCart, Directions, Timer, MonetizationOn, Today,
-  Close, Work as WorkIcon
+  Close, Work as WorkIcon, Notifications
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { uz } from 'date-fns/locale';
+import { register } from 'register-service-worker';
 
-// Error Boundary Component
+// Xatolik chegarasi komponenti
 class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
   static getDerivedStateFromError(error) {
@@ -35,7 +36,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-// Modern and vibrant theme
+// Mavzu sozlamalari
 const theme = createTheme({
   palette: {
     primary: { main: '#0288d1' },
@@ -166,23 +167,52 @@ const CourierDashboard = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [profile, setProfile] = useState(null);
   const [isToggling, setIsToggling] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState('default');
+  const [newOrderNotification, setNewOrderNotification] = useState(null);
+  const previousAvailableOrders = useRef([]);
 
+  // Bildirishnomalar uchun sozlamalar
   useEffect(() => {
+    // Bildirishnoma ruxsatini tekshirish
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        setNotificationPermission(permission);
+      });
+    }
+
+    // Service workerni ro'yxatdan o'tkazish
+    if ('serviceWorker' in navigator) {
+      register('/service-worker.js', {
+        ready() {
+          console.log('Service worker ishga tushdi.');
+        },
+        registered() {
+          console.log('Service worker ro\'yxatdan o\'tdi.');
+        },
+        error(error) {
+          console.error('Service worker ro\'yxatdan o\'tkazishda xato:', error);
+        }
+      });
+    }
+
+    // LocalStoragedan yakunlangan buyurtmalarni yuklash
     const storedOrders = localStorage.getItem('completed_orders');
     if (storedOrders) {
       try {
         setCompletedOrders(JSON.parse(storedOrders));
       } catch (e) {
-        console.error('Failed to parse completed orders', e);
+        console.error('Yakunlangan buyurtmalarni o\'qib bo\'lmadi', e);
         localStorage.removeItem('completed_orders');
         setCompletedOrders([]);
       }
     }
 
+    // Sessiya vaqtini hisoblash
     const sessionInterval = setInterval(() => {
       setSessionTime(prev => prev + 1);
     }, 1000);
 
+    // Profil ma'lumotlarini olish
     fetchProfile();
 
     return () => {
@@ -194,6 +224,53 @@ const CourierDashboard = () => {
     };
   }, []);
 
+  // Yangi buyurtmalarni aniqlash va bildirishnoma yuborish
+  useEffect(() => {
+    if (availableOrders.length > 0) {
+      const newOrders = availableOrders.filter(
+        order => !previousAvailableOrders.current.some(prev => prev.id === order.id)
+      );
+      
+      if (newOrders.length > 0 && notificationPermission === 'granted') {
+        showNewOrderNotification(newOrders);
+      }
+      
+      previousAvailableOrders.current = [...availableOrders];
+    }
+  }, [availableOrders, notificationPermission]);
+
+  const showNewOrderNotification = (newOrders) => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    if (document.visibilityState !== 'visible') {
+      const orderCount = newOrders.length;
+      const title = `Yangi buyurtma${orderCount > 1 ? 'lar' : ''}`;
+      const body = orderCount > 1 
+        ? `${orderCount} ta yangi buyurtma mavjud` 
+        : `Buyurtma #${newOrders[0].id} qabul qilish uchun tayyor`;
+      
+      // Brauzer bildirishnomasini ko'rsatish
+      if (notificationPermission === 'granted') {
+        navigator.serviceWorker.ready.then(registration => {
+          registration.showNotification(title, {
+            body,
+            icon: '/icons/icon-192x192.png',
+            vibrate: [200, 100, 200],
+            data: { url: window.location.href }
+          });
+        });
+      }
+      
+      // Ilova ichidagi bildirishnoma uchun saqlash
+      setNewOrderNotification({
+        title,
+        message: body,
+        orders: newOrders
+      });
+    }
+  };
+
+  // Profil ma'lumotlarini olish
   const fetchProfile = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -232,6 +309,7 @@ const CourierDashboard = () => {
     }
   };
 
+  // Ish holatini o'zgartirish
   const handleToggleWorkStatus = async () => {
     if (!profile?.courier_profile?.id) {
       setError('Kuryer profili ID si topilmadi.');
@@ -265,12 +343,14 @@ const CourierDashboard = () => {
     }
   };
 
+  // LocalStorageni tozalash
   const clearLocalStorage = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userProfile');
   };
 
+  // Mavjud buyurtmalarni olish
   const fetchAvailableOrders = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -286,12 +366,15 @@ const CourierDashboard = () => {
       });
 
       const ordersData = Array.isArray(response.data) ? response.data : [];
-      setAvailableOrders(ordersData.filter(order => order.id));
+      const newOrders = ordersData.filter(order => order.id);
+
+      setAvailableOrders(newOrders);
     } catch (err) {
       handleFetchError(err);
     }
   };
 
+  // O'z buyurtmalarini olish
   const fetchOwnOrders = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -327,6 +410,7 @@ const CourierDashboard = () => {
     }
   };
 
+  // Barcha buyurtmalarni yangilash
   const fetchOrders = async () => {
     setLoading(true);
     setError('');
@@ -334,6 +418,7 @@ const CourierDashboard = () => {
     setLoading(false);
   };
 
+  // Har 30 soniyada buyurtmalarni yangilash
   useEffect(() => {
     fetchOrders();
     const interval = setInterval(fetchOrders, 30000);
@@ -346,6 +431,7 @@ const CourierDashboard = () => {
     };
   }, []);
 
+  // Xatoliklarni boshqarish
   const handleFetchError = (err, defaultMessage = 'Ma\'lumot olishda xatolik') => {
     let errorMessage = defaultMessage;
     if (err.response) {
@@ -362,6 +448,7 @@ const CourierDashboard = () => {
     setError(errorMessage);
   };
 
+  // Taymerni boshlash
   const startTimer = (orderId, kitchenTime, setAt) => {
     if (!kitchenTime) return;
 
@@ -412,6 +499,7 @@ const CourierDashboard = () => {
     }, 1000);
   };
 
+  // Taymerni to'xtatish
   const stopTimer = orderId => {
     if (timerRefs.current[orderId]) {
       clearInterval(timerRefs.current[orderId]);
@@ -425,6 +513,7 @@ const CourierDashboard = () => {
     }
   };
 
+  // Taymer vaqtini formatlash
   const formatTimer = seconds => {
     if (seconds === undefined || seconds === null) return 'Belgilanmagan';
     const isNegative = seconds < 0;
@@ -436,17 +525,7 @@ const CourierDashboard = () => {
     return isNegative ? `Kechikish: ${timeString}` : `Qolgan: ${timeString}`;
   };
 
-  const formatTime = kitchenTime => {
-    if (!kitchenTime) return 'Belgilanmagan';
-    if (typeof kitchenTime === 'string' && kitchenTime.includes(':')) {
-      const [hours, minutes] = kitchenTime.split(':').map(Number);
-      return `${hours > 0 ? `${hours} soat` : ''} ${minutes > 0 ? `${minutes} minut` : ''}`.trim();
-    }
-    const hours = Math.floor(kitchenTime / 60);
-    const mins = kitchenTime % 60;
-    return `${hours > 0 ? `${hours} soat` : ''} ${mins > 0 ? `${mins} minut` : ''}`.trim();
-  };
-
+  // Sessiya vaqtini formatlash
   const formatSessionTime = seconds => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -454,6 +533,7 @@ const CourierDashboard = () => {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Sana vaqtni formatlash
   const formatDateTime = dateString => {
     if (!dateString) return '';
     try {
@@ -463,14 +543,23 @@ const CourierDashboard = () => {
     }
   };
 
+  // Vaqtni formatlash
+  const formatTime = time => {
+    if (!time) return 'N/A';
+    return typeof time === 'string' && time.includes(':') ? time : `${time} min`;
+  };
+
+  // Tabni o'zgartirish
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
+  // Buyurtmani kengaytirish/qisqartirish
   const toggleOrderExpand = orderId => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
+  // Status chipini olish
   const getStatusChip = status => {
     const statusMap = {
       buyurtma_tushdi: { label: 'Yangi', color: 'primary', icon: <CheckCircle /> },
@@ -493,10 +582,12 @@ const CourierDashboard = () => {
     );
   };
 
+  // Tasdiqlash dialogini ko'rsatish
   const showConfirmation = (title, message, action) => {
     setConfirmDialog({ open: true, title, message, action });
   };
 
+  // Tasdiqlash amalini bajarish
   const handleConfirmAction = async () => {
     if (confirmDialog.action) {
       setActionLoading(true);
@@ -511,6 +602,7 @@ const CourierDashboard = () => {
     setConfirmDialog({ ...confirmDialog, open: false });
   };
 
+  // Buyurtmani qabul qilish
   const handleAcceptOrder = async orderId => {
     const activeOrderCount = ownOrders.filter(order =>
       ['kuryer_oldi', 'kuryer_yolda'].includes(order.status)
@@ -558,6 +650,7 @@ const CourierDashboard = () => {
     }
   };
 
+  // Buyurtmani yo'lda deb belgilash
   const handleMarkOnWay = async orderId => {
     await handleApiRequest(
       `${ORDER_API}${orderId}/mark-on-way/`,
@@ -567,6 +660,7 @@ const CourierDashboard = () => {
     stopTimer(orderId);
   };
 
+  // Buyurtmani yetkazilgan deb belgilash
   const handleMarkDelivered = async orderId => {
     await handleApiRequest(
       `${ORDER_API}${orderId}/mark-delivered/`,
@@ -576,6 +670,7 @@ const CourierDashboard = () => {
     stopTimer(orderId);
   };
 
+  // API so'rovlarini boshqarish
   const handleApiRequest = async (url, successMessage, orderId) => {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -621,6 +716,7 @@ const CourierDashboard = () => {
     }
   };
 
+  // Yakunlangan buyurtmalarni tozalash
   const handleClearCompleted = () => {
     showConfirmation(
       'Tarixni tozalash',
@@ -634,6 +730,7 @@ const CourierDashboard = () => {
     );
   };
 
+  // Navigatsiyani ochish
   const handleOpenNavigation = (latitude, longitude) => {
     if (
       latitude == null || longitude == null ||
@@ -658,11 +755,13 @@ const CourierDashboard = () => {
     }
   };
 
+  // Taymer rangini olish
   const getTimerColor = seconds => {
     if (seconds === undefined || seconds === null) return 'text.secondary';
     return seconds <= 0 ? 'error.main' : seconds < 300 ? 'warning.main' : 'success.main';
   };
 
+  // Yuklash holati
   if (loading && !availableOrders.length && !ownOrders.length) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -671,6 +770,7 @@ const CourierDashboard = () => {
     );
   }
 
+  // Faol buyurtmalar
   const activeOrders = ownOrders.filter(order => ['kuryer_oldi', 'kuryer_yolda'].includes(order.status));
   const hasActiveOrders = activeOrders.length > 0;
   const today = new Date().toISOString().split('T')[0];
@@ -683,7 +783,7 @@ const CourierDashboard = () => {
     <ErrorBoundary>
       <ThemeProvider theme={theme}>
         <Box sx={{ p: isMobile ? 1 : 3, maxWidth: 1200, margin: '0 auto', bgcolor: 'background.default' }}>
-          {/* Header Section */}
+          {/* Sarlavha bo'limi */}
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
             <Typography variant="h6" fontWeight="bold">
               Kuryer Dashboard
@@ -704,7 +804,7 @@ const CourierDashboard = () => {
             </Button>
           </Stack>
 
-          {/* Tabs */}
+          {/* Tablar */}
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
@@ -737,7 +837,7 @@ const CourierDashboard = () => {
             />
           </Tabs>
 
-          {/* Orders List */}
+          {/* Buyurtmalar ro'yxati */}
           <Box sx={{ mb: isMobile ? 16 : 8 }}>
             {activeTab === 0 && (
               availableOrders.length > 0 ? (
@@ -753,13 +853,13 @@ const CourierDashboard = () => {
                     handleAcceptOrder={handleAcceptOrder}
                     actionLoading={actionLoading}
                     timers={timers}
-                    format PattersonTimer={formatTimer}
+                    formatTimer={formatTimer}
                     formatTime={formatTime}
                     formatDateTime={formatDateTime}
                     handleOpenNavigation={handleOpenNavigation}
                     getTimerColor={getTimerColor}
                     isAvailableOrder
-                    profile={profile} // Pass profile prop
+                    profile={profile}
                   />
                 ))
               ) : (
@@ -791,13 +891,13 @@ const CourierDashboard = () => {
                     formatDateTime={formatDateTime}
                     handleOpenNavigation={handleOpenNavigation}
                     getTimerColor={getTimerColor}
-                    profile={profile} // Pass profile prop
+                    profile={null}
                   />
                 ))
               ) : (
-                <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <Paper sx={{ p: 2, textAlign: 'center', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                   <Typography variant="body1" color="text.secondary">
-                    Faol buyurtmalar mavjud emas
+                    Faol buyurtmalar yo'q
                   </Typography>
                 </Paper>
               )
@@ -805,7 +905,7 @@ const CourierDashboard = () => {
 
             {activeTab === 2 && (
               <Box>
-                <Paper sx={{ p: 2, mb: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <Paper sx={{ p: 2, mb: 2, borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                   <Stack direction={isMobile ? 'column' : 'row'} spacing={2} justifyContent="space-between">
                     <Stack spacing={1}>
                       <Typography variant="subtitle1" fontWeight="bold" color="success.main">
@@ -853,13 +953,13 @@ const CourierDashboard = () => {
                       formatDateTime={formatDateTime}
                       handleOpenNavigation={handleOpenNavigation}
                       getTimerColor={getTimerColor}
-                      profile={profile} // Pass profile prop
+                      profile={null}
                     />
                   ))
                 ) : (
-                  <Paper sx={{ p: 3, textAlign: 'center', borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                  <Paper sx={{ p: 2, textAlign: 'center', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                     <Typography variant="body1" color="text.secondary">
-                      Yakunlangan buyurtmalar mavjud emas
+                      Yakunlangan buyurtmalar yo'q
                     </Typography>
                   </Paper>
                 )}
@@ -867,7 +967,36 @@ const CourierDashboard = () => {
             )}
           </Box>
 
-          {/* Floating Action Button for Quick Refresh */}
+          {/* Yangi buyurtma bildirishnomasi */}
+          {newOrderNotification && (
+            <Snackbar
+              open={!!newOrderNotification}
+              autoHideDuration={6000}
+              onClose={() => setNewOrderNotification(null)}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert 
+                severity="info" 
+                onClose={() => setNewOrderNotification(null)}
+                sx={{ width: '100%', borderRadius: '10px' }}
+              >
+                <Typography fontWeight="bold">{newOrderNotification.title}</Typography>
+                <Typography>{newOrderNotification.message}</Typography>
+                <Button 
+                  size="small" 
+                  onClick={() => {
+                    setActiveTab(0);
+                    setNewOrderNotification(null);
+                  }}
+                  sx={{ mt: 1 }}
+                >
+                  Ko'rish
+                </Button>
+              </Alert>
+            </Snackbar>
+          )}
+
+          {/* Tez yangilash tugmasi (mobil uchun) */}
           {isMobile && (
             <Fab
               color="primary"
@@ -878,7 +1007,7 @@ const CourierDashboard = () => {
             </Fab>
           )}
 
-          {/* Confirmation Dialog */}
+          {/* Tasdiqlash dialogi */}
           <Dialog
             open={confirmDialog.open}
             onClose={() => setConfirmDialog({ ...confirmDialog, open: false })}
@@ -911,7 +1040,7 @@ const CourierDashboard = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Snackbars */}
+          {/* Xabar qutilar */}
           <Snackbar
             open={!!error}
             autoHideDuration={6000}
@@ -948,6 +1077,7 @@ const CourierDashboard = () => {
   );
 };
 
+// Buyurtma kartasi komponenti
 const OrderCard = ({
   order,
   isMobile,

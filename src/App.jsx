@@ -6,14 +6,13 @@ import Profile from './pages/Profile';
 
 function App() {
   return (
-
-      <Routes>
+    <Routes>
       <Route path="login" element={<Login />} />
-        <Route element={<Layout />}>
-          <Route path="/" element={<Order />} />
-          <Route path="/orders" element={<Profile />} />
-        </Route>
-      </Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Order />} />
+        <Route path="/orders" element={<Profile />} />
+      </Route>
+    </Routes>
   );
 }
 

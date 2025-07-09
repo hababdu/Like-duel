@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -118,97 +118,105 @@ const Profile = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width:600px)');
 
-  const PROFILE_URL = 'https://hosilbek.pythonanywhere.com/api/user/me/';
-  const COURIER_PROFILE_URL = 'https://hosilbek.pythonanywhere.com/api/user/couriers/';
-  const BASE_URL = 'https://hosilbek.pythonanywhere.com';
+  const PROFILE_URL = 'https://hosilbek02.pythonanywhere.com/api/user/me/';
+  const COURIER_PROFILE_URL = 'https://hosilbek02.pythonanywhere.com/api/user/couriers/';
+  const BASE_URL = 'https://hosilbek02.pythonanywhere.com';
 
   const getAxiosConfig = (token) => ({
-    headers: { Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Token ${token}` },
+    timeout: 10000, // Consistent with CourierDashboard
   });
 
-  useEffect(() => {
-    fetchProfile();
+  const clearLocalStorage = useCallback(() => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userProfile');
   }, []);
 
-  const fetchProfile = async () => {
+  const handleError = useCallback((err, defaultMessage) => {
+    let errorMessage = defaultMessage;
+    if (err.response) {
+      console.error('API error response:', err.response.data);
+      if (err.response.status === 401) {
+        errorMessage = 'Sessiya muddati tugadi. Iltimos, qayta kiring.';
+        clearLocalStorage();
+        navigate('/login', { replace: true });
+      } else if (err.response.status === 404) {
+        errorMessage = 'Kuryer profili topilmadi yoki endpoint noto‘g‘ri. Backend bilan bog‘laning.';
+      } else {
+        errorMessage = err.response.data?.detail || err.response.data?.message || defaultMessage;
+      }
+    } else if (err.request) {
+      errorMessage = 'Tarmoq xatosi. Iltimos, ulanishingizni tekshiring.';
+    } else {
+      errorMessage = 'Noma’lum xato: ' + err.message;
+    }
+    setError(errorMessage);
+    setSnackbarOpen(true);
+    setSnackbarMessage(errorMessage);
+  }, [navigate, clearLocalStorage]);
+
+  const fetchProfile = useCallback(async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      setError('Tizimga kirish talab qilinadi. Iltimos, login qiling.');
+      setError('Autentifikatsiya talab qilinadi. Iltimos, login qiling.');
+      setSnackbarMessage('Autentifikatsiya talab qilinadi. Iltimos, login qiling.');
+      setSnackbarOpen(true);
       navigate('/login', { replace: true });
+      setIsLoading(false);
       return;
     }
 
     try {
       setIsLoading(true);
       const response = await axios.get(PROFILE_URL, getAxiosConfig(token));
-      const userProfile = response.data;
-
-      userProfile.courier_profile = {
-        id: userProfile.courier_profile?.id || null,
-        is_active: userProfile.courier_profile?.is_active ?? false,
-        ...userProfile.courier_profile,
+      console.log('Profile API response:', response.data);
+      const userProfile = {
+        ...response.data,
+        courier_profile: {
+          id: response.data.courier_profile?.id || null,
+          is_active: response.data.courier_profile?.is_active ?? false,
+          ...response.data.courier_profile,
+        },
       };
 
       localStorage.setItem('userProfile', JSON.stringify(userProfile));
       setProfile(userProfile);
 
       if (!userProfile.roles?.is_courier) {
-        localStorage.setItem(
-          'authError',
-          'Siz kuryer sifatida ro‘yxatdan o‘tmagansiz. Tizimga kirish uchun login sahifasiga qayting.'
-        );
+        setError('Siz kuryer sifatida ro‘yxatdan o‘tmagansiz.');
+        setSnackbarMessage('Siz kuryer sifatida ro‘yxatdan o‘tmagansiz.');
+        setSnackbarOpen(true);
         clearLocalStorage();
         navigate('/login', { replace: true });
         return;
       }
 
       if (!userProfile.courier_profile.id) {
-        setError('Kuryer profili ID si topilmadi. Backend bilan bog‘laning');
+        setError('Kuryer profili ID si topilmadi.');
+        setSnackbarMessage('Kuryer profili ID si topilmadi.');
+        setSnackbarOpen(true);
       }
-
-      setError('');
     } catch (err) {
       handleError(err, 'Profil ma’lumotlarini olishda xato yuz berdi');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [navigate, clearLocalStorage, handleError]);
 
-  const clearLocalStorage = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userProfile');
-  };
-
-  const handleError = (err, defaultMessage) => {
-    let errorMessage = defaultMessage;
-    if (err.response) {
-      if (err.response.status === 401) {
-        errorMessage = 'Sessiya tugagan. Iltimos, qayta kiring';
-        clearLocalStorage();
-        navigate('/login', { replace: true });
-      } else if (err.response.status === 404) {
-        errorMessage = 'Kuryer profili topilmadi yoki endpoint noto‘g‘ri. Backend bilan bog‘laning';
-      } else {
-        errorMessage = err.response.data?.detail || 'Server bilan aloqa xatosi';
-      }
-    } else if (err.request) {
-      errorMessage = 'Internet aloqasi yo‘q';
-    } else {
-      errorMessage = 'Noma’lum xato: ' + err.message;
-    }
-    setError(errorMessage);
-  };
-
-  const handleToggleWorkStatus = async () => {
+  const handleToggleWorkStatus = useCallback(async () => {
     if (!profile?.courier_profile?.id) {
-      setError('Kuryer profili ID si topilmadi. Backend bilan bog‘laning');
+      setError('Kuryer profili ID si topilmadi.');
+      setSnackbarMessage('Kuryer profili ID si topilmadi.');
+      setSnackbarOpen(true);
       return;
     }
 
     const token = localStorage.getItem('authToken');
     if (!token) {
-      setError('Tizimga kirish talab qilinadi. Iltimos, login qiling.');
+      setError('Autentifikatsiya talab qilinadi. Iltimos, login qiling.');
+      setSnackbarMessage('Autentifikatsiya talab qilinadi. Iltimos, login qiling.');
+      setSnackbarOpen(true);
       navigate('/login', { replace: true });
       return;
     }
@@ -223,25 +231,29 @@ const Profile = () => {
         ...prev,
         courier_profile: { ...prev.courier_profile, is_active: newStatus },
       }));
-      setSnackbarMessage(newStatus ? 'Siz ishga chiqdingiz!' : 'Siz ishni tugatdingiz!');
+      setSnackbarMessage(newStatus ? 'Siz navbatchisiz!' : 'Siz navbatdan chiqdingiz!');
       setSnackbarOpen(true);
     } catch (err) {
       handleError(err, 'Ish holatini yangilashda xato yuz berdi');
     } finally {
       setIsToggling(false);
     }
-  };
+  }, [profile, navigate, clearLocalStorage, handleError]);
 
-  const handleDeleteProfile = async () => {
+  const handleDeleteProfile = useCallback(async () => {
     if (!profile?.courier_profile?.id) {
-      setError('Kuryer profili ID si topilmadi. Backend bilan bog‘laning');
+      setError('Kuryer profili ID si topilmadi.');
+      setSnackbarMessage('Kuryer profili ID si topilmadi.');
+      setSnackbarOpen(true);
       setConfirmDeleteOpen(false);
       return;
     }
 
     const token = localStorage.getItem('authToken');
     if (!token) {
-      setError('Tizimga kirish talab qilinadi. Iltimos, login qiling.');
+      setError('Autentifikatsiya talab qilinadi. Iltimos, login qiling.');
+      setSnackbarMessage('Autentifikatsiya talab qilinadi. Iltimos, login qiling.');
+      setSnackbarOpen(true);
       navigate('/login', { replace: true });
       setConfirmDeleteOpen(false);
       return;
@@ -262,20 +274,46 @@ const Profile = () => {
       setIsToggling(false);
       setConfirmDeleteOpen(false);
     }
-  };
+  }, [profile, navigate, clearLocalStorage, handleError]);
 
-  const handleSnackbarClose = () => {
+  const handleSnackbarClose = useCallback(() => {
     setSnackbarOpen(false);
-  };
+    setSnackbarMessage('');
+    setError('');
+  }, []);
 
-  const handleConfirmDeleteClose = () => {
+  const handleConfirmDeleteClose = useCallback(() => {
     setConfirmDeleteOpen(false);
-  };
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    clearLocalStorage();
+    setSnackbarMessage('Tizimdan chiqdingiz!');
+    setSnackbarOpen(true);
+    navigate('/login', { replace: true });
+  }, [navigate, clearLocalStorage]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress size={isMobile ? 40 : 60} />
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Stack spacing={2} alignItems="center">
+          <CircularProgress size={isMobile ? 40 : 60} />
+          <Typography variant="body1" color="text.secondary">
+            Ma'lumotlar yuklanmoqda...
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={fetchProfile}
+            sx={{ borderRadius: '10px' }}
+          >
+            Qayta yuklash
+          </Button>
+        </Stack>
       </Box>
     );
   }
@@ -287,8 +325,25 @@ const Profile = () => {
           bgcolor: 'background.default',
           py: isMobile ? 2 : 4,
           px: isMobile ? 2 : 4,
+          maxWidth: 1200,
+          margin: '0 auto',
         }}
       >
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+          <Typography variant="h4" fontWeight="bold" color="primary">
+            Profil
+          </Typography>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            sx={{ borderRadius: '10px', py: 1.5 }}
+          >
+            Chiqish
+          </Button>
+        </Stack>
+
         {error && (
           <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
             {error}
@@ -302,7 +357,7 @@ const Profile = () => {
                 <CardContent sx={{ p: isMobile ? 2 : 3 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar
-                      src={profile.courier_profile?.photo ? `${BASE_URL}/${profile.courier_profile.photo}` : undefined}
+                      src={profile.courier_profile?.photo ? `${BASE_URL}${profile.courier_profile.photo}` : undefined}
                       sx={{
                         width: 80,
                         height: 80,
@@ -328,22 +383,35 @@ const Profile = () => {
                     sx={{ mt: 2, justifyContent: 'center' }}
                   >
                     <Tooltip title="Uzoq bosib turing profilni o‘chirish uchun">
-                      <Button
-                        variant="contained"
-                        color={profile.courier_profile.is_active ? 'secondary' : 'primary'}
-                        startIcon={<WorkIcon />}
-                        onClick={handleToggleWorkStatus}
-                        disabled={isToggling}
-                        fullWidth={isMobile}
-                        sx={{ py: 1.5 }}
-                      >
-                        {isToggling ? (
-                          <CircularProgress size={24} color="inherit" />
-                        ) : (
-                          profile.courier_profile.is_active ? 'Ishni tugatish' : 'Ishga chiqish'
-                        )}
-                      </Button>
+                      <span>
+                        <Button
+                          variant="contained"
+                          color={profile.courier_profile.is_active ? 'secondary' : 'primary'}
+                          startIcon={<WorkIcon />}
+                          onClick={handleToggleWorkStatus}
+                          disabled={isToggling}
+                          fullWidth={isMobile}
+                          sx={{ py: 1.5 }}
+                        >
+                          {isToggling ? (
+                            <CircularProgress size={24} color="inherit" />
+                          ) : (
+                            profile.courier_profile.is_active ? 'Smenani yakunlash' : 'Smenani boshlash'
+                          )}
+                        </Button>
+                      </span>
                     </Tooltip>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => setConfirmDeleteOpen(true)}
+                      disabled={isToggling}
+                      fullWidth={isMobile}
+                      sx={{ py: 1.5 }}
+                    >
+                      Profilni o‘chirish
+                    </Button>
                   </Stack>
                 </CardContent>
               </Card>
@@ -375,7 +443,18 @@ const Profile = () => {
                       </ListItemAvatar>
                       <ListItemText
                         primary={<Typography variant="body1" fontWeight="600">Telefon Raqami</Typography>}
-                        secondary={profile.courier_profile.phone_number || 'Kiritilmagan'}
+                        secondary={
+                          profile.courier_profile.phone_number ? (
+                            <a
+                              href={`tel:${profile.courier_profile.phone_number}`}
+                              style={{ color: theme.palette.primary.main, textDecoration: 'underline' }}
+                            >
+                              {profile.courier_profile.phone_number}
+                            </a>
+                          ) : (
+                            'Kiritilmagan'
+                          )
+                        }
                         secondaryTypographyProps={{ color: 'text.primary' }}
                       />
                     </ListItem>
@@ -387,7 +466,7 @@ const Profile = () => {
                       </ListItemAvatar>
                       <ListItemText
                         primary={<Typography variant="body1" fontWeight="600">Ish Holati</Typography>}
-                        secondary={profile.courier_profile.is_active ? 'Online' : 'Offline'}
+                        secondary={profile.courier_profile.is_active ? 'Navbatchi' : 'Navbatda emas'}
                         secondaryTypographyProps={{
                           color: profile.courier_profile.is_active ? 'success.main' : 'text.primary',
                           fontWeight: 'bold',
@@ -423,7 +502,7 @@ const Profile = () => {
               startIcon={<CloseIcon />}
               sx={{ borderRadius: '10px' }}
             >
-              Yo‘q
+              Bekor qilish
             </Button>
             <Button
               onClick={handleDeleteProfile}
@@ -433,7 +512,7 @@ const Profile = () => {
               disabled={isToggling}
               sx={{ borderRadius: '10px' }}
             >
-              Ha
+              Tasdiqlash
             </Button>
           </DialogActions>
         </Dialog>
@@ -446,9 +525,9 @@ const Profile = () => {
         >
           <Alert
             onClose={handleSnackbarClose}
-            severity="success"
+            severity={error ? 'error' : 'success'}
             sx={{ width: '100%', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-            icon={<CheckIcon fontSize="inherit" />}
+            icon={error ? <CloseIcon fontSize="inherit" /> : <CheckIcon fontSize="inherit" />}
           >
             {snackbarMessage}
           </Alert>

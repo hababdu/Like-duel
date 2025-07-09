@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -11,7 +11,7 @@ const Login = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const API_URL = 'https://hosilbek.pythonanywhere.com/api/user/login/';
+  const API_URL = 'https://hosilbek02.pythonanywhere.com/api/user/login/';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,7 +19,7 @@ const Login = ({ onLogin }) => {
       ...prev,
       [name]: value,
     }));
-    setError(''); // Clear error on input change
+    setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -27,17 +27,13 @@ const Login = ({ onLogin }) => {
     setError('');
     setIsLoading(true);
 
-    // Basic client-side validation
     if (!formData.username.trim() || !formData.password.trim()) {
-      setError('Iltimos, foydalanuvchi nomi va parolni kiriting');
+      setError("Iltimos, foydalanuvchi nomi va parolni kiriting");
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log('Sending login request with payload:', formData);
-
-      // Step 1: Login to get access token and roles
       const loginResponse = await axios.post(
         API_URL,
         formData,
@@ -48,33 +44,27 @@ const Login = ({ onLogin }) => {
         }
       );
 
-      const { access, refresh, roles } = loginResponse.data;
+      const { access, token } = loginResponse.data;
+      const authToken = access || token;
 
-      if (!access) {
-        throw new Error('Serverdan access token olinmadi');
+      if (!authToken) {
+        throw new Error('Serverdan autentifikatsiya tokeni olinmadi');
       }
 
-      // Store tokens in localStorage
-      localStorage.setItem('authToken', access);
-      localStorage.setItem('refreshToken', refresh);
-      localStorage.setItem('roles', JSON.stringify(roles)); // Save roles
+      localStorage.setItem('authToken', authToken);
 
-      // Call onLogin to update authentication state in App.jsx
       if (onLogin) {
         onLogin();
       }
 
-      // Always navigate to /profile after successful login
       navigate('/', { replace: true });
     } catch (err) {
       let errorMessage = 'Kirish muvaffaqiyatsiz. Hisob maʼlumotlaringizni tekshiring.';
       if (err.response) {
-        console.error('API Error Response:', err.response.data);
         if (err.response.status === 400) {
           errorMessage =
             err.response.data.detail ||
             err.response.data.non_field_errors?.[0] ||
-            JSON.stringify(err.response.data) ||
             'So‘rovda xatolik: Noto‘g‘ri maʼlumotlar kiritildi';
         } else if (err.response.status === 401) {
           errorMessage = 'Noto‘g‘ri foydalanuvchi nomi yoki parol';
@@ -87,7 +77,6 @@ const Login = ({ onLogin }) => {
         errorMessage = 'Nomaʼlum xato yuz berdi';
       }
       setError(errorMessage);
-      console.error('Xato:', err);
     } finally {
       setIsLoading(false);
     }
@@ -128,7 +117,6 @@ const Login = ({ onLogin }) => {
             </div>
           </div>
         )}
-
         <div className="mt-8 bg-white py-8 px-6 shadow rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit} noValidate>
             <div>

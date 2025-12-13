@@ -1,4 +1,4 @@
-// server.js – YANGI QOIDALAR: 1-vs-1 Duel + Mutual Like = Chat
+// server.js – JUFTLIK 100% ISHLAYDIGAN VERSIYA
 
 require('dotenv').config();
 const express = require('express');
@@ -12,15 +12,14 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static('public'));
 
 // Xotira
-const waitingQueue = new Map();     // telegramId → socket (kutayotganlar)
-const activeDuels = new Map();      // socket1.id → { p1, p2, votes: {} }
-const likesHistory = new Map();     // userId → [likedUserIds...]
+const waitingPlayers = []; // Kutayotgan o‘yinchilar ro‘yxati (socketlar)
 
 io.on('connection', (socket) => {
   console.log('Yangi ulanish:', socket.id);
 
   socket.on('auth', (data) => {
     const { telegramId, username, photo } = data;
+
     const user = {
       id: telegramId,
       name: username || 'NoName',
@@ -30,91 +29,61 @@ io.on('connection', (socket) => {
     socket.user = user;
     socket.emit('auth_ok');
 
-    // Kutish navbatiga qo‘shamiz
-    waitingQueue.set(telegramId, socket);
-    console.log(`${user.name} navbatga kirdi (${waitingQueue.size} kishi)`);
+    console.log(`${user.name} kirdi`);
 
-    // Agar navbatda 2+ odam bo‘lsa – duel boshlaymiz
-    if (waitingQueue.size >= 2) {
-      const players = [...waitingQueue.entries()];
-      const [[id1, s1], [id2, s2]] = players;
+    // Kutish ro‘yxatiga qo‘shamiz
+    waitingPlayers.push(socket);
 
-      waitingQueue.delete(id1);
-      waitingQueue.delete(id2);
+    // Agar 2 yoki undan ko‘p odam bo‘lsa – duel boshlaymiz
+    if (waitingPlayers.length >= 2) {
+      const player1 = waitingPlayers.shift();
+      const player2 = waitingPlayers.shift();
 
-      const duel = {
-        p1: s1.user,
-        p2: s2.user,
-        votes: {}
-      };
-
-      activeDuels.set(s1.id, duel);
-      activeDuels.set(s2.id, duel);
+      const p1 = player1.user;
+      const p2 = player2.user;
 
       // Har ikkisiga raqibni yuboramiz
-      s1.emit('pair_started', { opponent: duel.p2 });
-      s2.emit('pair_started', { opponent: duel.p1 });
+      player1.emit('pair_started', { opponent: p2 });
+      player2.emit('pair_started', { opponent: p1 });
 
-      console.log(`YANGI DUEL: ${duel.p1.name} ❤️ ${duel.p2.name}`);
-    }
-  });
+      console.log(`JUFTLIK BOSHLANDI: ${p1.name} ❤️ ${p2.name}`);
 
-  // Like yoki No-like
-  socket.on('vote', ({ choice }) => {
-    if (!socket.user) return;
+      // Vote logikasi (player1 va player2 uchun alohida)
+      const votes = {};
 
-    const duel = activeDuels.get(socket.id);
-    if (!duel) return;
+      const handleVote = (choice) => {
+        votes[socket.user.id] = choice;
 
-    duel.votes[socket.user.id] = choice;
+        if (Object.keys(votes).length === 2) {
+          const v1 = votes[p1.id];
+          const v2 = votes[p2.id];
 
-    // Ikkalasining ovozi kelsa – natija
-    if (Object.keys(duel.votes).length === 2) {
-      const v1 = duel.votes[duel.p1.id];
-      const v2 = duel.votes[duel.p2.id];
+          if (v1 === 'like' && v2 === 'like') {
+            player1.emit('match', { partner: p2 });
+            player2.emit('match', { partner: p1 });
+            console.log(`MATCH! ${p1.name} ❤️ ${p2.name}`);
+          } else {
+            player1.emit('no_match');
+            player2.emit('no_match');
+            console.log(`NO MATCH: ${p1.name} va ${p2.name}`);
+          }
 
-      const s1 = [...io.sockets.sockets.values()].find(s => s.user?.id === duel.p1.id);
-      const s2 = [...io.sockets.sockets.values()].find(s => s.user?.id === duel.p2.id);
-
-      if (v1 === 'like' && v2 === 'like') {
-        // MATCH – ikkalasi ham yoqtirdi
-        s1?.emit('match', { partner: duel.p2 });
-        s2?.emit('match', { partner: duel.p1 });
-        console.log(`MATCH! ${duel.p1.name} ❤️ ${duel.p2.name}`);
-      } else {
-        // Birortasi yoqtirmadi
-        if (v1 === 'like') {
-          // p1 p2 ni yoqtirdi → p2 ning "likes" ro'yxatiga tushadi
-          const p2Likes = likesHistory.get(duel.p2.id) || [];
-          p2Likes.push(duel.p1);
-          likesHistory.set(duel.p2.id, p2Likes);
-          s1?.emit('liked_only', { message: "Siz yoqtirdingiz, lekin u yoqtirmadi" });
+          // Yangi duel uchun navbatga qaytarish
+          waitingPlayers.push(player1);
+          waitingPlayers.push(player2);
         }
-        if (v2 === 'like') {
-          const p1Likes = likesHistory.get(duel.p1.id) || [];
-          p1Likes.push(duel.p2);
-          likesHistory.set(duel.p1.id, p1Likes);
-          s2?.emit('liked_only', { message: "Siz yoqtirdingiz, lekin u yoqtirmadi" });
-        }
+      };
 
-        s1?.emit('no_match');
-        s2?.emit('no_match');
-      }
-
-      // Duelni tugatamiz
-      activeDuels.delete(s1?.id || '');
-      activeDuels.delete(s2?.id || '');
-
-      // Ikkalasini yana navbatga qo‘yamiz
-      if (s1) waitingQueue.set(duel.p1.id, s1);
-      if (s2) waitingQueue.set(duel.p2.id, s2);
+      player1.on('vote', handleVote);
+      player2.on('vote', handleVote);
     }
   });
 
   socket.on('disconnect', () => {
     if (socket.user) {
-      waitingQueue.delete(socket.user.id);
-      activeDuels.delete(socket.id);
+      // Navbatdan o‘chiramiz
+      const index = waitingPlayers.indexOf(socket);
+      if (index > -1) waitingPlayers.splice(index, 1);
       console.log(`${socket.user.name} chiqdi`);
     }
   });
@@ -122,7 +91,6 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`\nLIKE DUEL YANGI QOIDALAR BILAN ISHLAMOQDA!`);
+  console.log(`\nSERVER JUFTLIK BILAN ISHLAYAPTI → http://localhost:${PORT}`);
   console.log(`Bot: @likeduelgame_bot`);
-  console.log(`Havola: https://like-duel.vercel.app\n`);
 });

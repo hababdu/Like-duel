@@ -1633,31 +1633,63 @@
         }
         
         // 8. OVOZ BERISH HANDLER'I
-        function handleVote(choice) {
-            if (gameState.socket && gameState.isInDuel) {
-                gameState.socket.emit('vote', { choice: choice });
-                
-                // Tugmalarni o'chirish
-                [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(btn => {
-                    btn.disabled = true;
-                });
-                
-                // Ovoz turiga qarab timer matnini o'zgartirish
-                if (choice === 'like') {
-                    elements.timer.textContent = '❤️';
-                } else if (choice === 'super_like') {
-                    elements.timer.textContent = '💖';
-                    // Super like limitini kamaytirish
-                    const current = parseInt(elements.superLikeCount.textContent);
-                    if (current > 0) {
-                        elements.superLikeCount.textContent = current - 1;
-                    }
-                } else {
-                    elements.timer.textContent = '✖';
-                }
-            }
-        }
-        
+       // YANGI KOD:
+function handleVote(choice) {
+  console.log(`🎮 FRONTEND VOTE: ${choice}`);
+  
+  if (!gameState.socket || !gameState.isInDuel) {
+    console.log('❌ Socket yoki duel mavjud emas');
+    showNotification('❌ Xato', 'Duel mavjud emas yoki serverga ulanmagan');
+    return;
+  }
+  
+  // Tugmalarni vaqtincha o'chirish (qayta bosilishini oldini olish)
+  const voteButtons = [elements.noBtn, elements.likeBtn, elements.superLikeBtn];
+  voteButtons.forEach(btn => {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+  });
+  
+  // Ovozni serverga yuborish
+  console.log(`📤 Serverga ovoz yuborilmoqda: ${choice}`);
+  gameState.socket.emit('vote', { 
+    choice: choice,
+    timestamp: Date.now()
+  });
+  
+  // UI ni yangilash
+  if (choice === 'like') {
+    elements.timer.textContent = '❤️';
+    elements.timer.style.color = '#ff6b6b';
+    updateDuelStatus('Siz LIKE berdidingiz...');
+  } else if (choice === 'super_like') {
+    elements.timer.textContent = '💖';
+    elements.timer.style.color = '#9b59b6';
+    updateDuelStatus('Siz SUPER LIKE berdidingiz!');
+    
+    // Super like limitini kamaytirish
+    const current = parseInt(elements.superLikeCount.textContent);
+    if (current > 0) {
+      elements.superLikeCount.textContent = current - 1;
+    }
+  } else {
+    elements.timer.textContent = '✖';
+    elements.timer.style.color = '#34495e';
+    updateDuelStatus('Siz o\'tkazib yubordingiz...');
+  }
+  
+  // Tugmalarni 1 soniyadan keyin qayta yoqish (agar xato bo'lsa)
+  setTimeout(() => {
+    const duelScreen = document.getElementById('duelScreen');
+    if (duelScreen && !duelScreen.classList.contains('hidden')) {
+      voteButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      });
+      console.log('🔄 Tugmalar qayta yoqildi');
+    }
+  }, 1000);
+}
         // 9. MATCH TAKLIFLARINI BOSHQARISH
         function handleMatchOption(action, userId) {
             switch(action) {

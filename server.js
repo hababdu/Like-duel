@@ -371,47 +371,90 @@ class EnhancedDuel {
     }, 20000);
   }
   
-  vote(playerId, choice) {
-    if (this.aborted) return;
-    
-    const player = playerId === this.player1.id ? this.player1 : this.player2;
-    const voteTime = new Date() - this.startTime;
-    
-    console.log(`🗳️ Ovoz: ${player.name} -> ${choice} (${voteTime}ms)`);
-    
-    // SUPER LIKE cheklovi
-    if (choice === 'super_like') {
-      if (!player.canUseSuperLike()) {
-        player.socket.emit('error', { 
-          message: 'Kunlik SUPER LIKE limitingiz tugadi (3 ta)' 
-        });
-        return;
-      }
-      player.useSuperLike();
-    }
-    
-    this.votes[playerId] = choice;
-    this.voteTimes[playerId] = voteTime;
-    
-    // Tezkor ovoz bonus
-    if (voteTime < 5000) { // 5 soniyadan tez
-      player.addXP(5);
-      player.socket.emit('bonus', { 
-        type: 'quick_vote', 
-        points: 5,
-        xp: player.xp 
+  
+// YANGI KOD:
+vote(playerId, choice) {
+  console.log(`🎯 DUEL VOTE FUNKSIYASI: ${playerId} -> ${choice}`);
+  
+  if (this.aborted) {
+    console.log('❌ Duel abort qilingan, ovoz qabul qilinmaydi');
+    return;
+  }
+  
+  // O'yinchini aniqlash
+  const player = playerId === this.player1.id ? this.player1 : this.player2;
+  if (!player) {
+    console.log('❌ O\'yinchi topilmadi');
+    return;
+  }
+  
+  // Ovoz berganligini tekshirish
+  if (this.votes[playerId]) {
+    console.log(`⚠️ ${player.name} allaqachon ovoz bergan: ${this.votes[playerId]}`);
+    player.socket.emit('error', { message: 'Siz allaqachon ovoz bergansiz' });
+    return;
+  }
+  
+  const voteTime = new Date() - this.startTime;
+  console.log(`✅ OVOOZ QAYTA ISHLANDI: ${player.name} -> ${choice} (${voteTime}ms)`);
+  
+  // SUPER LIKE cheklovi
+  if (choice === 'super_like') {
+    if (!player.canUseSuperLike()) {
+      console.log(`❌ ${player.name} da SUPER LIKE limiti tugagan`);
+      player.socket.emit('error', { 
+        message: 'Kunlik SUPER LIKE limitingiz tugadi (3 ta)' 
       });
+      return;
     }
+    player.useSuperLike();
+    console.log(`💖 ${player.name} SUPER LIKE ishlatdi. Qoldiq: ${3 - player.dailySuperLikes}`);
+  }
+  
+  // Ovozni saqlash
+  this.votes[playerId] = choice;
+  this.voteTimes[playerId] = voteTime;
+  
+  // Tezkor ovoz bonus
+  if (voteTime < 5000) { // 5 soniyadan tez
+    const xpResult = player.addXP(5);
+    player.socket.emit('bonus', { 
+      type: 'quick_vote', 
+      points: 5,
+      xp: player.xp,
+      leveledUp: xpResult.leveledUp,
+      newLevel: xpResult.newLevel
+    });
+    console.log(`⚡ ${player.name} tezkor ovoz bonus oldi: +5 XP`);
+  }
+  
+  // Quest yangilash
+  if (choice === 'like' || choice === 'super_like') {
+    updateQuestProgress(player, 'likes_given');
+    console.log(`📋 ${player.name} 'likes_given' vazifasini yangiladi`);
+  }
+  
+  console.log(`📊 DUEL VOTES:`, this.votes);
+  console.log(`👥 Ikkala ovoz kerak. Hozir: ${Object.keys(this.votes).length}/2`);
+  
+  // Agar ikkala ovoz ham berilgan bo'lsa
+  if (Object.keys(this.votes).length === 2) {
+    console.log('🎉 IKKALA OVOOZ HAM BERILDI! Natijani hisoblash...');
+    this.processResult();
+  } else {
+    console.log(`⏳ Kutilyapti. ${2 - Object.keys(this.votes).length} ovoz qoldi`);
     
-    // Quest yangilash
-    if (choice === 'like' || choice === 'super_like') {
-      updateQuestProgress(player, 'likes_given');
-    }
-    
-    if (Object.keys(this.votes).length === 2) {
-      this.processResult();
+    // Raqibga ovoz berilganligi haqida bildirish
+    const opponent = playerId === this.player1.id ? this.player2 : this.player1;
+    if (opponent.socket.connected) {
+      opponent.socket.emit('opponent_voted', {
+        choice: choice === 'super_like' ? 'super_like' : 'voted',
+        timeLeft: this.timeout ? 20 - Math.floor(voteTime / 1000) : 20
+      });
+      console.log(`📢 ${opponent.name} ga ovoz berilganligi haqida xabar yuborildi`);
     }
   }
+}
   
   processResult() {
     clearTimeout(this.timeout);
@@ -747,33 +790,48 @@ io.on('connection', (socket) => {
   });
   
   // YANGI: Ovoz berish (3 turdagi ovoz)
-  socket.on('vote', (data) => {
-    try {
-      const player = gameState.playerSockets.get(socket.id);
-      if (!player || !player.currentMatch) {
-        socket.emit('error', { message: 'Faol duel topilmadi' });
-        return;
-      }
-      
-      const duel = gameState.activeDuels.get(player.currentMatch);
-      if (!duel || !data || !data.choice) {
-        socket.emit('error', { message: 'Duel topilmadi' });
-        return;
-      }
-      
-      // Faqat ruxsat etilgan ovoz turlari
-      if (!['like', 'super_like', 'skip'].includes(data.choice)) {
-        socket.emit('error', { message: 'Yaroqsiz ovoz turi' });
-        return;
-      }
-      
-      duel.vote(player.id, data.choice);
-      
-    } catch (error) {
-      console.error('❌ Vote error:', error);
-      socket.emit('error', { message: 'Ovoz berishda xatolik' });
+ // YANGI KOD:
+socket.on('vote', (data) => {
+  try {
+    console.log(`🗳️ OVOOZ QABUL QILINDI: ${socket.id} -> ${data.choice}`);
+    
+    const player = gameState.playerSockets.get(socket.id);
+    if (!player) {
+      socket.emit('error', { message: 'O\'yinchi topilmadi' });
+      return;
     }
-  });
+    
+    if (!player.currentMatch) {
+      socket.emit('error', { message: 'Siz hozir duelda emassiz' });
+      return;
+    }
+    
+    const duel = gameState.activeDuels.get(player.currentMatch);
+    if (!duel) {
+      socket.emit('error', { message: 'Duel topilmadi' });
+      return;
+    }
+    
+    if (!data || !data.choice) {
+      socket.emit('error', { message: 'Ovoz ma\'lumotlari noto\'g\'ri' });
+      return;
+    }
+    
+    // Ovoz berishni tekshirish
+    if (duel.votes[player.id]) {
+      console.log(`⚠️ ${player.name} allaqachon ovoz bergan`);
+      socket.emit('error', { message: 'Siz allaqachon ovoz bergansiz' });
+      return;
+    }
+    
+    console.log(`✅ OVOOZ QAYTA ISHLANMOQDA: ${player.name} -> ${data.choice}`);
+    duel.vote(player.id, data.choice);
+    
+  } catch (error) {
+    console.error('❌ Vote xatosi:', error);
+    socket.emit('error', { message: 'Ovoz berishda xatolik' });
+  }
+});
   
   // YANGI: Do'stlik so'rovi yuborish
   socket.on('send_friend_request', (data) => {
@@ -958,37 +1016,59 @@ io.on('connection', (socket) => {
 });
 
 // ==================== YORDAMCHI FUNKSIYALAR ====================
+// server.js - `startDuelIfPossible` funksiyasini to'g'rilang
+
 function startDuelIfPossible() {
+  console.log('🔍 Duel boshlash tekshirilmoqda...');
+  
   // Navbat ro'yxatini tozalash
-  gameState.waitingPlayers = gameState.waitingPlayers.filter(player => 
+  const connectedPlayers = gameState.waitingPlayers.filter(player => 
     player.socket.connected && !player.currentMatch
   );
   
-  if (gameState.waitingPlayers.length >= 2) {
+  console.log(`👥 Ulangan va kutayotganlar: ${connectedPlayers.length} ta`);
+  
+  if (connectedPlayers.length >= 2) {
     // Birinchi o'yinchini olish
-    const player1 = gameState.waitingPlayers.shift();
+    const player1 = connectedPlayers[0];
     
     // Bir xil bo'lmagan ikkinchi o'yinchini topish
     let player2 = null;
-    for (let i = 0; i < gameState.waitingPlayers.length; i++) {
-      if (gameState.waitingPlayers[i].id !== player1.id) {
-        player2 = gameState.waitingPlayers[i];
-        gameState.waitingPlayers.splice(i, 1);
+    let player2Index = -1;
+    
+    for (let i = 1; i < connectedPlayers.length; i++) {
+      if (connectedPlayers[i].id !== player1.id) {
+        player2 = connectedPlayers[i];
+        player2Index = i;
         break;
       }
     }
     
-    if (player2) {
+    if (player1 && player2) {
+      console.log(`🎯 JUFT TOPILDI: ${player1.name} vs ${player2.name}`);
+      
+      // Asosiy ro'yxatlardan olib tashlash
+      const p1Index = gameState.waitingPlayers.indexOf(player1);
+      const p2Index = gameState.waitingPlayers.indexOf(player2);
+      
+      if (p1Index !== -1) gameState.waitingPlayers.splice(p1Index, 1);
+      if (p2Index !== -1) gameState.waitingPlayers.splice(p2Index, 1);
+      
       // Yangi duel yaratish va boshlash
       const duel = new EnhancedDuel(player1, player2);
       gameState.activeDuels.set(duel.id, duel);
       duel.start();
       
-      console.log(`🎯 DUEL BOSHLANDI: ${player1.name} vs ${player2.name}`);
+      console.log(`✅ DUEL BOSHLANDI: ${duel.id}`);
     } else {
+      console.log('⚠️ Bir xil foydalanuvchi, duel boshlanmaydi');
       // Agar ikkinchi o'yinchi topilmasa, birinchini qaytarish
-      gameState.waitingPlayers.unshift(player1);
+      if (player1) {
+        console.log(`↩️ ${player1.name} qayta navbatga qo'shildi`);
+      }
     }
+  } else {
+    console.log(`⏳ Duel boshlash uchun yetarli emas: ${connectedPlayers.length}/2`);
   }
   
   // Kutayotganlar sonini yuborish

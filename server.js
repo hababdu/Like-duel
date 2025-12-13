@@ -1,376 +1,931 @@
-// server.js - TO'LIQ ISHLAYDI
+// server.js - MULTI-FUNKSIYALI VERSIYA
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-
-// Socket.io sozlamalari
 const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
-  }
+  },
+  transports: ['websocket', 'polling']
 });
 
-// O'yinchi klassi
+// ==================== YANGI KLASSLAR ====================
 class Player {
   constructor(socket, userData) {
     this.socket = socket;
-    this.id = userData.telegramId || 'user_' + socket.id;
+    this.id = userData.telegramId || 'user_' + Date.now();
     this.username = userData.username || 'user_' + this.id;
     this.name = userData.name || 'Foydalanuvchi';
-    this.photo = userData.photo || `https://ui-avatars.com/api/?name=${this.name}&background=667eea&color=fff`;
-    this.connectedAt = new Date();
+    this.photo = userData.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(this.name)}&background=667eea&color=fff`;
+    this.bio = userData.bio || '';
+    this.gender = userData.gender || 'not_specified';
+    this.level = 1;
+    this.xp = 0;
+    this.coins = 100; // Boshlang'ich coin
+    this.rating = 1500; // Elo reytingi
+    this.matches = 0;
+    this.duelsPlayed = 0;
+    this.duelsWon = 0;
+    this.currentWinStreak = 0;
+    this.bestWinStreak = 0;
+    this.dailySuperLikes = 0;
+    this.lastResetDate = new Date().toDateString();
+    this.friends = [];
+    this.friendRequests = [];
+    this.blockedUsers = [];
+    this.achievements = [];
+    this.shopItems = [];
+    this.dailyQuests = [];
     this.currentMatch = null;
-    this.hasVoted = false;
+    this.lastSeen = new Date();
+    this.online = true;
+    this.settings = {
+      notifications: true,
+      sound: true,
+      theme: 'default'
+    };
+  }
+  
+  addXP(amount) {
+    this.xp += amount;
+    const neededXP = this.level * 100;
+    if (this.xp >= neededXP) {
+      this.level++;
+      this.xp -= neededXP;
+      this.coins += this.level * 50;
+      return { leveledUp: true, newLevel: this.level };
+    }
+    return { leveledUp: false };
+  }
+  
+  canUseSuperLike() {
+    // Kunlik limitni tekshirish
+    const today = new Date().toDateString();
+    if (today !== this.lastResetDate) {
+      this.dailySuperLikes = 0;
+      this.lastResetDate = today;
+    }
+    return this.dailySuperLikes < 3;
+  }
+  
+  useSuperLike() {
+    if (this.canUseSuperLike()) {
+      this.dailySuperLikes++;
+      return true;
+    }
+    return false;
   }
 }
 
-// O'yin holatlari
+class RatingSystem {
+  calculateElo(winnerRating, loserRating) {
+    const K = 32;
+    const expectedWinner = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+    const expectedLoser = 1 / (1 + Math.pow(10, (winnerRating - loserRating) / 400));
+    
+    const newWinnerRating = winnerRating + K * (1 - expectedWinner);
+    const newLoserRating = loserRating + K * (0 - expectedLoser);
+    
+    return {
+      winner: Math.round(newWinnerRating),
+      loser: Math.round(newLoserRating)
+    };
+  }
+}
+
+class MatchHistory {
+  constructor() {
+    this.history = new Map(); // userId -> match array
+  }
+  
+  addMatch(userId, opponentId, result, type = 'duel') {
+    if (!this.history.has(userId)) {
+      this.history.set(userId, []);
+    }
+    
+    const match = {
+      opponentId,
+      result, // 'win', 'loss', 'match'
+      type,
+      timestamp: new Date(),
+      hasMetAgain: false
+    };
+    
+    this.history.get(userId).push(match);
+    
+    // Agar avval uchrashgan bo'lsa, belgilash
+    const previousMatches = this.history.get(userId).filter(m => 
+      m.opponentId === opponentId && m.timestamp < match.timestamp
+    );
+    
+    if (previousMatches.length > 0) {
+      match.hasMetBefore = true;
+      match.previousResult = previousMatches[previousMatches.length - 1].result;
+    }
+    
+    return match;
+  }
+  
+  hasMetBefore(userId, opponentId) {
+    if (!this.history.has(userId)) return false;
+    return this.history.get(userId).some(match => 
+      match.opponentId === opponentId
+    );
+  }
+  
+  getPreviousResult(userId, opponentId) {
+    if (!this.history.has(userId)) return null;
+    const matches = this.history.get(userId).filter(m => 
+      m.opponentId === opponentId
+    );
+    return matches.length > 0 ? matches[matches.length - 1].result : null;
+  }
+}
+
+// ==================== GLOBAL O'ZGARUVCHILAR ====================
 const gameState = {
   waitingPlayers: [],
   activeDuels: new Map(),
   playerSockets: new Map(),
-  activeUsers: new Map()
-};
-
-// Yordamchi funksiyalar
-const startDuel = (player1, player2) => {
-  console.log(`🎯 DUEL BOSHLANMOQDA: ${player1.name} vs ${player2.name}`);
-  
-  // Duel ID yaratish
-  const duelId = `duel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
-  // O'yinchilarni duelga bog'lash
-  player1.currentMatch = duelId;
-  player2.currentMatch = duelId;
-  
-  // Har ikki o'yinchiga raqib ma'lumotlarini yuborish
-  const player1Data = {
-    id: player1.id,
-    name: player1.name,
-    username: player1.username,
-    photo: player1.photo
-  };
-  
-  const player2Data = {
-    id: player2.id,
-    name: player2.name,
-    username: player2.username,
-    photo: player2.photo
-  };
-  
-  player1.socket.emit('duel_started', { opponent: player2Data });
-  player2.socket.emit('duel_started', { opponent: player1Data });
-  
-  // Duel ma'lumotlarini saqlash
-  const duel = {
-    id: duelId,
-    player1: player1,
-    player2: player2,
-    votes: {},
-    timeout: null,
-    startTime: new Date()
-  };
-  
-  gameState.activeDuels.set(duelId, duel);
-  
-  // 20 soniya timeout
-  duel.timeout = setTimeout(() => {
-    handleDuelTimeout(duelId);
-  }, 20000);
-  
-  console.log(`✅ DUEL BOSHLANDI: ${duelId}`);
-};
-
-const handleDuelTimeout = (duelId) => {
-  const duel = gameState.activeDuels.get(duelId);
-  if (!duel) return;
-  
-  console.log(`⏰ DUEL TIMEOUT: ${duelId}`);
-  
-  // Ovoz berilmagan o'yinchilarga xabar
-  if (!duel.votes[duel.player1.id]) {
-    duel.player1.socket.emit('timeout');
-  }
-  if (!duel.votes[duel.player2.id]) {
-    duel.player2.socket.emit('timeout');
-  }
-  
-  // Navbatga qaytarish
-  returnPlayersToQueue(duel);
-};
-
-const processVote = (duelId, playerId, choice) => {
-  const duel = gameState.activeDuels.get(duelId);
-  if (!duel) return;
-  
-  console.log(`🗳️ OVOOZ: ${playerId} -> ${choice}`);
-  duel.votes[playerId] = choice;
-  
-  // Agar ikkala ovoz ham berilgan bo'lsa
-  if (duel.votes[duel.player1.id] && duel.votes[duel.player2.id]) {
-    clearTimeout(duel.timeout);
-    checkMatchResult(duel);
+  activeUsers: new Map(),
+  ratingSystem: new RatingSystem(),
+  matchHistory: new MatchHistory(),
+  leaderboard: {
+    rating: [],
+    matches: [],
+    coins: [],
+    updatedAt: null
   }
 };
 
-const checkMatchResult = (duel) => {
-  const vote1 = duel.votes[duel.player1.id];
-  const vote2 = duel.votes[duel.player2.id];
-  
-  console.log(`📊 NATIJA: ${vote1} vs ${vote2}`);
-  
-  if (vote1 === 'like' && vote2 === 'like') {
-    // MATCH!
-    console.log(`💖 MATCH! ${duel.player1.name} ❤️ ${duel.player2.name}`);
-    
-    duel.player1.socket.emit('match', {
-      partner: {
-        id: duel.player2.id,
-        name: duel.player2.name,
-        username: duel.player2.username,
-        photo: duel.player2.photo
-      }
-    });
-    
-    duel.player2.socket.emit('match', {
-      partner: {
-        id: duel.player1.id,
-        name: duel.player1.name,
-        username: duel.player1.username,
-        photo: duel.player1.photo
-      }
-    });
-    
-    // 5 soniyadan keyin navbatga qaytarish
-    setTimeout(() => returnPlayersToQueue(duel), 5000);
-    
-  } else if (vote1 === 'like' && vote2 !== 'like') {
-    // Faqat player1 yoqtirdi
-    duel.player1.socket.emit('liked_only');
-    duel.player2.socket.emit('no_match');
-    setTimeout(() => returnPlayersToQueue(duel), 3000);
-    
-  } else if (vote1 !== 'like' && vote2 === 'like') {
-    // Faqat player2 yoqtirdi
-    duel.player2.socket.emit('liked_only');
-    duel.player1.socket.emit('no_match');
-    setTimeout(() => returnPlayersToQueue(duel), 3000);
-    
-  } else {
-    // Hech kim yoqtirmadi
-    duel.player1.socket.emit('no_match');
-    duel.player2.socket.emit('no_match');
-    setTimeout(() => returnPlayersToQueue(duel), 3000);
+// ==================== KUNLIK VAZIFALAR ====================
+const DAILY_QUESTS = [
+  {
+    id: 1,
+    title: "🎯 3 ta dueldan o'ting",
+    description: "3 ta duel o'ynang",
+    target: 3,
+    type: 'duels_played',
+    reward: { coins: 50, xp: 100 },
+    icon: '⚔️'
+  },
+  {
+    id: 2,
+    title: "❤️ 5 ta LIKE bering",
+    description: "5 ta odamga LIKE bering",
+    target: 5,
+    type: 'likes_given',
+    reward: { coins: 75, xp: 150 },
+    icon: '❤️'
+  },
+  {
+    id: 3,
+    title: "💖 1 ta SUPER LIKE ishlating",
+    description: "Kunlik SUPER LIKE'ingizni ishlating",
+    target: 1,
+    type: 'super_likes',
+    reward: { coins: 30, xp: 50 },
+    icon: '💖'
+  },
+  {
+    id: 4,
+    title: "🏆 3 ta duel yuting",
+    description: "3 ta duelda g'alaba qozoning",
+    target: 3,
+    type: 'duels_won',
+    reward: { coins: 100, xp: 200 },
+    icon: '🏆'
   }
-};
+];
 
-const returnPlayersToQueue = (duel) => {
-  // Duelni tozalash
-  clearTimeout(duel.timeout);
-  gameState.activeDuels.delete(duel.id);
-  
-  // O'yinchilarni qayta sozlash
-  duel.player1.currentMatch = null;
-  duel.player2.currentMatch = null;
-  duel.player1.hasVoted = false;
-  duel.player2.hasVoted = false;
-  
-  // Agar hali ulanib turgan bo'lsa, navbatga qaytarish
-  if (duel.player1.socket.connected) {
-    gameState.waitingPlayers.push(duel.player1);
-    duel.player1.socket.emit('return_to_queue');
+// ==================== DO'KON MAHSULOTLARI ====================
+const SHOP_ITEMS = [
+  {
+    id: 1,
+    name: "Bronza Avatar Ramkasi",
+    description: "Profilingizni bronza ramka bilan bezang",
+    price: 100,
+    type: "avatar_frame",
+    rarity: "common",
+    icon: "🟤"
+  },
+  {
+    id: 2,
+    name: "3 ta SUPER LIKE Paketi",
+    description: "Kunlik SUPER LIKE limitini +3 ga oshiring",
+    price: 300,
+    type: "super_like_boost",
+    duration: 86400,
+    icon: "💖"
+  },
+  {
+    id: 3,
+    name: "30 soniyalik Duel",
+    description: "Keyingi duel uchun vaqtni 30 soniyaga oshiring",
+    price: 150,
+    type: "time_boost",
+    uses: 1,
+    icon: "⏱️"
+  },
+  {
+    id: 4,
+    name: "VIP Profil Ko'rinishi",
+    description: "1 kunlik VIP profil ko'rinishi",
+    price: 500,
+    type: "vip_badge",
+    duration: 86400,
+    icon: "👑"
   }
-  
-  if (duel.player2.socket.connected) {
-    gameState.waitingPlayers.push(duel.player2);
-    duel.player2.socket.emit('return_to_queue');
-  }
-  
-  console.log(`🔄 DUEL TUGADI: ${duel.id}`);
-  
-  // Yangi duel boshlashni tekshirish
-  checkForNewDuels();
-};
+];
 
-const checkForNewDuels = () => {
-  // Navbat ro'yxatini tozalash (chiquvchilarni olib tashlash)
-  gameState.waitingPlayers = gameState.waitingPlayers.filter(player => 
-    player.socket.connected && !player.currentMatch
-  );
-  
-  console.log(`👥 Kutayotganlar: ${gameState.waitingPlayers.length} ta`);
-  
-  // Agar kamida 2 kishi bo'lsa
-  if (gameState.waitingPlayers.length >= 2) {
-    // Bir xil foydalanuvchi bo'lmagan 2 kishini topish
-    const player1 = gameState.waitingPlayers[0];
-    let player2 = null;
-    
-    for (let i = 1; i < gameState.waitingPlayers.length; i++) {
-      if (gameState.waitingPlayers[i].id !== player1.id) {
-        player2 = gameState.waitingPlayers[i];
-        break;
-      }
-    }
-    
-    if (player2) {
-      // Navbatdan olib tashlash
-      const p1Index = gameState.waitingPlayers.indexOf(player1);
-      const p2Index = gameState.waitingPlayers.indexOf(player2);
-      
-      if (p1Index !== -1) gameState.waitingPlayers.splice(p1Index, 1);
-      if (p2Index !== -1) gameState.waitingPlayers.splice(p2Index, 1);
-      
-      // Duel boshlash
-      startDuel(player1, player2);
-    } else {
-      console.log('⚠️ Bir xil foydalanuvchi, duel boshlanmaydi');
-    }
-  }
-  
-  // Kutayotganlar sonini yuborish
-  gameState.waitingPlayers.forEach((player, index) => {
-    if (player.socket.connected) {
-      player.socket.emit('waiting_count', {
-        count: gameState.waitingPlayers.length,
-        position: index + 1
+// ==================== YORDAMCHI FUNKSIYALAR ====================
+function resetDailyCounters() {
+  const today = new Date().toDateString();
+  gameState.playerSockets.forEach(player => {
+    if (player.lastResetDate !== today) {
+      player.dailySuperLikes = 0;
+      player.lastResetDate = today;
+      player.dailyQuests = JSON.parse(JSON.stringify(DAILY_QUESTS));
+      player.socket.emit('daily_reset', { 
+        superLikes: 0,
+        quests: player.dailyQuests 
       });
     }
   });
-};
+}
 
-// Socket.io handler'lari
+function updateQuestProgress(player, questType, amount = 1) {
+  const quest = player.dailyQuests.find(q => q.type === questType);
+  if (quest && quest.progress < quest.target) {
+    quest.progress = (quest.progress || 0) + amount;
+    
+    if (quest.progress >= quest.target) {
+      // Vazifa yakunlandi
+      player.coins += quest.reward.coins;
+      player.addXP(quest.reward.xp);
+      
+      player.socket.emit('quest_completed', {
+        questId: quest.id,
+        reward: quest.reward,
+        coins: player.coins,
+        xp: player.xp
+      });
+    }
+  }
+}
+
+function updateLeaderboard() {
+  const players = Array.from(gameState.playerSockets.values());
+  
+  gameState.leaderboard.rating = players
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 10)
+    .map(p => ({ 
+      id: p.id, 
+      name: p.name, 
+      value: p.rating,
+      photo: p.photo 
+    }));
+  
+  gameState.leaderboard.matches = players
+    .sort((a, b) => b.matches - a.matches)
+    .slice(0, 10)
+    .map(p => ({ 
+      id: p.id, 
+      name: p.name, 
+      value: p.matches,
+      photo: p.photo 
+    }));
+  
+  gameState.leaderboard.coins = players
+    .sort((a, b) => b.coins - a.coins)
+    .slice(0, 10)
+    .map(p => ({ 
+      id: p.id, 
+      name: p.name, 
+      value: p.coins,
+      photo: p.photo 
+    }));
+  
+  gameState.leaderboard.updatedAt = new Date();
+  
+  // Barchaga yangilangan liderlar doskasini yuborish
+  io.emit('leaderboard_updated', gameState.leaderboard);
+}
+
+// ==================== YANGI DUEL TIZIMI ====================
+class EnhancedDuel {
+  constructor(player1, player2) {
+    this.id = `duel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.player1 = player1;
+    this.player2 = player2;
+    this.votes = {};
+    this.voteTimes = {};
+    this.startTime = new Date();
+    this.timeout = null;
+    this.aborted = false;
+    this.hasMetBefore = gameState.matchHistory.hasMetBefore(player1.id, player2.id);
+    this.previousResult = this.hasMetBefore ? 
+      gameState.matchHistory.getPreviousResult(player1.id, player2.id) : null;
+    
+    player1.currentMatch = this.id;
+    player2.currentMatch = this.id;
+  }
+  
+  start() {
+    const p1Data = this.getPlayerData(this.player1);
+    const p2Data = this.getPlayerData(this.player2);
+    
+    // Agar avval uchrashgan bo'lsa, maxsus xabar
+    const specialMessage = this.hasMetBefore ? 
+      `Siz avval ${this.previousResult === 'match' ? 'MATCH qilgan' : 'uchrashgan'} edingiz!` : 
+      null;
+    
+    this.player1.socket.emit('duel_started', { 
+      opponent: p2Data,
+      duelId: this.id,
+      hasMetBefore: this.hasMetBefore,
+      previousResult: this.previousResult,
+      specialMessage: specialMessage
+    });
+    
+    this.player2.socket.emit('duel_started', { 
+      opponent: p1Data,
+      duelId: this.id,
+      hasMetBefore: this.hasMetBefore,
+      previousResult: this.previousResult === 'match' ? 'match' : this.previousResult,
+      specialMessage: specialMessage
+    });
+    
+    console.log(`🎮 DUEL: ${this.player1.name} vs ${this.player2.name} ${this.hasMetBefore ? '(Oldin uchrashgan)' : ''}`);
+    
+    // 20 soniya timeout
+    this.timeout = setTimeout(() => {
+      if (!this.aborted) {
+        this.handleTimeout();
+      }
+    }, 20000);
+  }
+  
+  vote(playerId, choice) {
+    if (this.aborted) return;
+    
+    const player = playerId === this.player1.id ? this.player1 : this.player2;
+    const voteTime = new Date() - this.startTime;
+    
+    console.log(`🗳️ Ovoz: ${player.name} -> ${choice} (${voteTime}ms)`);
+    
+    // SUPER LIKE cheklovi
+    if (choice === 'super_like') {
+      if (!player.canUseSuperLike()) {
+        player.socket.emit('error', { 
+          message: 'Kunlik SUPER LIKE limitingiz tugadi (3 ta)' 
+        });
+        return;
+      }
+      player.useSuperLike();
+    }
+    
+    this.votes[playerId] = choice;
+    this.voteTimes[playerId] = voteTime;
+    
+    // Tezkor ovoz bonus
+    if (voteTime < 5000) { // 5 soniyadan tez
+      player.addXP(5);
+      player.socket.emit('bonus', { 
+        type: 'quick_vote', 
+        points: 5,
+        xp: player.xp 
+      });
+    }
+    
+    // Quest yangilash
+    if (choice === 'like' || choice === 'super_like') {
+      updateQuestProgress(player, 'likes_given');
+    }
+    
+    if (Object.keys(this.votes).length === 2) {
+      this.processResult();
+    }
+  }
+  
+  processResult() {
+    clearTimeout(this.timeout);
+    
+    const v1 = this.votes[this.player1.id];
+    const v2 = this.votes[this.player2.id];
+    
+    // Match tarixiga qo'shish
+    const matchResult1 = this.getMatchResult(this.player1.id, v1, v2);
+    const matchResult2 = this.getMatchResult(this.player2.id, v2, v1);
+    
+    gameState.matchHistory.addMatch(this.player1.id, this.player2.id, matchResult1);
+    gameState.matchHistory.addMatch(this.player2.id, this.player1.id, matchResult2);
+    
+    // Statistikani yangilash
+    this.player1.duelsPlayed++;
+    this.player2.duelsPlayed++;
+    updateQuestProgress(this.player1, 'duels_played');
+    updateQuestProgress(this.player2, 'duels_played');
+    
+    if (v1 === 'like' && v2 === 'like') {
+      // MATCH!
+      this.handleMatch();
+    } else if (v1 === 'like' && v2 !== 'like') {
+      this.handleSingleLike(this.player1, this.player2);
+    } else if (v1 !== 'like' && v2 === 'like') {
+      this.handleSingleLike(this.player2, this.player1);
+    } else {
+      this.handleNoMatch();
+    }
+    
+    // Liderlarni yangilash
+    updateLeaderboard();
+    
+    // 3 soniyadan keyin navbatga qaytarish
+    setTimeout(() => {
+      this.returnToQueue();
+    }, 3000);
+  }
+  
+  handleMatch() {
+    console.log(`💖 MATCH! ${this.player1.name} ❤️ ${this.player2.name}`);
+    
+    // Reyting yangilash
+    const newRatings = gameState.ratingSystem.calculateElo(
+      this.player1.rating,
+      this.player2.rating
+    );
+    
+    this.player1.rating = newRatings.winner;
+    this.player2.rating = newRatings.loser;
+    
+    // Statistikani yangilash
+    this.player1.matches++;
+    this.player2.matches++;
+    this.player1.duelsWon++;
+    this.player2.duelsWon++;
+    this.player1.currentWinStreak++;
+    this.player2.currentWinStreak++;
+    
+    if (this.player1.currentWinStreak > this.player1.bestWinStreak) {
+      this.player1.bestWinStreak = this.player1.currentWinStreak;
+    }
+    if (this.player2.currentWinStreak > this.player2.bestWinStreak) {
+      this.player2.bestWinStreak = this.player2.currentWinStreak;
+    }
+    
+    // Mukofotlar
+    this.player1.coins += 50;
+    this.player2.coins += 50;
+    this.player1.addXP(30);
+    this.player2.addXP(30);
+    
+    updateQuestProgress(this.player1, 'duels_won');
+    updateQuestProgress(this.player2, 'duels_won');
+    
+    // Agar avval uchrashgan bo'lsa, maxsus takliflar
+    const specialOptions = this.hasMetBefore ? [
+      { type: 'chat', label: '💬 Chatga o\'tish', action: 'open_chat' },
+      { type: 'skip', label: '➡️ O\'tkazish', action: 'skip' },
+      { type: 'rematch', label: '🔄 Qayta duel', action: 'rematch' }
+    ] : [
+      { type: 'chat', label: '💬 Chatga o\'tish', action: 'open_chat' },
+      { type: 'skip', label: '➡️ O\'tkazish', action: 'skip' }
+    ];
+    
+    this.player1.socket.emit('match', {
+      partner: this.getPlayerData(this.player2),
+      specialOptions: specialOptions,
+      rewards: { coins: 50, xp: 30 },
+      newRating: this.player1.rating,
+      isRematch: this.hasMetBefore
+    });
+    
+    this.player2.socket.emit('match', {
+      partner: this.getPlayerData(this.player1),
+      specialOptions: specialOptions,
+      rewards: { coins: 50, xp: 30 },
+      newRating: this.player2.rating,
+      isRematch: this.hasMetBefore
+    });
+  }
+  
+  handleSingleLike(liker, opponent) {
+    liker.socket.emit('liked_only', {
+      opponent: opponent.name,
+      reward: { coins: 10, xp: 5 }
+    });
+    
+    opponent.socket.emit('no_match', {
+      opponent: liker.name
+    });
+    
+    // Kichik mukofot
+    liker.coins += 10;
+    liker.addXP(5);
+  }
+  
+  handleNoMatch() {
+    this.player1.socket.emit('no_match');
+    this.player2.socket.emit('no_match');
+    
+    // Ishtirok mukofoti
+    this.player1.coins += 5;
+    this.player2.coins += 5;
+    this.player1.addXP(2);
+    this.player2.addXP(2);
+  }
+  
+  getMatchResult(playerId, myVote, opponentVote) {
+    if (myVote === 'like' && opponentVote === 'like') return 'match';
+    if (myVote === 'like' && opponentVote !== 'like') return 'liked_only';
+    if (myVote !== 'like' && opponentVote === 'like') return 'was_liked';
+    return 'no_match';
+  }
+  
+  getPlayerData(player) {
+    return {
+      id: player.id,
+      name: player.name,
+      username: player.username,
+      photo: player.photo,
+      level: player.level,
+      rating: player.rating,
+      matches: player.matches,
+      isOnline: player.online
+    };
+  }
+  
+  returnToQueue() {
+    if (this.aborted) return;
+    
+    this.aborted = true;
+    clearTimeout(this.timeout);
+    
+    gameState.activeDuels.delete(this.id);
+    
+    // O'yinchilarni qayta sozlash
+    [this.player1, this.player2].forEach(player => {
+      player.currentMatch = null;
+      if (player.socket.connected) {
+        gameState.waitingPlayers.push(player);
+        player.socket.emit('return_to_queue', {
+          coins: player.coins,
+          xp: player.xp,
+          level: player.level
+        });
+      }
+    });
+    
+    // Navbat holatini yangilash
+    broadcastWaitingCount();
+  }
+}
+
+// ==================== DO'STLAR TIZIMI ====================
+function sendFriendRequest(fromPlayer, toUserId) {
+  const toPlayer = gameState.playerSockets.get(toUserId);
+  if (!toPlayer) return { success: false, message: 'Foydalanuvchi topilmadi' };
+  
+  if (toPlayer.friendRequests.includes(fromPlayer.id)) {
+    return { success: false, message: 'So\'rov allaqachon yuborilgan' };
+  }
+  
+  if (toPlayer.blockedUsers.includes(fromPlayer.id)) {
+    return { success: false, message: 'Siz bloklangansiz' };
+  }
+  
+  if (fromPlayer.friends.includes(toUserId)) {
+    return { success: false, message: 'U allaqachon do\'stingiz' };
+  }
+  
+  toPlayer.friendRequests.push(fromPlayer.id);
+  
+  if (toPlayer.socket.connected) {
+    toPlayer.socket.emit('friend_request', {
+      from: {
+        id: fromPlayer.id,
+        name: fromPlayer.name,
+        photo: fromPlayer.photo,
+        level: fromPlayer.level
+      },
+      timestamp: new Date()
+    });
+  }
+  
+  return { success: true, message: 'Do\'stlik so\'rovi yuborildi' };
+}
+
+function acceptFriendRequest(playerId, friendId) {
+  const player = gameState.playerSockets.get(playerId);
+  const friend = gameState.playerSockets.get(friendId);
+  
+  if (!player || !friend) return false;
+  
+  // So'rovni olib tashlash
+  const requestIndex = player.friendRequests.indexOf(friendId);
+  if (requestIndex !== -1) {
+    player.friendRequests.splice(requestIndex, 1);
+  }
+  
+  // Do'st qo'shish
+  if (!player.friends.includes(friendId)) {
+    player.friends.push(friendId);
+  }
+  if (!friend.friends.includes(playerId)) {
+    friend.friends.push(playerId);
+  }
+  
+  // Bildirishnomalar
+  player.socket.emit('friend_added', {
+    friend: {
+      id: friend.id,
+      name: friend.name,
+      photo: friend.photo,
+      online: friend.online
+    }
+  });
+  
+  if (friend.socket.connected) {
+    friend.socket.emit('friend_added', {
+      friend: {
+        id: player.id,
+        name: player.name,
+        photo: player.photo,
+        online: player.online
+      }
+    });
+  }
+  
+  return true;
+}
+
+// ==================== SOCKET.IO HANDLER'LARI ====================
 io.on('connection', (socket) => {
   console.log(`🔗 Yangi ulanish: ${socket.id}`);
   
   socket.on('auth', (userData) => {
-    console.log(`👤 Auth so'rovi: ${userData.name || 'Noma\'lum'}`);
-    
-    const telegramId = userData.telegramId || socket.id;
-    
-    // Bir xil akkauntni tekshirish
-    if (gameState.activeUsers.has(telegramId)) {
-      console.log(`⚠️ Bir xil akkaunt: ${userData.name}`);
+    try {
+      const telegramId = userData.telegramId || socket.id;
       
-      const existingUser = gameState.activeUsers.get(telegramId);
-      
-      // Eski ulanishni uzish
-      if (existingUser.socket.connected) {
-        existingUser.socket.emit('duplicate_login');
-        existingUser.socket.disconnect();
-      }
-      
-      // Eski ma'lumotlarni tozalash
-      const oldSocketId = existingUser.socket.id;
-      if (gameState.playerSockets.has(oldSocketId)) {
-        gameState.playerSockets.delete(oldSocketId);
-      }
-      
-      // Navbatdan olib tashlash
-      const waitingIndex = gameState.waitingPlayers.findIndex(p => p.socket.id === oldSocketId);
-      if (waitingIndex !== -1) {
-        gameState.waitingPlayers.splice(waitingIndex, 1);
-      }
-      
-      // Dueldan olib tashlash
-      if (existingUser.currentMatch) {
-        const duel = gameState.activeDuels.get(existingUser.currentMatch);
-        if (duel) {
-          returnPlayersToQueue(duel);
+      // Bir xil akkauntni tekshirish
+      if (gameState.activeUsers.has(telegramId)) {
+        console.log(`⚠️ Bir xil akkaunt: ${userData.name}`);
+        
+        const existingUser = gameState.activeUsers.get(telegramId);
+        if (existingUser.socket.connected) {
+          existingUser.socket.emit('duplicate_login');
+          existingUser.socket.disconnect();
         }
+        removePlayer(existingUser.socket.id);
       }
       
-      gameState.activeUsers.delete(telegramId);
-    }
-    
-    // Yangi o'yinchi yaratish
-    const player = new Player(socket, userData);
-    
-    // Ro'yxatlarga qo'shish
-    gameState.playerSockets.set(socket.id, player);
-    gameState.activeUsers.set(telegramId, player);
-    gameState.waitingPlayers.push(player);
-    
-    // Autentifikatsiya tasdiqlash
-    socket.emit('auth_ok', {
-      userId: player.id,
-      name: player.name
-    });
-    
-    console.log(`✅ ${player.name} ro'yxatga olindi (Kutayotganlar: ${gameState.waitingPlayers.length})`);
-    
-    // Navbat holatini yuborish
-    socket.emit('waiting_count', {
-      count: gameState.waitingPlayers.length,
-      position: gameState.waitingPlayers.indexOf(player) + 1
-    });
-    
-    // Yangi duel boshlashni tekshirish
-    checkForNewDuels();
-  });
-  
-  socket.on('vote', (data) => {
-    console.log(`🗳️ Ovoz: ${socket.id} -> ${data.choice}`);
-    
-    const player = gameState.playerSockets.get(socket.id);
-    if (!player || !player.currentMatch) {
-      socket.emit('error', { message: 'Faol duel topilmadi' });
-      return;
-    }
-    
-    // Ovozni qayta berishni oldini olish
-    if (player.hasVoted) {
-      socket.emit('error', { message: 'Siz allaqachon ovoz berdingiz' });
-      return;
-    }
-    
-    player.hasVoted = true;
-    processVote(player.currentMatch, player.id, data.choice);
-  });
-  
-  socket.on('get_status', () => {
-    const player = gameState.playerSockets.get(socket.id);
-    if (player) {
-      const position = gameState.waitingPlayers.indexOf(player) + 1;
-      socket.emit('status_update', {
-        inQueue: position > 0,
-        position: position,
-        totalWaiting: gameState.waitingPlayers.length,
-        inDuel: !!player.currentMatch
+      // Yangi o'yinchi yaratish
+      const player = new Player(socket, userData);
+      
+      // Kunlik vazifalarni boshlash
+      resetDailyCounters();
+      player.dailyQuests = JSON.parse(JSON.stringify(DAILY_QUESTS));
+      
+      // Ro'yxatlarga qo'shish
+      gameState.playerSockets.set(socket.id, player);
+      gameState.activeUsers.set(telegramId, player);
+      gameState.waitingPlayers.push(player);
+      player.online = true;
+      
+      // Autentifikatsiya
+      socket.emit('auth_ok', {
+        userId: player.id,
+        name: player.name,
+        level: player.level,
+        coins: player.coins,
+        rating: player.rating,
+        dailyQuests: player.dailyQuests,
+        dailySuperLikes: 3 - player.dailySuperLikes,
+        friends: player.friends.map(friendId => {
+          const friend = gameState.playerSockets.get(friendId);
+          return friend ? {
+            id: friend.id,
+            name: friend.name,
+            photo: friend.photo,
+            online: friend.online
+          } : null;
+        }).filter(Boolean),
+        friendRequests: player.friendRequests.length,
+        shopItems: SHOP_ITEMS,
+        leaderboard: gameState.leaderboard
       });
+      
+      console.log(`✅ ${player.name} kirdi (Lvl:${player.level}, Coins:${player.coins})`);
+      
+      // Barcha do'stlarga onlayn ekanligini bildirish
+      player.friends.forEach(friendId => {
+        const friend = gameState.playerSockets.get(friendId);
+        if (friend && friend.socket.connected) {
+          friend.socket.emit('friend_online', {
+            id: player.id,
+            name: player.name
+          });
+        }
+      });
+      
+      // Navbat holati
+      broadcastWaitingCount();
+      
+      // Duel boshlashni tekshirish
+      startDuelIfPossible();
+      
+    } catch (error) {
+      console.error('❌ Auth error:', error);
+      socket.emit('error', { message: 'Auth failed' });
     }
   });
   
-  socket.on('leave_queue', () => {
-    const player = gameState.playerSockets.get(socket.id);
-    if (player) {
-      console.log(`🚪 ${player.name} navbatdan chiqdi`);
-      
-      // Navbatdan olib tashlash
-      const waitingIndex = gameState.waitingPlayers.indexOf(player);
-      if (waitingIndex !== -1) {
-        gameState.waitingPlayers.splice(waitingIndex, 1);
+  // YANGI: Ovoz berish (3 turdagi ovoz)
+  socket.on('vote', (data) => {
+    try {
+      const player = gameState.playerSockets.get(socket.id);
+      if (!player || !player.currentMatch) {
+        socket.emit('error', { message: 'Faol duel topilmadi' });
+        return;
       }
       
-      // Dueldan olib tashlash
-      if (player.currentMatch) {
-        const duel = gameState.activeDuels.get(player.currentMatch);
-        if (duel) {
-          returnPlayersToQueue(duel);
-        }
+      const duel = gameState.activeDuels.get(player.currentMatch);
+      if (!duel || !data || !data.choice) {
+        socket.emit('error', { message: 'Duel topilmadi' });
+        return;
       }
       
-      // Ro'yxatlardan olib tashlash
-      gameState.activeUsers.delete(player.id);
-      gameState.playerSockets.delete(socket.id);
+      // Faqat ruxsat etilgan ovoz turlari
+      if (!['like', 'super_like', 'skip'].includes(data.choice)) {
+        socket.emit('error', { message: 'Yaroqsiz ovoz turi' });
+        return;
+      }
       
-      socket.emit('left_queue');
-      checkForNewDuels();
+      duel.vote(player.id, data.choice);
+      
+    } catch (error) {
+      console.error('❌ Vote error:', error);
+      socket.emit('error', { message: 'Ovoz berishda xatolik' });
     }
+  });
+  
+  // YANGI: Do'stlik so'rovi yuborish
+  socket.on('send_friend_request', (data) => {
+    const player = gameState.playerSockets.get(socket.id);
+    if (!player) return;
+    
+    const result = sendFriendRequest(player, data.userId);
+    socket.emit('friend_request_result', result);
+  });
+  
+  // YANGI: Do'stlik so'rovini qabul qilish
+  socket.on('accept_friend_request', (data) => {
+    const player = gameState.playerSockets.get(socket.id);
+    if (!player) return;
+    
+    const success = acceptFriendRequest(player.id, data.friendId);
+    socket.emit('friend_request_accepted', { 
+      success, 
+      friendId: data.friendId 
+    });
+  });
+  
+  // YANGI: Chatga o'tish
+  socket.on('open_chat', (data) => {
+    const player = gameState.playerSockets.get(socket.id);
+    const partner = gameState.playerSockets.get(data.userId);
+    
+    if (player && partner) {
+      // Ikkala o'yinchiga ham chat ochish ruxsati berish
+      player.socket.emit('chat_opened', {
+        partner: {
+          id: partner.id,
+          name: partner.name,
+          photo: partner.photo
+        },
+        canChat: true
+      });
+      
+      if (partner.socket.connected) {
+        partner.socket.emit('chat_opened', {
+          partner: {
+            id: player.id,
+            name: player.name,
+            photo: player.photo
+          },
+          canChat: true
+        });
+      }
+    }
+  });
+  
+  // YANGI: Do'kondan sotib olish
+  socket.on('purchase_item', (data) => {
+    const player = gameState.playerSockets.get(socket.id);
+    if (!player) return;
+    
+    const item = SHOP_ITEMS.find(item => item.id === data.itemId);
+    if (!item) {
+      socket.emit('purchase_error', { message: 'Mahsulot topilmadi' });
+      return;
+    }
+    
+    if (player.coins < item.price) {
+      socket.emit('purchase_error', { message: 'Coinlaringiz yetarli emas' });
+      return;
+    }
+    
+    // Sotib olish
+    player.coins -= item.price;
+    player.shopItems.push({
+      ...item,
+      purchasedAt: new Date(),
+      active: true
+    });
+    
+    // Agar SUPER LIKE boost bo'lsa
+    if (item.type === 'super_like_boost') {
+      // Kunlik limitni oshirish logikasi
+      socket.emit('super_like_boost', { extraLikes: 3 });
+    }
+    
+    socket.emit('purchase_success', {
+      item: item.name,
+      remainingCoins: player.coins,
+      itemId: item.id
+    });
+    
+    // Liderlarni yangilash
+    updateLeaderboard();
+  });
+  
+  // YANGI: Profilni yangilash
+  socket.on('update_profile', (data) => {
+    const player = gameState.playerSockets.get(socket.id);
+    if (!player) return;
+    
+    player.bio = data.bio || player.bio;
+    player.gender = data.gender || player.gender;
+    player.settings = { ...player.settings, ...data.settings };
+    
+    socket.emit('profile_updated', {
+      bio: player.bio,
+      gender: player.gender,
+      settings: player.settings
+    });
+  });
+  
+  // YANGI: Liderlar doskasini so'rash
+  socket.on('get_leaderboard', () => {
+    socket.emit('leaderboard_data', gameState.leaderboard);
+  });
+  
+  // YANGI: O'yinchi statistikasini so'rash
+  socket.on('get_player_stats', (data) => {
+    const player = gameState.playerSockets.get(socket.id);
+    const targetPlayer = data.userId ? 
+      gameState.playerSockets.get(data.userId) : player;
+    
+    if (!targetPlayer) {
+      socket.emit('player_stats_error', { message: 'Foydalanuvchi topilmadi' });
+      return;
+    }
+    
+    const stats = {
+      basic: {
+        level: targetPlayer.level,
+        xp: targetPlayer.xp,
+        neededXP: targetPlayer.level * 100,
+        rating: targetPlayer.rating,
+        coins: targetPlayer.coins,
+        matches: targetPlayer.matches,
+        duelsPlayed: targetPlayer.duelsPlayed,
+        duelsWon: targetPlayer.duelsWon,
+        winRate: targetPlayer.duelsPlayed > 0 ? 
+          (targetPlayer.duelsWon / targetPlayer.duelsPlayed * 100).toFixed(1) : 0
+      },
+      streaks: {
+        currentWinStreak: targetPlayer.currentWinStreak,
+        bestWinStreak: targetPlayer.bestWinStreak
+      },
+      daily: {
+        superLikesUsed: targetPlayer.dailySuperLikes,
+        superLikesRemaining: 3 - targetPlayer.dailySuperLikes,
+        questsCompleted: targetPlayer.dailyQuests.filter(q => 
+          (q.progress || 0) >= q.target
+        ).length
+      },
+      achievements: targetPlayer.achievements,
+      shopItems: targetPlayer.shopItems.filter(item => item.active)
+    };
+    
+    socket.emit('player_stats', stats);
   });
   
   socket.on('disconnect', () => {
@@ -380,63 +935,155 @@ io.on('connection', (socket) => {
     if (player) {
       console.log(`👋 ${player.name} chiqib ketdi`);
       
-      // Navbatdan olib tashlash
-      const waitingIndex = gameState.waitingPlayers.indexOf(player);
-      if (waitingIndex !== -1) {
-        gameState.waitingPlayers.splice(waitingIndex, 1);
-      }
+      // Onlayn statusini yangilash
+      player.online = false;
+      player.lastSeen = new Date();
       
-      // Dueldan olib tashlash
-      if (player.currentMatch) {
-        const duel = gameState.activeDuels.get(player.currentMatch);
-        if (duel) {
-          const opponent = duel.player1.socket.id === socket.id ? duel.player2 : duel.player1;
-          if (opponent.socket.connected) {
-            opponent.socket.emit('opponent_left');
-          }
-          returnPlayersToQueue(duel);
+      // Do'stlarga oflayn ekanligini bildirish
+      player.friends.forEach(friendId => {
+        const friend = gameState.playerSockets.get(friendId);
+        if (friend && friend.socket.connected) {
+          friend.socket.emit('friend_offline', {
+            id: player.id,
+            name: player.name,
+            lastSeen: player.lastSeen
+          });
         }
-      }
+      });
       
-      // Ro'yxatlardan olib tashlash
-      gameState.activeUsers.delete(player.id);
-      gameState.playerSockets.delete(socket.id);
-      
-      checkForNewDuels();
+      // O'yinchini tozalash
+      removePlayer(socket.id);
     }
   });
 });
 
-// Static fayllar
+// ==================== YORDAMCHI FUNKSIYALAR ====================
+function startDuelIfPossible() {
+  // Navbat ro'yxatini tozalash
+  gameState.waitingPlayers = gameState.waitingPlayers.filter(player => 
+    player.socket.connected && !player.currentMatch
+  );
+  
+  if (gameState.waitingPlayers.length >= 2) {
+    // Birinchi o'yinchini olish
+    const player1 = gameState.waitingPlayers.shift();
+    
+    // Bir xil bo'lmagan ikkinchi o'yinchini topish
+    let player2 = null;
+    for (let i = 0; i < gameState.waitingPlayers.length; i++) {
+      if (gameState.waitingPlayers[i].id !== player1.id) {
+        player2 = gameState.waitingPlayers[i];
+        gameState.waitingPlayers.splice(i, 1);
+        break;
+      }
+    }
+    
+    if (player2) {
+      // Yangi duel yaratish va boshlash
+      const duel = new EnhancedDuel(player1, player2);
+      gameState.activeDuels.set(duel.id, duel);
+      duel.start();
+      
+      console.log(`🎯 DUEL BOSHLANDI: ${player1.name} vs ${player2.name}`);
+    } else {
+      // Agar ikkinchi o'yinchi topilmasa, birinchini qaytarish
+      gameState.waitingPlayers.unshift(player1);
+    }
+  }
+  
+  // Kutayotganlar sonini yuborish
+  broadcastWaitingCount();
+}
+
+function broadcastWaitingCount() {
+  const count = gameState.waitingPlayers.length;
+  gameState.waitingPlayers.forEach((player, index) => {
+    if (player.socket.connected) {
+      player.socket.emit('waiting_count', { 
+        count, 
+        position: index + 1,
+        estimatedTime: Math.max(1, index) * 15 // taxminiy kutish vaqti
+      });
+    }
+  });
+}
+
+function removePlayer(socketId) {
+  const player = gameState.playerSockets.get(socketId);
+  if (!player) return;
+  
+  // Navbatdan olib tashlash
+  const waitingIndex = gameState.waitingPlayers.findIndex(p => p.socket.id === socketId);
+  if (waitingIndex !== -1) {
+    gameState.waitingPlayers.splice(waitingIndex, 1);
+  }
+  
+  // Dueldan olib tashlash
+  if (player.currentMatch) {
+    const duel = gameState.activeDuels.get(player.currentMatch);
+    if (duel) {
+      duel.aborted = true;
+      const opponent = duel.player1.socket.id === socketId ? duel.player2 : duel.player1;
+      if (opponent && opponent.socket.connected) {
+        opponent.socket.emit('opponent_left');
+        opponent.currentMatch = null;
+        // Raqibni navbatga qaytarish
+        gameState.waitingPlayers.push(opponent);
+      }
+      gameState.activeDuels.delete(player.currentMatch);
+    }
+  }
+  
+  // activeUsers'dan olib tashlash
+  if (player.id) {
+    gameState.activeUsers.delete(player.id);
+  }
+  
+  // playerSockets'dan olib tashlash
+  gameState.playerSockets.delete(socketId);
+  
+  // Navbat holatini yangilash
+  broadcastWaitingCount();
+}
+
+// ==================== SERVER ISHGA TUSHIRISH ====================
 app.use(express.static('public'));
 
-// Root endpoint
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
-// Statistikalar
-app.get('/api/stats', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'online',
-    waitingPlayers: gameState.waitingPlayers.length,
+    players: gameState.playerSockets.size,
+    waiting: gameState.waitingPlayers.length,
     activeDuels: gameState.activeDuels.size,
-    totalPlayers: gameState.playerSockets.size
+    leaderboard: gameState.leaderboard
   });
 });
 
-// Server porti
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log('\n' + '='.repeat(50));
-  console.log('🚀 LIKE DUEL SERVER ISHGA TUSHDI');
-  console.log('='.repeat(50));
-  console.log(`📍 http://localhost:${PORT}`);
-  console.log(`👥 Kutayotganlar: ${gameState.waitingPlayers.length} ta`);
-  console.log(`🎮 Aktiv duellar: ${gameState.activeDuels.size} ta`);
-  console.log('='.repeat(50));
-  console.log('✅ Server to\'liq ishlaydi!');
-  console.log('✅ 2 kishi kirsa darrov duel boshlanadi');
-  console.log('✅ Bir xil akkaunt bilan 2 qurilmadan kira olmaysiz');
-  console.log('='.repeat(50));
+  console.log('\n' + '='.repeat(60));
+  console.log('🚀 LIKE DUEL - MULTI-FUNKSIYALI VERSIYA');
+  console.log('='.repeat(60));
+  console.log(`📍 Server: http://localhost:${PORT}`);
+  console.log(`👥 Onlayn: ${gameState.playerSockets.size} ta`);
+  console.log(`⏳ Kutayotgan: ${gameState.waitingPlayers.length} ta`);
+  console.log('='.repeat(60));
+  console.log('✅ 3 turdagi ovoz: LIKE, SUPER LIKE, SKIP');
+  console.log('✅ Reyting tizimi (Elo)');
+  console.log('✅ Kunlik vazifalar');
+  console.log('✅ Do\'stlar tizimi');
+  console.log('✅ Chat va profil');
+  console.log('✅ Coin va XP');
+  console.log('✅ Do\'kon');
+  console.log('✅ Liderlar doskasi');
+  console.log('='.repeat(60));
+  
+  // Kunlik reset
+  setInterval(resetDailyCounters, 3600000); // Har soat
+  // Liderlarni yangilash
+  setInterval(updateLeaderboard, 300000); // Har 5 daqiqa
 });

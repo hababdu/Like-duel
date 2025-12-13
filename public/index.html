@@ -2,578 +2,924 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Like Duel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>❤️ Like Duel - O'yin</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
-    /* Telegram Web App standartlariga mos stil */
+    /* 📱 MOBIL OPTIMALLASHTIRILGAN STILLAR */
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
     }
     
     body {
-      font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
-      background: var(--tg-theme-bg-color, linear-gradient(135deg, #ff6b6b, #4ecdc4));
-      color: var(--tg-theme-text-color, #ffffff);
-      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
       padding: 0;
       margin: 0;
+      overflow-x: hidden;
+      position: relative;
     }
     
-    /* Telegram xabarlari uchun joy qoldirish */
-    body:before {
-      content: '';
-      display: block;
-      height: calc(16px + var(--tg-viewport-stable-height, 0px));
-    }
+   
     
-    .container {
+    /* ASOSIY KONTEYNER */
+    .app-container {
       width: 100%;
       max-width: 100%;
-      min-height: 100vh;
+      min-height: calc(100vh - 16px);
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      padding: 15px;
       padding-bottom: calc(20px + env(safe-area-inset-bottom));
     }
     
-    h1 {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 32px;
+    /* SARIQ BANNER */
+    .banner {
+      background: linear-gradient(90deg, #ff6b6b, #ff8e53);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 15px;
       text-align: center;
-      color: var(--tg-theme-text-color, #ffffff);
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* PROFILE MODAL */
-    #profileModal {
-      position: fixed;
-      top: 0;
-      left: 0;
+      margin-bottom: 20px;
       width: 100%;
-      height: 100%;
-      background: var(--tg-theme-secondary-bg-color, rgba(0, 0, 0, 0.9));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-    
-    .modal-content {
-      background: var(--tg-theme-bg-color, #ffffff);
-      color: var(--tg-theme-text-color, #000000);
-      padding: 32px 24px;
-      border-radius: 24px;
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
-    }
-    
-    .modal-avatar {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 4px solid var(--tg-theme-button-color, #ff6b6b);
-      margin-bottom: 24px;
-    }
-    
-    .modal-name {
-      font-size: 24px;
-      font-weight: 700;
-      margin: 0 0 12px 0;
-      line-height: 1.2;
-    }
-    
-    .modal-info {
-      font-size: 16px;
-      margin: 8px 0;
-      color: var(--tg-theme-hint-color, #6c757d);
-      line-height: 1.4;
-    }
-    
-    .modal-likes {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--tg-theme-button-color, #ff3366);
-      margin: 20px 0;
-      line-height: 1.3;
-    }
-    
-    #startBtn {
-      background: var(--tg-theme-button-color, #ff3366);
-      color: var(--tg-theme-button-text-color, #ffffff);
-      border: none;
-      padding: 16px 32px;
-      border-radius: 20px;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 24px;
-      width: 100%;
-      min-height: 56px;
-      transition: transform 0.1s, opacity 0.1s;
-    }
-    
-    #startBtn:active {
-      transform: scale(0.98);
-      opacity: 0.9;
-    }
-    
-    /* DUEL PANEL */
-    .duel-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      width: 100%;
-      padding: 20px 0;
-    }
-    
-    .opponent {
-      margin: 32px 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    .avatar {
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 6px solid var(--tg-theme-secondary-bg-color, rgba(255, 255, 255, 0.2));
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      margin-bottom: 24px;
-    }
-    
-    .name {
-      font-size: 24px;
-      font-weight: 600;
-      margin: 16px 0;
-      text-align: center;
-      line-height: 1.3;
-      padding: 0 20px;
-    }
-    
-    .timer {
-      font-size: 64px;
-      font-weight: 800;
-      margin: 32px 0;
-      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-      line-height: 1;
-    }
-    
-    /* TUGMALAR (44px dan katta) */
-    .buttons {
-      display: flex;
-      justify-content: center;
-      gap: 32px;
-      margin: 32px 0;
-      width: 100%;
-      max-width: 320px;
-    }
-    
-    button.vote-btn {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      border: none;
-      font-size: 48px;
-      cursor: pointer;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      transition: transform 0.1s, opacity 0.1s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100px;
-    }
-    
-    button.vote-btn:active {
-      transform: scale(0.95);
-      opacity: 0.9;
-    }
-    
-    .nolike {
-      background: var(--tg-theme-secondary-bg-color, #2c3e50);
-      color: var(--tg-theme-button-text-color, #ffffff);
-    }
-    
-    .like {
-      background: var(--tg-theme-button-color, #ff3366);
-      color: var(--tg-theme-button-text-color, #ffffff);
-    }
-    
-    /* STATUS XABARLARI */
-    .status {
-      margin-top: 32px;
-      font-size: 18px;
-      line-height: 1.5;
-      text-align: center;
-      padding: 0 20px;
-      min-height: 54px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .hidden {
-      display: none !important;
-    }
-    
-    /* MATCH ANIMATSIYA */
-    .match-box {
-      animation: pulse 1s infinite;
-      text-align: center;
-      padding: 24px;
+      box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+      animation: pulse 2s infinite;
     }
     
     @keyframes pulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50% { transform: scale(1.02); }
       100% { transform: scale(1); }
     }
     
-    .match-btn {
-      background: var(--tg-theme-button-color, #ff3366);
-      color: var(--tg-theme-button-text-color, #ffffff);
-      border: none;
-      padding: 18px 36px;
-      border-radius: 20px;
-      font-size: 18px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 24px;
-      min-height: 56px;
-      transition: transform 0.1s, opacity 0.1s;
-      width: 100%;
-      max-width: 280px;
+    .banner h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 5px;
+      letter-spacing: 0.5px;
     }
     
-    .match-btn:active {
-      transform: scale(0.98);
+    .banner p {
+      font-size: 0.9rem;
       opacity: 0.9;
     }
     
-    /* MASOFALAR (20-40px) */
-    .spacing-sm { margin: 20px 0; }
-    .spacing-md { margin: 30px 0; }
-    .spacing-lg { margin: 40px 0; }
+    /* KUTISH STATISTIKASI */
+    .queue-stats {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 20px;
+      width: 100%;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
     
-    /* Responsive */
+    .stats-number {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #ffd700;
+      text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+    }
+    
+    .stats-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+    
+    /* PROFIL KARTASI */
+    .profile-card {
+      background: white;
+      border-radius: 20px;
+      padding: 25px;
+      width: 100%;
+      max-width: 350px;
+      margin: 20px auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      color: #333;
+      text-align: center;
+    }
+    
+    .profile-avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 5px solid #667eea;
+      margin: 0 auto 20px;
+      display: block;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .profile-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .profile-username {
+      color: #666;
+      font-size: 1rem;
+      margin-bottom: 15px;
+    }
+    
+    .profile-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 5px;
+    }
+    
+    /* DUEL MAYDONI */
+    .duel-arena {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+      padding: 25px;
+      width: 100%;
+      margin: 20px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .duel-arena:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #ff6b6b, #667eea);
+    }
+    
+    .opponent-avatar {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 6px solid white;
+      margin: 0 auto 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .opponent-name {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .opponent-username {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+    
+    /* TIMER */
+    .timer-container {
+      margin: 25px 0;
+      position: relative;
+    }
+    
+    .timer-circle {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      border: 3px solid #ff6b6b;
+      position: relative;
+    }
+    
+    .timer {
+      font-size: 3rem;
+      font-weight: 800;
+      color: white;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* OVOZ BERISH TUGMALARI */
+    .vote-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin: 30px 0;
+      width: 100%;
+      max-width: 320px;
+    }
+    
+    .vote-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: none;
+      font-size: 2.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .vote-btn:active {
+      transform: scale(0.9);
+    }
+    
+    .vote-btn:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .vote-btn:active:before {
+      opacity: 1;
+    }
+    
+    .btn-no {
+      background: linear-gradient(135deg, #2c3e50, #34495e);
+      color: white;
+    }
+    
+    .btn-yes {
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+      color: white;
+    }
+    
+    /* STATUS XABARI */
+    .status-message {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      width: 100%;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      animation: fadeIn 0.5s;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* BOSHLASH TUGMASI */
+    .start-btn {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 18px 40px;
+      border-radius: 25px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 20px 0;
+      width: 100%;
+      max-width: 280px;
+      transition: all 0.3s;
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .start-btn:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .start-btn:hover:before {
+      left: 100%;
+    }
+    
+    .start-btn:active {
+      transform: scale(0.98);
+    }
+    
+    /* MATCH XABARI */
+    .match-message {
+      background: linear-gradient(135deg, #00b09b, #96c93d);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      width: 100%;
+      margin: 20px 0;
+      animation: celebrate 1s infinite alternate;
+    }
+    
+    @keyframes celebrate {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.03); }
+    }
+    
+    .match-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 15px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .match-text {
+      font-size: 1.2rem;
+      margin-bottom: 25px;
+      opacity: 0.9;
+    }
+    
+    /* CHATGA O'TISH TUGMASI */
+    .chat-btn {
+      background: white;
+      color: #667eea;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .chat-btn:active {
+      transform: scale(0.98);
+      background: #f5f5f5;
+    }
+    
+    /* FOOTER */
+    .footer {
+      margin-top: auto;
+      padding-top: 20px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.8rem;
+      width: 100%;
+    }
+    
+    /* RESPONSIVE DESIGN */
     @media (max-width: 480px) {
-      .avatar {
-        width: 160px;
-        height: 160px;
-      }
+      .app-container { padding: 12px; }
       
-      button.vote-btn {
-        width: 90px;
-        height: 90px;
-        font-size: 44px;
-      }
+      .banner h1 { font-size: 1.5rem; }
+      .banner p { font-size: 0.8rem; }
       
-      .timer {
-        font-size: 56px;
-      }
+      .profile-avatar { width: 100px; height: 100px; }
+      .profile-name { font-size: 1.3rem; }
+      
+      .opponent-avatar { width: 120px; height: 120px; }
+      .opponent-name { font-size: 1.2rem; }
+      
+      .timer-circle { width: 100px; height: 100px; }
+      .timer { font-size: 2.5rem; }
+      
+      .vote-buttons { gap: 30px; }
+      .vote-btn { width: 70px; height: 70px; font-size: 2rem; }
+      
+      .match-title { font-size: 2rem; }
     }
     
     @media (max-height: 700px) {
-      .avatar {
-        width: 140px;
-        height: 140px;
-      }
-      
-      h1 {
-        font-size: 28px;
-        margin-bottom: 24px;
-      }
-      
-      .timer {
-        font-size: 48px;
-        margin: 24px 0;
-      }
+      .banner { padding: 10px 15px; margin-bottom: 15px; }
+      .queue-stats { padding: 12px; margin-bottom: 15px; }
+      .duel-arena { padding: 20px; margin: 15px 0; }
+      .vote-buttons { margin: 20px 0; }
     }
+    
+    /* UTILITY CLASSES */
+    .hidden { display: none !important; }
+    .visible { display: block !important; }
+    .flex { display: flex !important; }
+    .text-center { text-align: center; }
+    .mt-10 { margin-top: 10px; }
+    .mt-20 { margin-top: 20px; }
+    .mb-10 { margin-bottom: 10px; }
+    .mb-20 { margin-bottom: 20px; }
   </style>
 </head>
 <body>
-  <!-- PROFILE MODAL -->
-  <div id="profileModal">
-    <div class="modal-content">
-      <img id="myAvatar" class="modal-avatar" src="" alt="Siz" crossorigin="anonymous">
-      <div id="myName" class="modal-name">Yuklanmoqda...</div>
-      <div id="myUsername" class="modal-info">@username</div>
-      <div id="myGender" class="modal-info">Jins: Belgilanmagan</div>
-      <div id="myLikes" class="modal-likes">Yoqtirganlar: <span id="likesCount">0</span></div>
-      <button id="startBtn">O'yinni boshlash</button>
+  <div class="app-container">
+    <!-- BANNER -->
+    <div class="banner">
+      <h1>❤️ Like Duel</h1>
+      <p>Yoqtirganingiz bilan MATCH bo'ling!</p>
     </div>
-  </div>
-
-  <!-- ASOSIY KONTEYNER -->
-  <div class="container">
-    <h1>❤️ Like Duel</h1>
     
-    <div class="duel-container">
-      <!-- DUEL PANEL -->
-      <div class="opponent hidden" id="duelPanel">
-        <img id="oppAvatar" class="avatar" src="" alt="Raqib" crossorigin="anonymous">
-        <div id="oppName" class="name">Juft topilmoqda...</div>
+    <!-- KUTISH STATISTIKASI -->
+    <div class="queue-stats hidden" id="queueStats">
+      <div class="stats-number" id="waitingCount">0</div>
+      <div class="stats-label">Kutayotgan o'yinchilar</div>
+      <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.7;" id="positionInfo">
+        Sizning o'rningiz: <span id="position">-</span>
+      </div>
+    </div>
+    
+    <!-- PROFIL KARTASI (Boshlang'ich) -->
+    <div class="profile-card" id="profileCard">
+      <img src="" alt="Siz" class="profile-avatar" id="myAvatar">
+      <div class="profile-name" id="myName">Yuklanmoqda...</div>
+      <div class="profile-username" id="myUsername">@username</div>
+      
+      <div class="profile-stats">
+        <div class="stat-item">
+          <div class="stat-value" id="myMatches">0</div>
+          <div class="stat-label">Matchlar</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="myLikes">0</div>
+          <div class="stat-label">Yoqtirishlar</div>
+        </div>
       </div>
       
-      <!-- TIMER -->
-      <div class="timer hidden" id="timer">15</div>
-      
-      <!-- TUGMALAR -->
-      <div class="buttons hidden" id="voteButtons">
-        <button class="vote-btn nolike" id="noBtn" aria-label="Yoqtirmadi">✖</button>
-        <button class="vote-btn like" id="yesBtn" aria-label="Yoqtirdi">❤️</button>
+      <button class="start-btn" id="startGameBtn">
+        <span style="margin-right: 8px;">🎮</span> O'yinni Boshlash
+      </button>
+    </div>
+    
+    <!-- DUEL MAYDONI -->
+    <div class="duel-arena hidden" id="duelArena">
+      <div class="opponent-info">
+        <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar">
+        <div class="opponent-name" id="opponentName">Raqib</div>
+        <div class="opponent-username" id="opponentUsername">@username</div>
       </div>
       
-      <!-- STATUS -->
-      <div class="status" id="status">Juft topilmoqda...</div>
+      <div class="timer-container">
+        <div class="timer-circle">
+          <div class="timer" id="timer">20</div>
+        </div>
+      </div>
       
-      <!-- MATCH MESSAGE (dynamic) -->
-      <div id="matchMessage" class="hidden"></div>
+      <div class="vote-buttons" id="voteButtons">
+        <button class="vote-btn btn-no" id="noBtn">✖</button>
+        <button class="vote-btn btn-yes" id="yesBtn">❤️</button>
+      </div>
+    </div>
+    
+    <!-- STATUS XABARI -->
+    <div class="status-message" id="statusMessage">
+      O'yinni boshlash uchun "O'yinni Boshlash" tugmasini bosing
+    </div>
+    
+    <!-- MATCH XABARI -->
+    <div class="match-message hidden" id="matchMessage">
+      <div class="match-title">🎉 MATCH!</div>
+      <div class="match-text" id="matchText">
+        <span id="partnerName">Foydalanuvchi</span> bilan suhbatlashish
+      </div>
+      <button class="chat-btn" id="chatBtn">
+        <span>💬</span> Chatga o'tish
+      </button>
+    </div>
+    
+    <!-- FOOTER -->
+    <div class="footer">
+      <div>Like Duel © 2024</div>
+      <div style="margin-top: 5px; font-size: 0.7rem;">Telegram o'yini</div>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Telegram Web App ishga tushirish
-    Telegram.WebApp.ready();
-    Telegram.WebApp.expand();
-    
-    // Telegram foydalanuvchi ma'lumotlari
-    const tgUser = Telegram.WebApp.initDataUnsafe.user || {
-      id: Math.floor(Math.random() * 10000),
-      first_name: "Mehmon",
-      username: "guest"
-    };
-    
-    // App holatlari
-    let likedCount = 0;
-    let currentOpponent = null;
-    let timeLeft = 15;
-    let timerInterval = null;
-    let socket = null;
-    
-    // DOM elementlari
-    const elements = {
-      profileModal: document.getElementById('profileModal'),
-      duelPanel: document.getElementById('duelPanel'),
-      timer: document.getElementById('timer'),
-      voteButtons: document.getElementById('voteButtons'),
-      status: document.getElementById('status'),
-      matchMessage: document.getElementById('matchMessage'),
-      likesCount: document.getElementById('likesCount'),
-      myAvatar: document.getElementById('myAvatar'),
-      myName: document.getElementById('myName'),
-      myUsername: document.getElementById('myUsername'),
-      myGender: document.getElementById('myGender'),
-      startBtn: document.getElementById('startBtn'),
-      oppAvatar: document.getElementById('oppAvatar'),
-      oppName: document.getElementById('oppName'),
-      noBtn: document.getElementById('noBtn'),
-      yesBtn: document.getElementById('yesBtn')
-    };
-    
-    // Foydalanuvchi ma'lumotlarini sozlash
-    function initializeUserProfile() {
-      const userPhoto = tgUser.photo_url || `https://t.me/i/userpic/320/${tgUser.id}.jpg`;
-      const userFullName = (tgUser.first_name || 'Foydalanuvchi') + (tgUser.last_name ? ' ' + tgUser.last_name : '');
-      const userUsername = tgUser.username ? '@' + tgUser.username : 'Username yo‘q';
+    // 📱 MOBIL CLIENT KODI
+    document.addEventListener('DOMContentLoaded', function() {
+      // Telegram Web App ishga tushirish
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+      Telegram.WebApp.setBackgroundColor('#667eea');
+      Telegram.WebApp.setHeaderColor('#667eea');
+      Telegram.WebApp.enableClosingConfirmation();
       
-      elements.myAvatar.src = userPhoto;
-      elements.myName.textContent = userFullName;
-      elements.myUsername.textContent = userUsername;
-      elements.likesCount.textContent = likedCount;
+      // Telegram foydalanuvchi ma'lumotlari
+      const tgUser = Telegram.WebApp.initDataUnsafe.user || {
+        id: Math.floor(Math.random() * 1000000),
+        first_name: 'Mehmon',
+        last_name: 'Foydalanuvchi',
+        username: 'guest_' + Date.now(),
+        photo_url: `https://t.me/i/userpic/320/${Math.floor(Math.random() * 1000000)}.jpg`
+      };
       
-      // Jinsni aniqlash (agar mavjud bo'lsa)
-      if (tgUser.gender) {
-        elements.myGender.textContent = `Jins: ${tgUser.gender === 'male' ? 'Erkak' : 'Ayol'}`;
+      // DOM elementlari
+      const elements = {
+        profileCard: document.getElementById('profileCard'),
+        queueStats: document.getElementById('queueStats'),
+        duelArena: document.getElementById('duelArena'),
+        statusMessage: document.getElementById('statusMessage'),
+        matchMessage: document.getElementById('matchMessage'),
+        
+        // Profil elementlari
+        myAvatar: document.getElementById('myAvatar'),
+        myName: document.getElementById('myName'),
+        myUsername: document.getElementById('myUsername'),
+        myMatches: document.getElementById('myMatches'),
+        myLikes: document.getElementById('myLikes'),
+        
+        // Duel elementlari
+        opponentAvatar: document.getElementById('opponentAvatar'),
+        opponentName: document.getElementById('opponentName'),
+        opponentUsername: document.getElementById('opponentUsername'),
+        timer: document.getElementById('timer'),
+        voteButtons: document.getElementById('voteButtons'),
+        noBtn: document.getElementById('noBtn'),
+        yesBtn: document.getElementById('yesBtn'),
+        
+        // Match elementlari
+        matchText: document.getElementById('matchText'),
+        partnerName: document.getElementById('partnerName'),
+        chatBtn: document.getElementById('chatBtn'),
+        
+        // Navbat elementlari
+        waitingCount: document.getElementById('waitingCount'),
+        position: document.getElementById('position'),
+        positionInfo: document.getElementById('positionInfo'),
+        
+        // Tugmalar
+        startGameBtn: document.getElementById('startGameBtn')
+      };
+      
+      // O'yin holatlari
+      let gameState = {
+        socket: null,
+        isConnected: false,
+        isInQueue: false,
+        isInDuel: false,
+        matchId: null,
+        timerInterval: null,
+        timeLeft: 20,
+        userStats: {
+          matches: 0,
+          likes: 0
+        }
+      };
+      
+      // 📊 FOYDALANUVCHI PROFILINI SOZLASH
+      function initializeUserProfile() {
+        const userPhoto = tgUser.photo_url || `https://t.me/i/userpic/320/${tgUser.id}.jpg`;
+        const userFullName = (tgUser.first_name || 'Foydalanuvchi') + 
+                            (tgUser.last_name ? ' ' + tgUser.last_name : '');
+        const userUsername = tgUser.username ? '@' + tgUser.username : 'Username yo‘q';
+        
+        elements.myAvatar.src = userPhoto;
+        elements.myName.textContent = userFullName;
+        elements.myUsername.textContent = userUsername;
+        elements.myMatches.textContent = gameState.userStats.matches;
+        elements.myLikes.textContent = gameState.userStats.likes;
+        
+        // Avatar yuklanishini kuzatish
+        elements.myAvatar.onerror = function() {
+          this.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+        };
       }
-    }
-    
-    // Socket.io ulanishi
-    function connectSocket() {
-      socket = io();
       
-      socket.on('connect', () => {
-        console.log('Socket connected');
-        socket.emit('auth', {
-          telegramId: tgUser.id,
-          username: tgUser.username || tgUser.first_name,
-          photo: tgUser.photo_url,
-          name: tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')
+      // 🔌 SOCKET ULASHISH
+      function connectToServer() {
+        gameState.socket = io();
+        
+        gameState.socket.on('connect', () => {
+          console.log('✅ Serverga ulandi');
+          gameState.isConnected = true;
+          updateStatus('Serverga ulandi...');
+          
+          // Autentifikatsiya
+          gameState.socket.emit('auth', {
+            telegramId: tgUser.id,
+            username: tgUser.username || tgUser.first_name,
+            photo: tgUser.photo_url,
+            name: tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '')
+          });
         });
-      });
-      
-      socket.on('pair_started', handlePairStarted);
-      socket.on('match', handleMatch);
-      socket.on('liked_only', handleLikedOnly);
-      socket.on('no_match', handleNoMatch);
-      socket.on('disconnect', handleDisconnect);
-    }
-    
-    // Juft topilganda
-    function handlePairStarted(data) {
-      currentOpponent = data.opponent;
-      
-      elements.oppAvatar.src = currentOpponent.photo || `https://t.me/i/userpic/320/${currentOpponent.id}.jpg`;
-      elements.oppName.textContent = currentOpponent.name || 'Foydalanuvchi';
-      
-      // UI ni ko'rsatish
-      elements.duelPanel.classList.remove('hidden');
-      elements.voteButtons.classList.remove('hidden');
-      elements.timer.classList.remove('hidden');
-      elements.status.textContent = '';
-      elements.matchMessage.classList.add('hidden');
-      
-      startTimer();
-      Telegram.WebApp.HapticFeedback.impactOccurred('light');
-    }
-    
-    // Taymerni boshlash
-    function startTimer() {
-      clearInterval(timerInterval);
-      timeLeft = 15;
-      elements.timer.textContent = timeLeft;
-      
-      timerInterval = setInterval(() => {
-        timeLeft--;
-        elements.timer.textContent = timeLeft;
         
-        if (timeLeft <= 5) {
-          elements.timer.style.color = '#ff4444';
-        }
+        gameState.socket.on('auth_ok', (data) => {
+          console.log('✅ Autentifikatsiya muvaffaqiyatli');
+          gameState.userStats.matches = data.likes || 0;
+          elements.myMatches.textContent = gameState.userStats.matches;
+          updateStatus('Navbat kutish...');
+          
+          elements.profileCard.classList.add('hidden');
+          elements.queueStats.classList.remove('hidden');
+          elements.startGameBtn.disabled = true;
+          elements.startGameBtn.textContent = 'Navbatda...';
+          
+          // Navbat holatini so'rash
+          setTimeout(() => {
+            gameState.socket.emit('get_status');
+          }, 1000);
+        });
         
-        if (timeLeft <= 0) {
-          clearInterval(timerInterval);
-          vote('skip');
-        }
-      }, 1000);
-    }
-    
-    // Ovoz berish
-    function vote(choice) {
-      clearInterval(timerInterval);
-      
-      if (socket && socket.connected) {
-        socket.emit('vote', { choice });
+        gameState.socket.on('pair_started', (data) => {
+          console.log('🎮 Duel boshlanmoqda:', data);
+          gameState.isInDuel = true;
+          gameState.matchId = data.matchId;
+          
+          // Raqib ma'lumotlarini ko'rsatish
+          elements.opponentAvatar.src = data.opponent.photo || `https://t.me/i/userpic/320/${data.opponent.id}.jpg`;
+          elements.opponentName.textContent = data.opponent.name;
+          elements.opponentUsername.textContent = data.opponent.username ? '@' + data.opponent.username : '';
+          elements.opponentAvatar.onerror = function() {
+            this.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+          };
+          
+          // UI ni yangilash
+          elements.queueStats.classList.add('hidden');
+          elements.duelArena.classList.remove('hidden');
+          elements.statusMessage.classList.add('hidden');
+          
+          // Taymerni boshlash
+          startTimer();
+          
+          // Haptic feedback
+          Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+          updateStatus('Duel boshlanmoqda!');
+        });
+        
+        gameState.socket.on('waiting_count', (data) => {
+          elements.waitingCount.textContent = data.count;
+          if (data.position) {
+            elements.position.textContent = data.position;
+            elements.positionInfo.classList.remove('hidden');
+          } else {
+            elements.positionInfo.classList.add('hidden');
+          }
+        });
+        
+        gameState.socket.on('waiting_for_opponent', () => {
+          updateStatus('Raqib kutish...');
+        });
+        
+        gameState.socket.on('match', (data) => {
+          console.log('💖 MATCH!', data);
+          clearInterval(gameState.timerInterval);
+          
+          // Match xabarini ko'rsatish
+          elements.duelArena.classList.add('hidden');
+          elements.matchMessage.classList.remove('hidden');
+          elements.partnerName.textContent = data.partner.name;
+          elements.chatBtn.onclick = function() {
+            openChat(data.partner.username || data.partner.name);
+          };
+          
+          // Confetti animatsiya
+          confetti({
+            particleCount: 300,
+            spread: 100,
+            origin: { y: 0.6 }
+          });
+          
+          // Statistikani yangilash
+          gameState.userStats.matches++;
+          elements.myMatches.textContent = gameState.userStats.matches;
+          
+          // Haptic feedback
+          Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          
+          // 10 soniyadan keyin navbatga qaytish
+          setTimeout(() => {
+            returnToQueue();
+          }, 10000);
+        });
+        
+        gameState.socket.on('liked_only', (data) => {
+          console.log('👍 Faqat siz yoqtirdingiz');
+          clearInterval(gameState.timerInterval);
+          
+          // Statistikani yangilash
+          gameState.userStats.likes++;
+          elements.myLikes.textContent = gameState.userStats.likes;
+          
+          // UI yangilash
+          elements.timer.textContent = '❤️';
+          updateStatus(`Siz yoqtirdingiz, lekin ${data.opponent} yoqtirmadi`);
+          
+          // Haptic feedback
+          Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+          
+          // 3 soniyadan keyin navbatga qaytish
+          setTimeout(() => {
+            returnToQueue();
+          }, 3000);
+        });
+        
+        gameState.socket.on('no_match', () => {
+          console.log('👎 Match bolmadi');
+          clearInterval(gameState.timerInterval);
+          
+          elements.timer.textContent = '✖';
+          updateStatus('Match bo\'lmadi. Keyingi juft...');
+          
+          // Haptic feedback
+          Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+          
+          // 3 soniyadan keyin navbatga qaytish
+          setTimeout(() => {
+            returnToQueue();
+          }, 3000);
+        });
+        
+        gameState.socket.on('timeout', () => {
+          console.log('⏰ Vaqt tugadi');
+          clearInterval(gameState.timerInterval);
+          
+          elements.timer.textContent = '⏰';
+          updateStatus('Vaqt tugadi. Keyingi juft...');
+          
+          // 2 soniyadan keyin navbatga qaytish
+          setTimeout(() => {
+            returnToQueue();
+          }, 2000);
+        });
+        
+        gameState.socket.on('opponent_left', () => {
+          console.log('🚪 Raqib chiqib ketdi');
+          clearInterval(gameState.timerInterval);
+          
+          updateStatus('Raqib chiqib ketdi. Yangi juft izlanmoqda...');
+          
+          // 2 soniyadan keyin navbatga qaytish
+          setTimeout(() => {
+            returnToQueue();
+          }, 2000);
+        });
+        
+        gameState.socket.on('return_to_queue', () => {
+          returnToQueue();
+        });
+        
+        gameState.socket.on('duplicate_login', (data) => {
+          updateStatus(data.message || 'Yangi qurilmadan kirildi');
+          setTimeout(() => {
+            location.reload();
+          }, 2000);
+        });
+        
+        gameState.socket.on('status_update', (data) => {
+          if (data.position > 0) {
+            elements.position.textContent = data.position;
+            elements.positionInfo.classList.remove('hidden');
+            updateStatus(`Navbatdasiz. O'rningiz: ${data.position}`);
+          }
+        });
+        
+        gameState.socket.on('error', (data) => {
+          console.error('❌ Server xatosi:', data);
+          updateStatus('Xatolik: ' + (data.message || 'Nomalum xato'));
+        });
+        
+        gameState.socket.on('disconnect', () => {
+          console.log('🔌 Serverdan uzildi');
+          gameState.isConnected = false;
+          updateStatus('Serverdan uzildi. Qayta ulanmoqda...');
+          
+          // 3 soniyadan keyin qayta ulanish
+          setTimeout(() => {
+            if (!gameState.isConnected) {
+              connectToServer();
+            }
+          }, 3000);
+        });
+        
+        // Ping-pong
+        setInterval(() => {
+          if (gameState.socket && gameState.socket.connected) {
+            gameState.socket.emit('ping');
+          }
+        }, 15000);
       }
       
-      // UI yangilash
-      elements.voteButtons.classList.add('hidden');
-      elements.timer.textContent = choice === 'like' ? '❤️' : '✖';
-      elements.status.textContent = 'Kutilyapti...';
-      elements.timer.style.color = '';
-      
-      // Haptic feedback
-      if (choice === 'like') {
-        Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-      } else {
-        Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      // ⏱️ TAYMER ISHGA TUSHIRISH
+      function startTimer() {
+        clearInterval(gameState.timerInterval);
+        gameState.timeLeft = 20;
+        elements.timer.textContent = gameState.timeLeft;
+        
+        gameState.timerInterval = setInterval(() => {
+          gameState.timeLeft--;
+          elements.timer.textContent = gameState.timeLeft;
+          
+          // Qizil rangga o'tish (5 soniya qolganida)
+          if (gameState.timeLeft <= 5) {
+            elements.timer.style.color = '#ff4444';
+          }
+          
+          if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            if (gameState.socket && gameState.isInDuel) {
+              gameState.socket.emit('vote', { choice: 'skip' });
+            }
+          }
+        }, 1000);
       }
-    }
-    
-    // Match bo'lganda
-    function handleMatch(data) {
-      // Confetti animatsiya
-      confetti({
-        particleCount: 200,
-        spread: 100,
-        origin: { y: 0.6 }
+      
+      // 🔙 NAVBATGA QAYTISH
+      function returnToQueue() {
+        clearInterval(gameState.timerInterval);
+        
+        gameState.isInDuel = false;
+        gameState.matchId = null;
+        gameState.timeLeft = 20;
+        
+        // UI ni yangilash
+        elements.duelArena.classList.add('hidden');
+        elements.matchMessage.classList.add('hidden');
+        elements.queueStats.classList.remove('hidden');
+        elements.statusMessage.classList.remove('hidden');
+        
+        elements.timer.textContent = '20';
+        elements.timer.style.color = 'white';
+        
+        updateStatus('Yangi juft izlanmoqda...');
+        
+        // Navbat holatini yangilash
+        if (gameState.socket) {
+          gameState.socket.emit('get_status');
+        }
+      }
+      
+      // 💬 CHATGA O'TISH
+      function openChat(username) {
+        const cleanUsername = username.replace('@', '');
+        Telegram.WebApp.openTelegramLink(`https://t.me/${cleanUsername}`);
+      }
+      
+      // 📝 STATUSNI YANGILASH
+      function updateStatus(message) {
+        elements.statusMessage.textContent = message;
+        console.log('📢 Status:', message);
+      }
+      
+      // 🎮 BOSHLASH TUGMASI
+      elements.startGameBtn.addEventListener('click', () => {
+        if (!gameState.isConnected) {
+          connectToServer();
+        }
       });
       
-      // Haptic feedback
-      Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-      
-      // Match xabarini ko'rsatish
-      elements.duelPanel.classList.add('hidden');
-      elements.timer.classList.add('hidden');
-      elements.status.classList.add('hidden');
-      
-      elements.matchMessage.innerHTML = `
-        <div class="match-box">
-          <h1 style="font-size: 48px; margin-bottom: 20px;">🎉 MATCH!</h1>
-          <p style="font-size: 20px; margin-bottom: 32px;">${data.partner.name} bilan suhbatlashish</p>
-          <button class="match-btn" onclick="openChat('${data.partner.username || data.partner.name}')">
-            💬 Chatga o'tish
-          </button>
-        </div>
-      `;
-      
-      elements.matchMessage.classList.remove('hidden');
-    }
-    
-    // Faqat bir tomon yoqtirganda
-    function handleLikedOnly() {
-      likedCount++;
-      elements.likesCount.textContent = likedCount;
-      
-      Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-      elements.status.textContent = "Siz yoqtirdingiz, lekin juftingiz yoqtirmadi";
-      
-      setTimeout(resetForNext, 2000);
-    }
-    
-    // Match bo'lmaganda
-    function handleNoMatch() {
-      Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-      elements.status.textContent = "Keyingi juft izlanmoqda...";
-      
-      setTimeout(resetForNext, 2000);
-    }
-    
-    // Socket uzilganda
-    function handleDisconnect() {
-      elements.status.textContent = "Ulanish uzildi. Qayta ulanmoqda...";
-      setTimeout(connectSocket, 3000);
-    }
-    
-    // Keyingi juftga tayyorlash
-    function resetForNext() {
-      elements.duelPanel.classList.add('hidden');
-      elements.voteButtons.classList.add('hidden');
-      elements.timer.classList.add('hidden');
-      elements.matchMessage.classList.add('hidden');
-      
-      elements.status.classList.remove('hidden');
-      elements.status.textContent = "Yangi juft topilmoqda...";
-      elements.timer.textContent = "15";
-      elements.timer.style.color = '';
-    }
-    
-    // Chatga o'tish
-    function openChat(username) {
-      const cleanUsername = username.replace('@', '');
-      Telegram.WebApp.openTelegramLink(`https://t.me/${cleanUsername}`);
-    }
-    
-    // Dasturni ishga tushirish
-    function initializeApp() {
-      // Profilni sozlash
-      initializeUserProfile();
-      
-      // Tugmalarga event listener'lar
-      elements.startBtn.addEventListener('click', () => {
-        elements.profileModal.style.display = 'none';
-        connectSocket();
+      // ❤️ YOQTIRISH TUGMASI
+      elements.yesBtn.addEventListener('click', () => {
+        if (gameState.socket && gameState.isInDuel) {
+          gameState.socket.emit('vote', { choice: 'like' });
+          elements.voteButtons.classList.add('hidden');
+          elements.timer.textContent = '❤️';
+          Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
       });
       
-      elements.yesBtn.addEventListener('click', () => vote('like'));
-      elements.noBtn.addEventListener('click', () => vote('nolike'));
+      // ✖ YOQTIRMASLIK TUGMASI
+      elements.noBtn.addEventListener('click', () => {
+        if (gameState.socket && gameState.isInDuel) {
+          gameState.socket.emit('vote', { choice: 'nolike' });
+          elements.voteButtons.classList.add('hidden');
+          elements.timer.textContent = '✖';
+          Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+      });
       
-      // Touch event'lar
+      // Touch events for mobile
       elements.yesBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         elements.yesBtn.style.transform = 'scale(0.95)';
@@ -582,7 +928,7 @@
       elements.yesBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         elements.yesBtn.style.transform = '';
-        vote('like');
+        elements.yesBtn.click();
       });
       
       elements.noBtn.addEventListener('touchstart', (e) => {
@@ -593,23 +939,40 @@
       elements.noBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         elements.noBtn.style.transform = '';
-        vote('nolike');
+        elements.noBtn.click();
       });
-    }
-    
-    // App ishga tushganda
-    document.addEventListener('DOMContentLoaded', initializeApp);
-    
-    // Back button handler
-    Telegram.WebApp.BackButton.onClick(() => {
-      if (!elements.profileModal.style.display || elements.profileModal.style.display === 'none') {
-        elements.profileModal.style.display = 'flex';
-        resetForNext();
-        if (socket) socket.disconnect();
-      }
+      
+      // Back button handler
+      Telegram.WebApp.BackButton.onClick(() => {
+        if (gameState.isInDuel || elements.matchMessage.classList.contains('visible')) {
+          returnToQueue();
+          if (gameState.socket) {
+            gameState.socket.emit('leave_queue');
+          }
+        } else {
+          Telegram.WebApp.close();
+        }
+      });
+      
+      // Dasturni ishga tushirish
+      initializeUserProfile();
+      Telegram.WebApp.BackButton.show();
+      
+      // Avtomatik ulanish
+      setTimeout(() => {
+        if (!gameState.isConnected) {
+          updateStatus('Serverga ulanmoqda...');
+          connectToServer();
+        }
+      }, 1000);
+      
+      // Background'dan qaytganida ulanishni tekshirish
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !gameState.isConnected) {
+          connectToServer();
+        }
+      });
     });
-    
-    Telegram.WebApp.BackButton.show();
   </script>
 </body>
 </html>

@@ -2,33 +2,95 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   <title>Like Duel</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
-    body { margin:0; font-family:system-ui; background:#000; color:#fff; min-height:100vh; display:flex; align-items:center; justify-content:center; text-align:center; }
-    .box { padding:20px; }
-    h1 { font-size:36px; }
-    .status { margin-top:30px; font-size:22px; }
+    body{margin:0;background:#000;color:#fff;font-family:system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+    .opponent {text-align:center;margin:20px 0}
+    .avatar {width:180px;height:180px;border-radius:50%;object-fit:cover;border:6px solid #333}
+    .name {font-size:28px;margin:15px 0 5px}
+    .timer {font-size:60px;font-weight:bold;margin:30px 0;color:#ff3366}
+    .buttons {display:flex;gap:40px;margin-top:40px}
+    button {width:120px;height:120px;border-radius:50%;border:none;font-size:70px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+    .like {background:#ff3366}
+    .nolike {background:#333}
+    .hidden {display:none}
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Like Duel</h1>
-    <div class="status" id="status">Yuklanmoqda...</div>
+  <div class="opponent">
+    <img id="oppAvatar" class="avatar" src="https://t.me/i/userpic/320/123456789.jpg">
+    <div id="oppName" class="name">Juft topilmoqda...</div>
+  </div>
+
+  <div class="timer" id="timer">15</div>
+
+  <div class="buttons">
+    <button class="nolike" id="noBtn">✖</button>
+    <button class="like" id="yesBtn">❤️</button>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     Telegram.WebApp.ready(); Telegram.WebApp.expand();
-    const user = Telegram.WebApp.initDataUnsafe.user || {id:123456,first_name:"Test"};
-    document.getElementById('status').innerHTML = `Salom, <b>${user.first_name}</b>!`;
 
+    const user = Telegram.WebApp.initDataUnsafe.user || {id:999,first_name:"Test"};
     const socket = io();
-    socket.emit('auth', { telegramId: user.id, username: user.first_name || user.username });
 
-    socket.on('pair_started', () => {
-      document.getElementById('status').innerHTML = '<h1 style="font-size:80px">MATCH!</h1><p style="font-size:120px">❤️</p>';
+    let opponent = null;
+    let timeLeft = 15;
+    let timerInterval = null;
+
+    socket.emit('auth', {
+      telegramId: user.id,
+      username: user.username || user.first_name,
+      photo: user.photo_url
+    });
+
+    socket.on('pair_started', (data) => {
+      opponent = data.opponent;
+      document.getElementById('oppAvatar').src = opponent.photo || `https://t.me/i/userpic/320/${opponent.id}.jpg`;
+      document.getElementById('oppName').textContent = opponent.name;
+
+      document.querySelector('.buttons').classList.remove('hidden');
+      startTimer();
+    });
+
+    function startTimer() {
+      timeLeft = 15;
+      document.getElementById('timer').textContent = timeLeft;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('timer').textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          socket.emit('vote', { choice: 'skip' });
+        }
+      }, 1000);
+    }
+
+    document.getElementById('yesBtn').onclick = () => vote('like');
+    document.getElementById('noBtn').onclick = () => vote('nolike');
+
+    function vote(choice) {
+      clearInterval(timerInterval);
+      socket.emit('vote', { choice });
+      document.querySelector('.buttons').classList.add('hidden');
+      document.getElementById('timer').textContent = choice === 'like' ? '❤️' : '✖';
+    }
+
+    socket.on('match', () => {
+      confetti({particleCount:200,spread:100,origin:{y:0.6}});
+      Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      document.getElementById('timer').innerHTML = '<h1 style="font-size:80px">MATCH!</h1>';
+    });
+
+    socket.on('no_match', () => {
+      Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+      document.getElementById('timer').textContent = 'Keyingi juft...';
+      setTimeout(() => location.reload(), 2000);
     });
   </script>
 </body>

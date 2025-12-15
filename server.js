@@ -794,7 +794,26 @@ io.on('connection', (socket) => {
     console.log('❌ Ulanish uzildi:', socket.id);
   });
 });
-
+// server.js ga qo'shing:
+app.get('/api/debug', (req, res) => {
+    const genderStats = {
+        total: Object.keys(users).length,
+        withGender: Object.values(users).filter(u => u.hasSelectedGender).length,
+        withoutGender: Object.values(users).filter(u => !u.hasSelectedGender).length,
+        males: Object.values(users).filter(u => u.gender === 'male').length,
+        females: Object.values(users).filter(u => u.gender === 'female').length,
+        all: Object.values(users).filter(u => u.gender === 'not_specified').length,
+        queue: queue.length,
+        queueDetails: queue.map(id => ({
+            id: id,
+            name: users[id]?.firstName,
+            gender: users[id]?.gender,
+            hasSelected: users[id]?.hasSelectedGender
+        }))
+    };
+    
+    res.json(genderStats);
+});
 // ==================== SERVER ISHGA TUSHIRISH ====================
 app.use(express.json());
 app.use(express.static('public'));

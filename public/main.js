@@ -118,9 +118,6 @@ const elements = {
 
     // Gender modal
     genderModal: document.getElementById('genderModal'),
-    selectMaleBtn: document.getElementById('selectMaleBtn'),
-    selectFemaleBtn: document.getElementById('selectFemaleBtn'),
-    selectAllBtn: document.getElementById('selectAllBtn'),
     genderWarning: document.getElementById('genderWarning'),
     selectGenderNowBtn: document.getElementById('selectGenderNowBtn'),
 
@@ -141,6 +138,8 @@ const elements = {
 };
 
 // ==================== ASOSIY FUNKSIYALAR ====================
+
+let tgUserGlobal = null; // Global saqlash uchun
 
 function initUserProfile() {
     let tgUser = {};
@@ -176,10 +175,16 @@ function initUserProfile() {
     elements.profileName.textContent = userName;
     elements.profileUsername.textContent = userUsername;
 
+    tgUserGlobal = tgUser; // Keyinchalik ishlatish uchun saqlaymiz
     return tgUser;
 }
 
-function connectToServer(tgUser) {
+function connectToServer() {
+    if (!tgUserGlobal) {
+        console.error('tgUser mavjud emas!');
+        return;
+    }
+
     console.log('Serverga ulanmoqda...');
 
     const socketUrl = window.location.hostname === 'localhost'
@@ -199,12 +204,12 @@ function connectToServer(tgUser) {
         updateQueueStatus('Serverga ulandi...');
 
         gameState.socket.emit('auth', {
-            userId: tgUser.id,
-            firstName: tgUser.first_name,
-            lastName: tgUser.last_name || '',
-            username: tgUser.username,
-            photoUrl: tgUser.photo_url,
-            language: tgUser.language_code || 'uz'
+            userId: tgUserGlobal.id,
+            firstName: tgUserGlobal.first_name,
+            lastName: tgUserGlobal.last_name || '',
+            username: tgUserGlobal.username,
+            photoUrl: tgUserGlobal.photo_url,
+            language: tgUserGlobal.language_code || 'uz'
         });
     });
 
@@ -241,14 +246,6 @@ function connectToServer(tgUser) {
             elements.superLikeCount.textContent = data.dailySuperLikes;
         }
 
-        // UI yangilashlar
-        if (data.dailyQuests) updateQuestsUI(data.dailyQuests);
-        if (data.friends) updateFriendsList(data.friends);
-        if (data.friendRequests) updateFriendRequestsList(data.friendRequests);
-        if (data.mutualLikesCount !== undefined) updateMutualLikesCount(data.mutualLikesCount);
-        if (data.shopItems) updateShopUI(data.shopItems);
-        if (data.leaderboard) updateLeaderboardUI(data.leaderboard);
-
         showScreen('queue');
         updateQueueStatus('Navbatda...');
 
@@ -282,6 +279,8 @@ function connectToServer(tgUser) {
         elements.startBtn.disabled = false;
         elements.startBtn.textContent = '🎮 O\'yinni Boshlash';
 
+        hideGenderModal(); // Modalni yopamiz
+
         showNotification('Jins Tanlandi', data.gender === 'male' ? 'Faqat ayollar bilan duel' : data.gender === 'female' ? 'Faqat erkaklar bilan duel' : 'Hamma bilan duel');
     });
 
@@ -291,7 +290,6 @@ function connectToServer(tgUser) {
 
         showScreen('duel');
 
-        // Old indikatorlarni tozalash
         document.querySelectorAll('.met-again-indicator, .previous-match-indicator').forEach(el => el.remove());
 
         elements.opponentAvatar.src = data.opponent.photo || 'https://ui-avatars.com/api/?name=R&background=764ba2&color=fff';
@@ -303,7 +301,6 @@ function connectToServer(tgUser) {
 
         addGenderBadge(elements.opponentName, data.opponent.gender);
 
-        // Qayta uchrashuv
         if (data.hasMetBefore) {
             const indicator = document.createElement('div');
             indicator.className = 'met-again-indicator';
@@ -391,27 +388,40 @@ function connectToServer(tgUser) {
     });
 }
 
+// ==================== GENDER TANLASH (ASOSIY TUZATISH) ====================
+function selectGender(gender) {
+    // Agar socket allaqachon ulangan bo'lsa — darhol yuboramiz
+    if (gameState.socket && gameState.socket.connected) {
+        gameState.socket.emit('select_gender', { gender });
+        return;
+    }
+
+    // Agar hali ulanmagan bo'lsa — avval ulanamiz
+    console.log('Gender tanlandi, lekin socket yo\'q → serverga ulanmoqda...');
+    connectToServer();
+
+    // Ulanishdan keyin gender yuborish
+    gameState.socket.on('connect', function sendGender() {
+        console.log('Ulandi, gender yuborilmoqda:', gender);
+        gameState.socket.emit('select_gender', { gender });
+        // Bir marta yuborilgandan keyin listenerni o'chiramiz
+        gameState.socket.off('connect', sendGender);
+    });
+}
+
+function hideGenderModal() {
+    elements.genderModal.classList.remove('active');
+}
+
 // ==================== YORDAMCHI FUNKSIYALAR ====================
 
 function enforceGenderSelection() {
-    if (gameState.hasSelectedGender) return true;
+    if (gameState.hasSelectedGender) return;
 
     elements.genderModal.classList.add('active');
     elements.genderWarning.classList.remove('hidden');
     elements.startBtn.disabled = true;
     elements.startBtn.textContent = 'Avval gender tanlang';
-
-    return false;
-}
-
-function selectGender(gender) {
-    if (gameState.socket) {
-        gameState.socket.emit('select_gender', { gender });
-    }
-}
-
-function hideGenderModal() {
-    elements.genderModal.classList.remove('active');
 }
 
 function addGenderBadge(element, gender) {
@@ -464,7 +474,7 @@ function handleVote(choice) {
     }
 
     setTimeout(() => {
-        if (elements.duelScreen.classList.contains('hidden') === false) {
+        if (!elements.duelScreen.classList.contains('hidden')) {
             [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
                 b.disabled = false;
                 b.style.opacity = '1';
@@ -486,10 +496,6 @@ function showRematchModal(name, id) {
     elements.rematchOpponentName.textContent = name;
     gameState.lastOpponent = id;
     elements.rematchModal.classList.add('active');
-}
-
-function hideRematchModal() {
-    elements.rematchModal.classList.remove('active');
 }
 
 function openChatModal(partner) {
@@ -529,20 +535,9 @@ function returnToQueue() {
     if (!gameState.hasSelectedGender) enforceGenderSelection();
 }
 
-// UI yangilash funksiyalari
-function updateFriendsList(friends) { /* ... oldingi kod */ }
-function updateFriendRequestsList(requests) { /* ... */ }
-function updateMutualLikesCount(count) {
-    elements.mutualLikesCount.textContent = count;
-    elements.mutualLikesBadge.classList.toggle('hidden', count === 0);
-}
-function updateQuestsUI(quests) { /* ... */ }
-function updateShopUI(items) { /* ... */ }
-function updateLeaderboardUI(data) { /* ... */ }
-
 // ==================== DOM YUKLANGANDA ====================
 document.addEventListener('DOMContentLoaded', () => {
-    const tgUser = initUserProfile();
+    initUserProfile();
 
     // Tablar
     elements.tabs.forEach(tab => {
@@ -557,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tugmalar
     elements.startBtn.addEventListener('click', () => {
         if (!enforceGenderSelection()) return;
-        if (!gameState.isConnected) connectToServer(tgUser);
+        connectToServer();
     });
 
     elements.leaveQueueBtn.addEventListener('click', () => {
@@ -569,16 +564,32 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.likeBtn.addEventListener('click', () => handleVote('like'));
     elements.superLikeBtn.addEventListener('click', () => handleVote('super_like'));
 
-    elements.selectMaleBtn.addEventListener('click', () => selectGender('male'));
-    elements.selectFemaleBtn.addEventListener('click', () => selectGender('female'));
-    elements.selectAllBtn.addEventListener('click', () => selectGender('not_specified'));
-    elements.selectGenderNowBtn.addEventListener('click', enforceGenderSelection);
+    // Gender tugmalari — to'g'ridan-to'g'ri DOM dan olish
+    document.getElementById('selectMaleBtn')?.addEventListener('click', () => {
+        selectGender('male');
+        hideGenderModal();
+    });
+
+    document.getElementById('selectFemaleBtn')?.addEventListener('click', () => {
+        selectGender('female');
+        hideGenderModal();
+    });
+
+    document.getElementById('selectAllBtn')?.addEventListener('click', () => {
+        selectGender('not_specified');
+        hideGenderModal();
+    });
+
+    document.getElementById('selectGenderNowBtn')?.addEventListener('click', enforceGenderSelection);
 
     elements.acceptRematchBtn.addEventListener('click', () => {
         gameState.socket.emit('accept_rematch', { opponentId: gameState.lastOpponent });
-        hideRematchModal();
+        elements.rematchModal.classList.remove('active');
     });
-    elements.declineRematchBtn.addEventListener('click', hideRematchModal);
+
+    elements.declineRematchBtn.addEventListener('click', () => {
+        elements.rematchModal.classList.remove('active');
+    });
 
     elements.closeChatBtn.addEventListener('click', () => elements.chatModal.classList.remove('active'));
 
@@ -603,10 +614,10 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.profileEditModal.classList.remove('active');
     });
 
-    // Test rejimi
+    // Test rejimi (localhost)
     if (window.location.hostname === 'localhost') {
         setTimeout(() => {
-            if (!gameState.isConnected) elements.startBtn.click();
+            elements.startBtn.click();
         }, 1000);
     }
 });

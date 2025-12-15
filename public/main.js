@@ -123,7 +123,7 @@ const elements = {
 // ==================== GLOBAL USER ====================
 let tgUserGlobal = null;
 
-// ==================== PROFILNI YUKLASH + GENDER LOCALSTORAGE ====================
+// ==================== PROFILNI YUKLASH + LOCALSTORAGE GENDER ====================
 function initUserProfile() {
     let tgUser = {};
 
@@ -159,7 +159,7 @@ function initUserProfile() {
 
     tgUserGlobal = tgUser;
 
-    // localStorage dan gender ni yuklash (doimiy saqlash)
+    // localStorage dan gender yuklash
     const savedGender = localStorage.getItem('userGender');
     const savedHasSelected = localStorage.getItem('hasSelectedGender') === 'true';
 
@@ -209,10 +209,12 @@ function connectToServer() {
         });
     });
 
-    // ==================== BARCHA SOCKET EVENTLAR ====================
+    // ==================== SOCKET EVENTLAR ====================
     gameState.socket.on('auth_ok', (data) => {
+        console.log('Autentifikatsiya muvaffaqiyatli', data);
         gameState.playerData = data;
 
+        // Statistika yangilash
         elements.coinsCount.textContent = data.coins || 100;
         elements.levelCount.textContent = data.level || 1;
         elements.shopCoinsCount.textContent = data.coins || 100;
@@ -230,6 +232,13 @@ function connectToServer() {
 
         showScreen('queue');
         updateQueueStatus('Navbatda...');
+
+        // === ASOSIY TUZATISH: Avtomatik navbatga kirish ===
+        gameState.socket.emit('enter_queue');
+
+        if (!gameState.hasSelectedGender) {
+            setTimeout(enforceGenderSelection, 1000);
+        }
     });
 
     gameState.socket.on('waiting_count', (data) => {
@@ -249,7 +258,6 @@ function connectToServer() {
         gameState.currentGender = data.gender;
         gameState.hasSelectedGender = true;
 
-        // Doimiy saqlash
         localStorage.setItem('userGender', data.gender);
         localStorage.setItem('hasSelectedGender', 'true');
 
@@ -530,7 +538,6 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.likeBtn.addEventListener('click', () => handleVote('like'));
     elements.superLikeBtn.addEventListener('click', () => handleVote('super_like'));
 
-    // Gender tugmalari
     document.getElementById('selectMaleBtn')?.addEventListener('click', () => {
         selectGender('male');
         hideGenderModal();

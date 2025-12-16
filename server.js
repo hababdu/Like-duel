@@ -1,4 +1,4 @@
-// server.js - Render.com uchun FINAL VERSIYA
+// server.js - Render.com uchun TO'LIQ YANGILANISH
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -10,16 +10,16 @@ const server = http.createServer(app);
 // ==================== MUHIM: Socket.IO sozlamalari ====================
 const io = new Server(server, {
     cors: {
-        origin: "*", // Barcha domainlarga ruxsat berish
+        origin: "*",
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['websocket', 'polling'], // Ikkala transport ham
-    allowEIO3: true, // Eski versiyalar uchun
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000,
     connectionStateRecovery: {
-        maxDisconnectionDuration: 2 * 60 * 1000, // 2 daqiqa
+        maxDisconnectionDuration: 2 * 60 * 1000,
         skipMiddlewares: true
     }
 });
@@ -42,7 +42,8 @@ app.get('/api/health', (req, res) => {
         websocket: 'Active',
         users: Object.keys(users).length,
         queue: queue.length,
-        activeDuels: Object.keys(activeDuels).length
+        activeDuels: Object.keys(activeDuels).length,
+        activeChats: Object.keys(activeChats).length
     });
 });
 
@@ -54,6 +55,15 @@ app.get('/api/debug', (req, res) => {
         hasGender: users[id]?.hasSelectedGender || false
     }));
     
+    const duelDetails = Object.entries(activeDuels).map(([id, duel]) => ({
+        id: id,
+        player1: duel.player1,
+        player2: duel.player2,
+        votes: duel.votes,
+        ended: duel.ended,
+        isMatch: duel.isMatch
+    }));
+    
     res.json({
         server: 'like-duel.onrender.com',
         port: process.env.PORT || 3000,
@@ -63,6 +73,8 @@ app.get('/api/debug', (req, res) => {
         queueCount: queue.length,
         queue: queueDetails,
         activeDuels: Object.keys(activeDuels).length,
+        activeDuelsDetails: duelDetails,
+        activeChats: Object.keys(activeChats).length,
         socketConnections: io.engine.clientsCount
     });
 });
@@ -71,6 +83,7 @@ app.get('/api/debug', (req, res) => {
 const users = {};
 const queue = [];
 const activeDuels = {};
+const activeChats = {};
 
 // ==================== GENDER FILTER FUNKSIYASI ====================
 function checkGenderCompatibility(user1, user2) {
@@ -96,13 +109,11 @@ function findOpponentFor(userId) {
         const opponent = users[opponentId];
         if (!opponent) continue;
         
-        // Opponent ham gender tanlagan bo'lishi kerak
         if (!opponent.hasSelectedGender || !opponent.gender) {
             console.log(`⚠️ ${opponentId} gender tanlamagan, o'tkazib yuborildi`);
             continue;
         }
         
-        // Gender mos kelishini tekshirish
         if (checkGenderCompatibility(user, opponent)) {
             console.log(`✅ JUFT TOPILDI: ${user.firstName} (${user.gender}) + ${opponent.firstName} (${opponent.gender})`);
             return opponentId;
@@ -119,8 +130,14 @@ function findOpponentFor(userId) {
 function findAndStartDuels() {
     console.log(`\n🔄 DUEL QIDIRISH (Navbatda: ${queue.length} ta)`);
     
+    if (queue.length < 2) {
+        console.log(`⚠️ Juftlashish uchun kamida 2 ta foydalanuvchi kerak`);
+        return false;
+    }
+    
     // Queue'dan nusxa olish
     const queueCopy = [...queue];
+    let duelStarted = false;
     
     for (let i = 0; i < queueCopy.length; i++) {
         const userId = queueCopy[i];
@@ -129,7 +146,7 @@ function findAndStartDuels() {
         if (queue.includes(userId)) {
             const opponentId = findOpponentFor(userId);
             
-            if (opponentId) {
+            if (opponentId && queue.includes(opponentId)) {
                 // Queue'dan olib tashlash
                 const userIndex = queue.indexOf(userId);
                 const opponentIndex = queue.indexOf(opponentId);
@@ -141,15 +158,17 @@ function findAndStartDuels() {
                 startDuel(userId, opponentId);
                 console.log(`🎮 DUEL BOSHLANDI: ${users[userId].firstName} vs ${users[opponentId].firstName}`);
                 
-                // Bir juft topib, davom etish
-                return true;
+                duelStarted = true;
+                break; // Bir juft topganimizda to'xtaymiz
             }
         }
     }
     
-    // Agar juft topilmasa
-    console.log(`⚠️ Hozircha mos juft topilmadi. Navbatda: ${queue.length} ta`);
-    return false;
+    if (!duelStarted) {
+        console.log(`⚠️ Hozircha mos juft topilmadi. Navbatda: ${queue.length} ta`);
+    }
+    
+    return duelStarted;
 }
 
 // ==================== DUEL BOSHLASH ====================
@@ -162,9 +181,12 @@ function startDuel(player1Id, player2Id) {
         id: duelId,
         player1: player1Id,
         player2: player2Id,
-        votes: {},
+        player1Vote: null,
+        player2Vote: null,
         startTime: new Date(),
-        ended: false
+        ended: false,
+        isMatch: false,
+        chatRequests: {}
     };
     
     console.log(`\n⚔️ DUEL BOSHLANDI: ${duelId}`);
@@ -211,11 +233,263 @@ function startDuel(player1Id, player2Id) {
     }
     
     // 20 soniya timer
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
         if (activeDuels[duelId] && !activeDuels[duelId].ended) {
             handleDuelTimeout(duelId);
         }
     }, 20000);
+    
+    activeDuels[duelId].timeoutId = timeoutId;
+}
+
+// ==================== DUEL NATIJASI ====================
+function processDuelResult(duelId) {
+    const duel = activeDuels[duelId];
+    if (!duel || duel.ended) return;
+    
+    duel.ended = true;
+    clearTimeout(duel.timeoutId);
+    
+    const player1Vote = duel.player1Vote;
+    const player2Vote = duel.player2Vote;
+    
+    const player1 = users[duel.player1];
+    const player2 = users[duel.player2];
+    
+    console.log(`\n🏁 DUEL NATIJASI: ${duelId}`);
+    console.log(`   ${player1.firstName}: ${player1Vote}`);
+    console.log(`   ${player2.firstName}: ${player2Vote}`);
+    
+    // Duel statistikasini yangilash
+    player1.duels++;
+    player2.duels++;
+    
+    // MATCH holati (ikkalasi ham like yoki super like bergan)
+    if ((player1Vote === 'like' || player1Vote === 'super_like') && 
+        (player2Vote === 'like' || player2Vote === 'super_like')) {
+        
+        console.log(`🎉 MATCH! ${player1.firstName} & ${player2.firstName}`);
+        duel.isMatch = true;
+        
+        // Statistikani yangilash
+        player1.matches++;
+        player2.matches++;
+        player1.wins++;
+        player2.wins++;
+        
+        // Mukofotlar
+        const baseCoins = 50;
+        const baseXP = 30;
+        
+        player1.coins += baseCoins;
+        player2.coins += baseCoins;
+        player1.xp += baseXP;
+        player2.xp += baseXP;
+        
+        // SUPER LIKE bonus
+        if (player1Vote === 'super_like') {
+            player1.coins += 20;
+            player1.xp += 15;
+            player1.dailySuperLikes--;
+        }
+        if (player2Vote === 'super_like') {
+            player2.coins += 20;
+            player2.xp += 15;
+            player2.dailySuperLikes--;
+        }
+        
+        // Level tekshirish
+        const neededXP1 = player1.level * 100;
+        if (player1.xp >= neededXP1) {
+            player1.level++;
+            player1.xp -= neededXP1;
+        }
+        
+        const neededXP2 = player2.level * 100;
+        if (player2.xp >= neededXP2) {
+            player2.level++;
+            player2.xp -= neededXP2;
+        }
+        
+        // Chat so'rovlari obyekti
+        duel.chatRequests = {
+            [duel.player1]: false,
+            [duel.player2]: false
+        };
+        
+        // Player1 ga match haqida xabar
+        const player1Socket = io.sockets.sockets.get(player1.socketId);
+        if (player1Socket) {
+            player1Socket.emit('match', {
+                duelId: duelId,
+                partner: {
+                    id: duel.player2,
+                    name: player2.firstName,
+                    photo: player2.photoUrl,
+                    gender: player2.gender
+                },
+                rewards: {
+                    coins: player1Vote === 'super_like' ? baseCoins + 20 : baseCoins,
+                    xp: player1Vote === 'super_like' ? baseXP + 15 : baseXP
+                },
+                newRating: player1.rating,
+                isRematch: false,
+                mutualLike: true
+            });
+        }
+        
+        // Player2 ga match haqida xabar
+        const player2Socket = io.sockets.sockets.get(player2.socketId);
+        if (player2Socket) {
+            player2Socket.emit('match', {
+                duelId: duelId,
+                partner: {
+                    id: duel.player1,
+                    name: player1.firstName,
+                    photo: player1.photoUrl,
+                    gender: player1.gender
+                },
+                rewards: {
+                    coins: player2Vote === 'super_like' ? baseCoins + 20 : baseCoins,
+                    xp: player2Vote === 'super_like' ? baseXP + 15 : baseXP
+                },
+                newRating: player2.rating,
+                isRematch: false,
+                mutualLike: true
+            });
+        }
+        
+    } else if (player1Vote === 'like' || player1Vote === 'super_like') {
+        // Faqat player1 like berdi
+        console.log(`❤️ Faqat ${player1.firstName} like berdi`);
+        
+        const coins = player1Vote === 'super_like' ? 30 : 10;
+        const xp = player1Vote === 'super_like' ? 15 : 5;
+        
+        if (player1Vote === 'super_like') {
+            player1.dailySuperLikes--;
+        }
+        
+        player1.coins += coins;
+        player1.xp += xp;
+        
+        const player1Socket = io.sockets.sockets.get(player1.socketId);
+        if (player1Socket) {
+            player1Socket.emit('liked_only', {
+                opponentName: player2.firstName,
+                reward: { coins, xp }
+            });
+        }
+        
+        const player2Socket = io.sockets.sockets.get(player2.socketId);
+        if (player2Socket) {
+            player2Socket.emit('no_match');
+        }
+        
+        // Navbatga qaytarish
+        setTimeout(() => {
+            returnPlayersToQueue(duel.player1, duel.player2);
+            delete activeDuels[duelId];
+        }, 3000);
+        
+    } else if (player2Vote === 'like' || player2Vote === 'super_like') {
+        // Faqat player2 like berdi
+        console.log(`❤️ Faqat ${player2.firstName} like berdi`);
+        
+        const coins = player2Vote === 'super_like' ? 30 : 10;
+        const xp = player2Vote === 'super_like' ? 15 : 5;
+        
+        if (player2Vote === 'super_like') {
+            player2.dailySuperLikes--;
+        }
+        
+        player2.coins += coins;
+        player2.xp += xp;
+        
+        const player2Socket = io.sockets.sockets.get(player2.socketId);
+        if (player2Socket) {
+            player2Socket.emit('liked_only', {
+                opponentName: player1.firstName,
+                reward: { coins, xp }
+            });
+        }
+        
+        const player1Socket = io.sockets.sockets.get(player1.socketId);
+        if (player1Socket) {
+            player1Socket.emit('no_match');
+        }
+        
+        // Navbatga qaytarish
+        setTimeout(() => {
+            returnPlayersToQueue(duel.player1, duel.player2);
+            delete activeDuels[duelId];
+        }, 3000);
+        
+    } else {
+        // Hech kim like bermadi
+        console.log(`❌ Hech kim like bermadi`);
+        
+        const player1Socket = io.sockets.sockets.get(player1.socketId);
+        if (player1Socket) player1Socket.emit('no_match');
+        
+        const player2Socket = io.sockets.sockets.get(player2.socketId);
+        if (player2Socket) player2Socket.emit('no_match');
+        
+        // Navbatga qaytarish
+        setTimeout(() => {
+            returnPlayersToQueue(duel.player1, duel.player2);
+            delete activeDuels[duelId];
+        }, 3000);
+    }
+}
+
+// ==================== CHAT FUNKSIYALARI ====================
+function startChat(duelId) {
+    const duel = activeDuels[duelId];
+    if (!duel || !duel.isMatch) return null;
+    
+    const chatId = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    activeChats[chatId] = {
+        id: chatId,
+        duelId: duelId,
+        player1: duel.player1,
+        player2: duel.player2,
+        messages: [],
+        startedAt: new Date(),
+        active: true
+    };
+    
+    console.log(`💬 CHAT BOSHLANDI: ${chatId}`);
+    
+    return chatId;
+}
+
+function sendChatMessage(chatId, senderId, message) {
+    const chat = activeChats[chatId];
+    if (!chat || !chat.active) return null;
+    
+    const sender = users[senderId];
+    if (!sender) return null;
+    
+    const receiverId = chat.player1 === senderId ? chat.player2 : chat.player1;
+    const receiver = users[receiverId];
+    
+    const messageObj = {
+        id: `msg_${Date.now()}`,
+        senderId: senderId,
+        senderName: sender.firstName,
+        message: message,
+        timestamp: new Date()
+    };
+    
+    chat.messages.push(messageObj);
+    
+    return {
+        message: messageObj,
+        receiverId: receiverId,
+        receiverSocketId: receiver?.socketId
+    };
 }
 
 // ==================== SOCKET.IO HANDLERS ====================
@@ -398,40 +672,196 @@ io.on('connection', (socket) => {
         const userId = socket.userId;
         const { duelId, choice } = data;
         
+        console.log(`🗳️ VOTE: ${userId} -> ${choice} (duel: ${duelId})`);
+        
         if (!activeDuels[duelId] || activeDuels[duelId].ended) {
             socket.emit('error', { message: 'Bu duel tugagan' });
             return;
         }
         
         const duel = activeDuels[duelId];
-        if (duel.player1 !== userId && duel.player2 !== userId) {
+        
+        // Foydalanuvchi duelning qaysi tomonida ekanligini aniqlash
+        if (duel.player1 === userId) {
+            duel.player1Vote = choice;
+            console.log(`   ${users[userId].firstName} (player1) ovoz berdi: ${choice}`);
+        } else if (duel.player2 === userId) {
+            duel.player2Vote = choice;
+            console.log(`   ${users[userId].firstName} (player2) ovoz berdi: ${choice}`);
+        } else {
             socket.emit('error', { message: 'Siz bu duelda emassiz' });
             return;
         }
-        
-        // Ovozni saqlash
-        duel.votes[userId] = choice;
-        console.log(`🗳️ ${users[userId].firstName} ovoz berdi: ${choice}`);
         
         // SUPER LIKE uchun limit tekshirish
         if (choice === 'super_like') {
             const user = users[userId];
             if (user.dailySuperLikes <= 0) {
                 socket.emit('error', { message: 'Kunlik SUPER LIKE limitingiz tugadi' });
-                delete duel.votes[userId];
+                if (duel.player1 === userId) duel.player1Vote = null;
+                if (duel.player2 === userId) duel.player2Vote = null;
                 return;
             }
-            user.dailySuperLikes--;
-            
-            // Clientga super like sonini yangilash
-            socket.emit('super_like_used', {
-                remaining: user.dailySuperLikes
-            });
         }
         
-        // Agar ikkala o'yinchi ham ovoz berganda
-        if (duel.votes[duel.player1] && duel.votes[duel.player2]) {
+        // Ikkala o'yinchi ham ovoz berganda natijani hisoblash
+        if (duel.player1Vote !== null && duel.player2Vote !== null) {
+            console.log(`📊 Ikkala ovoz ham to'plandi, natija hisoblanmoqda...`);
             processDuelResult(duelId);
+        } else {
+            // Faqat biri ovoz berganda kutish
+            const opponentId = duel.player1 === userId ? duel.player2 : duel.player1;
+            const opponent = users[opponentId];
+            console.log(`⏳ ${opponent?.firstName} ovozini kutish...`);
+        }
+    });
+    
+    // CHAT SO'ROVLARI
+    socket.on('chat_request', (data) => {
+        const userId = socket.userId;
+        const { duelId } = data;
+        
+        console.log(`💬 CHAT REQUEST: ${userId} -> ${duelId}`);
+        
+        const duel = activeDuels[duelId];
+        if (!duel || !duel.isMatch || duel.ended) {
+            socket.emit('error', { message: 'Chat mumkin emas' });
+            return;
+        }
+        
+        // Chat so'rovini saqlash
+        duel.chatRequests[userId] = true;
+        
+        const opponentId = duel.player1 === userId ? duel.player2 : duel.player1;
+        const opponent = users[opponentId];
+        
+        console.log(`   ${users[userId].firstName} chat so'radi. Opponent: ${opponent?.firstName}`);
+        
+        // Agar ikkinchi o'yinchi ham chat so'ragan bo'lsa
+        if (duel.chatRequests[duel.player1] && duel.chatRequests[duel.player2]) {
+            console.log(`✅ IKKALASI HAM CHAT SO'RADI! Chat boshlanmoqda...`);
+            
+            // Chatni boshlash
+            const chatId = startChat(duelId);
+            if (chatId) {
+                // Ikkala o'yinchiga ham chat boshlanganini bildirish
+                const player1Socket = io.sockets.sockets.get(users[duel.player1]?.socketId);
+                const player2Socket = io.sockets.sockets.get(users[duel.player2]?.socketId);
+                
+                if (player1Socket) {
+                    player1Socket.emit('chat_started', {
+                        chatId: chatId,
+                        partner: {
+                            id: duel.player2,
+                            name: users[duel.player2]?.firstName,
+                            photo: users[duel.player2]?.photoUrl
+                        }
+                    });
+                }
+                
+                if (player2Socket) {
+                    player2Socket.emit('chat_started', {
+                        chatId: chatId,
+                        partner: {
+                            id: duel.player1,
+                            name: users[duel.player1]?.firstName,
+                            photo: users[duel.player1]?.photoUrl
+                        }
+                    });
+                }
+                
+                // Duelni o'chirish (chatga o'tdi)
+                delete activeDuels[duelId];
+            }
+        } else {
+            // Faqat biri so'ragan, ikkinchisiga so'rov yuborish
+            const opponentSocket = io.sockets.sockets.get(opponent?.socketId);
+            if (opponentSocket) {
+                opponentSocket.emit('chat_request_received', {
+                    from: userId,
+                    name: users[userId]?.firstName
+                });
+            }
+        }
+    });
+    
+    socket.on('skip_chat', (data) => {
+        const userId = socket.userId;
+        const { duelId } = data;
+        
+        console.log(`🚪 SKIP CHAT: ${userId} -> ${duelId}`);
+        
+        const duel = activeDuels[duelId];
+        if (!duel) return;
+        
+        // Navbatga qaytarish
+        returnPlayersToQueue(duel.player1, duel.player2);
+        delete activeDuels[duelId];
+        
+        // Ikkinchi o'yinchiga ham chat o'tkazib yuborilganini bildirish
+        const opponentId = duel.player1 === userId ? duel.player2 : duel.player1;
+        const opponentSocket = io.sockets.sockets.get(users[opponentId]?.socketId);
+        if (opponentSocket) {
+            opponentSocket.emit('chat_skipped');
+        }
+    });
+    
+    // CHAT XABARLARI
+    socket.on('send_chat_message', (data) => {
+        const userId = socket.userId;
+        const { chatId, message } = data;
+        
+        console.log(`📨 CHAT MESSAGE: ${userId} -> "${message.substring(0, 20)}..."`);
+        
+        const chat = activeChats[chatId];
+        if (!chat || !chat.active) {
+            socket.emit('error', { message: 'Chat topilmadi' });
+            return;
+        }
+        
+        // Xabarni yuborish
+        const result = sendChatMessage(chatId, userId, message);
+        if (result) {
+            // Xabarni yuborgan foydalanuvchiga
+            socket.emit('chat_message_sent', {
+                chatId: chatId,
+                message: result.message
+            });
+            
+            // Xabarni qabul qiluvchiga
+            if (result.receiverSocketId) {
+                const receiverSocket = io.sockets.sockets.get(result.receiverSocketId);
+                if (receiverSocket) {
+                    receiverSocket.emit('chat_message_received', {
+                        chatId: chatId,
+                        message: result.message
+                    });
+                }
+            }
+        }
+    });
+    
+    socket.on('leave_chat', (data) => {
+        const userId = socket.userId;
+        const { chatId } = data;
+        
+        console.log(`👋 LEAVE CHAT: ${userId} -> ${chatId}`);
+        
+        const chat = activeChats[chatId];
+        if (chat) {
+            chat.active = false;
+            
+            // Ikkinchi o'yinchiga ham chat tugaganini bildirish
+            const opponentId = chat.player1 === userId ? chat.player2 : chat.player1;
+            const opponentSocket = io.sockets.sockets.get(users[opponentId]?.socketId);
+            if (opponentSocket) {
+                opponentSocket.emit('chat_ended');
+            }
+            
+            // 10 soniyadan keyin chatni o'chirish
+            setTimeout(() => {
+                delete activeChats[chatId];
+            }, 10000);
         }
     });
     
@@ -468,6 +898,22 @@ io.on('connection', (socket) => {
                     break;
                 }
             }
+            
+            // Faol chatda bo'lsa
+            for (const chatId in activeChats) {
+                const chat = activeChats[chatId];
+                if (chat.player1 === userId || chat.player2 === userId) {
+                    const opponentId = chat.player1 === userId ? chat.player2 : chat.player1;
+                    const opponentSocket = io.sockets.sockets.get(users[opponentId]?.socketId);
+                    
+                    if (opponentSocket) {
+                        opponentSocket.emit('chat_ended');
+                    }
+                    
+                    delete activeChats[chatId];
+                    break;
+                }
+            }
         }
         
         console.log('❌ WebSocket ulanishi uzildi:', socket.id);
@@ -489,170 +935,6 @@ io.on('connection', (socket) => {
                 });
             }
         });
-    }
-    
-    function processDuelResult(duelId) {
-        const duel = activeDuels[duelId];
-        if (!duel || duel.ended) return;
-        
-        duel.ended = true;
-        
-        const player1Vote = duel.votes[duel.player1];
-        const player2Vote = duel.votes[duel.player2];
-        
-        const player1 = users[duel.player1];
-        const player2 = users[duel.player2];
-        
-        console.log(`\n🏁 DUEL NATIJASI: ${duelId}`);
-        console.log(`   ${player1.firstName}: ${player1Vote}`);
-        console.log(`   ${player2.firstName}: ${player2Vote}`);
-        
-        // MATCH holati (ikkalasi ham like yoki super like bergan)
-        if ((player1Vote === 'like' || player1Vote === 'super_like') && 
-            (player2Vote === 'like' || player2Vote === 'super_like')) {
-            
-            console.log(`🎉 MATCH! ${player1.firstName} & ${player2.firstName}`);
-            
-            // Statistikani yangilash
-            player1.matches++;
-            player2.matches++;
-            player1.wins++;
-            player2.wins++;
-            
-            // Mukofotlar
-            const baseCoins = 50;
-            const baseXP = 30;
-            
-            player1.coins += baseCoins;
-            player2.coins += baseCoins;
-            player1.xp += baseXP;
-            player2.xp += baseXP;
-            
-            // SUPER LIKE bonus
-            if (player1Vote === 'super_like') {
-                player1.coins += 20;
-                player1.xp += 15;
-            }
-            if (player2Vote === 'super_like') {
-                player2.coins += 20;
-                player2.xp += 15;
-            }
-            
-            // Level tekshirish
-            const neededXP1 = player1.level * 100;
-            if (player1.xp >= neededXP1) {
-                player1.level++;
-                player1.xp -= neededXP1;
-            }
-            
-            const neededXP2 = player2.level * 100;
-            if (player2.xp >= neededXP2) {
-                player2.level++;
-                player2.xp -= neededXP2;
-            }
-            
-            // Player1 ga match haqida xabar
-            const player1Socket = io.sockets.sockets.get(player1.socketId);
-            if (player1Socket) {
-                player1Socket.emit('match', {
-                    partner: {
-                        id: duel.player2,
-                        name: player2.firstName,
-                        photo: player2.photoUrl,
-                        gender: player2.gender
-                    },
-                    rewards: {
-                        coins: player1Vote === 'super_like' ? baseCoins + 20 : baseCoins,
-                        xp: player1Vote === 'super_like' ? baseXP + 15 : baseXP
-                    },
-                    newRating: player1.rating,
-                    isRematch: false,
-                    mutualLike: true
-                });
-            }
-            
-            // Player2 ga match haqida xabar
-            const player2Socket = io.sockets.sockets.get(player2.socketId);
-            if (player2Socket) {
-                player2Socket.emit('match', {
-                    partner: {
-                        id: duel.player1,
-                        name: player1.firstName,
-                        photo: player1.photoUrl,
-                        gender: player1.gender
-                    },
-                    rewards: {
-                        coins: player2Vote === 'super_like' ? baseCoins + 20 : baseCoins,
-                        xp: player2Vote === 'super_like' ? baseXP + 15 : baseXP
-                    },
-                    newRating: player2.rating,
-                    isRematch: false,
-                    mutualLike: true
-                });
-            }
-            
-        } else if (player1Vote === 'like' || player1Vote === 'super_like') {
-            // Faqat player1 like berdi
-            console.log(`❤️ Faqat ${player1.firstName} like berdi`);
-            
-            const coins = player1Vote === 'super_like' ? 30 : 10;
-            const xp = player1Vote === 'super_like' ? 15 : 5;
-            
-            player1.coins += coins;
-            player1.xp += xp;
-            
-            const player1Socket = io.sockets.sockets.get(player1.socketId);
-            if (player1Socket) {
-                player1Socket.emit('liked_only', {
-                    opponentName: player2.firstName,
-                    reward: { coins, xp }
-                });
-            }
-            
-            const player2Socket = io.sockets.sockets.get(player2.socketId);
-            if (player2Socket) {
-                player2Socket.emit('no_match');
-            }
-            
-        } else if (player2Vote === 'like' || player2Vote === 'super_like') {
-            // Faqat player2 like berdi
-            console.log(`❤️ Faqat ${player2.firstName} like berdi`);
-            
-            const coins = player2Vote === 'super_like' ? 30 : 10;
-            const xp = player2Vote === 'super_like' ? 15 : 5;
-            
-            player2.coins += coins;
-            player2.xp += xp;
-            
-            const player2Socket = io.sockets.sockets.get(player2.socketId);
-            if (player2Socket) {
-                player2Socket.emit('liked_only', {
-                    opponentName: player1.firstName,
-                    reward: { coins, xp }
-                });
-            }
-            
-            const player1Socket = io.sockets.sockets.get(player1.socketId);
-            if (player1Socket) {
-                player1Socket.emit('no_match');
-            }
-            
-        } else {
-            // Hech kim like bermadi
-            console.log(`❌ Hech kim like bermadi`);
-            
-            const player1Socket = io.sockets.sockets.get(player1.socketId);
-            if (player1Socket) player1Socket.emit('no_match');
-            
-            const player2Socket = io.sockets.sockets.get(player2.socketId);
-            if (player2Socket) player2Socket.emit('no_match');
-        }
-        
-        // 3 soniyadan keyin navbatga qaytarish
-        setTimeout(() => {
-            returnPlayersToQueue(duel.player1, duel.player2);
-            delete activeDuels[duelId];
-        }, 3000);
     }
     
     function handleDuelTimeout(duelId) {
@@ -679,15 +961,17 @@ io.on('connection', (socket) => {
         console.log(`\n🔄 Navbatga qaytarish: ${player1Id}, ${player2Id}`);
         
         [player1Id, player2Id].forEach(playerId => {
-            const player = users[playerId];
-            if (player && player.hasSelectedGender && player.connected) {
-                if (!queue.includes(playerId)) {
-                    queue.push(playerId);
-                    console.log(`✅ ${player.firstName} navbatga qayta qo'shildi`);
-                    
-                    const playerSocket = io.sockets.sockets.get(player.socketId);
-                    if (playerSocket) {
-                        playerSocket.emit('return_to_queue');
+            if (playerId) {
+                const player = users[playerId];
+                if (player && player.hasSelectedGender && player.connected) {
+                    if (!queue.includes(playerId)) {
+                        queue.push(playerId);
+                        console.log(`✅ ${player.firstName} navbatga qayta qo'shildi`);
+                        
+                        const playerSocket = io.sockets.sockets.get(player.socketId);
+                        if (playerSocket) {
+                            playerSocket.emit('return_to_queue');
+                        }
                     }
                 }
             }
@@ -702,20 +986,18 @@ io.on('connection', (socket) => {
 });
 
 // ==================== SERVER ISHGA TUSHIRISH ====================
-// Render.com PORT ni o'zi belgilaydi
 const PORT = process.env.PORT || 3000;
 
-// MUHIM: app.listen EMAS, server.listen ishlatish kerak
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log('🚀 LIKE DUEL SERVER - FINAL RENDER.COM VERSION');
+    console.log('🚀 LIKE DUEL SERVER - CHAT FUNKSIYASI QO\'SHILGAN');
     console.log('='.repeat(70));
     console.log(`📍 Server ishga tushdi: http://0.0.0.0:${PORT}`);
     console.log(`📊 Health check: http://0.0.0.0:${PORT}/api/health`);
     console.log(`🔍 Debug: http://0.0.0.0:${PORT}/api/debug`);
     console.log('🌐 WebSocket URL: wss://like-duel.onrender.com');
     console.log('='.repeat(70));
-    console.log('✅ Render.com uchun to\'liq optimallashtirildi');
+    console.log('✅ Chat funksiyasi qo\'shildi');
     console.log('✅ WebSocket connection ishlaydi');
     console.log('✅ CORS: * (barcha domainlar)');
     console.log('='.repeat(70));

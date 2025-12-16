@@ -1,5 +1,5 @@
-// main.js - MUKAMMAL VERSIYA (Test User muammosi to'g'rilangan)
-console.log('🚀 Like Duel - MUKAMMAL VERSIYA');
+// main.js - MUKAMMAL VERSIYA 3.0
+console.log('🚀 Like Duel - MUKAMMAL VERSIYA 3.0');
 
 // ==================== O'YIN HOLATLARI ====================
 const gameState = {
@@ -14,8 +14,8 @@ const gameState = {
     currentDuelId: null,
     currentPartner: null,
     currentChatId: null,
-    lastOpponent: null,
-    uniqueUserId: null
+    uniqueUserId: null,
+    currentOpponent: null
 };
 
 // ==================== USER STATE ====================
@@ -25,22 +25,22 @@ const userState = {
     coins: parseInt(localStorage.getItem('userCoins')) || 100,
     level: parseInt(localStorage.getItem('userLevel')) || 1,
     rating: parseInt(localStorage.getItem('userRating')) || 1500,
+    xp: parseInt(localStorage.getItem('userXP')) || 0,
     matches: parseInt(localStorage.getItem('userMatches')) || 0,
     duels: parseInt(localStorage.getItem('userDuels')) || 0,
     wins: parseInt(localStorage.getItem('userWins')) || 0,
     totalLikes: parseInt(localStorage.getItem('userTotalLikes')) || 0,
     dailySuperLikes: parseInt(localStorage.getItem('userDailySuperLikes')) || 3,
     userName: localStorage.getItem('userName') || null,
-    userPhoto: localStorage.getItem('userPhoto') || null
+    userPhoto: localStorage.getItem('userPhoto') || null,
+    userBio: localStorage.getItem('userBio') || ''
 };
 
-// ==================== UNIQUE USER ID GENERATOR ====================
+// ==================== UTILITY FUNCTIONS ====================
 function generateUniqueUserId() {
-    // LocalStoragedan avvalgi ID ni olish
     let storedId = localStorage.getItem('uniqueUserId');
     
     if (!storedId) {
-        // Yangi unique ID yaratish
         const timestamp = Date.now();
         const random = Math.random().toString(36).substr(2, 9);
         storedId = `user_${timestamp}_${random}`;
@@ -51,7 +51,6 @@ function generateUniqueUserId() {
     return storedId;
 }
 
-// ==================== RANDOM USER GENERATOR (Real ko'rinish uchun) ====================
 function generateRandomUser() {
     const maleNames = ['Ali', 'Vali', 'Hasan', 'Husan', 'Bekzod', 'Javohir', 'Shohruh', 'Sanjar', 'Jamshid', 'Farhod'];
     const femaleNames = ['Malika', 'Dilnoza', 'Sevara', 'Madina', 'Zarina', 'Gulnora', 'Maftuna', 'Sabina', 'Kamola', 'Dilbar'];
@@ -66,12 +65,22 @@ function generateRandomUser() {
     
     const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
     const fullName = `${firstName} ${lastName}`;
-    const username = `${firstName.toLowerCase()}_${Math.floor(Math.random() * 1000)}`;
+    const username = `${firstName.toLowerCase()}${Math.floor(Math.random() * 1000)}`;
     
-    // Random photo (gender-based)
     const photoUrl = isMale
         ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}&backgroundColor=65c9ff`
         : `https://api.dicebear.com/7.x/avataaars/svg?seed=${fullName}&backgroundColor=ff9a9e`;
+    
+    const bioOptions = [
+        'Yangi do\'stlar qidiryapman!',
+        'Sportga qiziqaman',
+        'Musiqa tinglashni yoqtiraman',
+        'Kitob o\'qishni sevaman',
+        'Sayohat qilishni yoqtiraman',
+        'O\'zbekistonlik!',
+        'Web dasturchi',
+        'Talaba'
+    ];
     
     return {
         firstName: fullName,
@@ -80,11 +89,11 @@ function generateRandomUser() {
         gender: selectedGender,
         rating: 1400 + Math.floor(Math.random() * 200),
         matches: Math.floor(Math.random() * 50),
-        level: 1 + Math.floor(Math.random() * 10)
+        level: 1 + Math.floor(Math.random() * 10),
+        bio: bioOptions[Math.floor(Math.random() * bioOptions.length)]
     };
 }
 
-// ==================== GENDER BADGE QO'SHISH ====================
 function addGenderBadge(element, gender) {
     if (!element || !gender) return;
     
@@ -107,86 +116,77 @@ function addGenderBadge(element, gender) {
 
 // ==================== STATISTIKANI YANGILASH ====================
 function updateStats() {
-    const coinsCount = document.getElementById('coinsCount');
-    const levelCount = document.getElementById('levelCount');
-    const shopCoinsCount = document.getElementById('shopCoinsCount');
-    const statRating = document.getElementById('statRating');
-    const statMatches = document.getElementById('statMatches');
-    const myMatches = document.getElementById('myMatches');
-    const statDuels = document.getElementById('statDuels');
-    const statWinRate = document.getElementById('statWinRate');
-    const myLikes = document.getElementById('myLikes');
-    const superLikeCount = document.getElementById('superLikeCount');
-    const profileBio = document.getElementById('profileBio');
+    // Header statistikasi
+    document.getElementById('coinsCount').textContent = userState.coins;
+    document.getElementById('levelCount').textContent = userState.level;
+    document.getElementById('superLikeCount').textContent = userState.dailySuperLikes;
     
-    if (coinsCount) coinsCount.textContent = userState.coins;
-    if (levelCount) levelCount.textContent = userState.level;
-    if (shopCoinsCount) shopCoinsCount.textContent = userState.coins;
-    if (statRating) statRating.textContent = userState.rating;
-    if (statMatches) statMatches.textContent = userState.matches;
-    if (myMatches) myMatches.textContent = userState.matches;
-    if (statDuels) statDuels.textContent = userState.duels;
+    // Profile statistikasi
+    document.getElementById('shopCoinsCount').textContent = userState.coins;
+    document.getElementById('statRating').textContent = userState.rating;
+    document.getElementById('statMatches').textContent = userState.matches;
+    document.getElementById('myMatches').textContent = userState.matches;
+    document.getElementById('statDuels').textContent = userState.duels;
+    document.getElementById('myDuels').textContent = userState.duels;
     
     const winRate = userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0;
-    if (statWinRate) statWinRate.textContent = winRate + '%';
+    document.getElementById('statWinRate').textContent = winRate + '%';
     
-    if (myLikes) myLikes.textContent = userState.totalLikes;
-    if (superLikeCount) superLikeCount.textContent = userState.dailySuperLikes;
-    if (profileBio) profileBio.textContent = localStorage.getItem('userBio') || 'Bio kiritilmagan';
+    document.getElementById('myLikes').textContent = userState.totalLikes;
+    document.getElementById('profileXP').textContent = `${userState.xp}/${userState.level * 100}`;
+    document.getElementById('profileBioText').textContent = userState.userBio || 'Bio kiritilmagan';
 }
 
-// ==================== LOCALSTORAGE GA SAQLASH ====================
 function saveUserStateToLocalStorage() {
     localStorage.setItem('userGender', userState.currentGender || '');
     localStorage.setItem('hasSelectedGender', userState.hasSelectedGender.toString());
     localStorage.setItem('userCoins', userState.coins.toString());
     localStorage.setItem('userLevel', userState.level.toString());
     localStorage.setItem('userRating', userState.rating.toString());
+    localStorage.setItem('userXP', userState.xp.toString());
     localStorage.setItem('userMatches', userState.matches.toString());
     localStorage.setItem('userDuels', userState.duels.toString());
     localStorage.setItem('userWins', userState.wins.toString());
     localStorage.setItem('userTotalLikes', userState.totalLikes.toString());
     localStorage.setItem('userDailySuperLikes', userState.dailySuperLikes.toString());
+    localStorage.setItem('userName', userState.userName || '');
+    localStorage.setItem('userPhoto', userState.userPhoto || '');
+    localStorage.setItem('userBio', userState.userBio || '');
 }
 
-// ==================== PROFILNI YUKLASH (YANGILANGAN) ====================
+// ==================== PROFILNI YUKLASH ====================
 function initUserProfile() {
     console.log('👤 Profil yuklanmoqda...');
-    
-    let tgUser = {};
-    let useTelegram = false;
-    
-    try {
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe) {
-            tgUser = Telegram.WebApp.initDataUnsafe.user || {};
-            if (tgUser.id) {
-                useTelegram = true;
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-                console.log('✅ Telegram Web App mavjud, real foydalanuvchi');
-            }
-        }
-    } catch (error) {
-        console.log('ℹ️ Telegram Web App mavjud emas');
-    }
     
     // Unique ID ni olish yoki yaratish
     gameState.uniqueUserId = generateUniqueUserId();
     
     let userData;
     
-    if (useTelegram && tgUser.id) {
-        // Telegram foydalanuvchisi uchun
-        userData = {
-            id: tgUser.id.toString(),
-            firstName: tgUser.first_name || 'Foydalanuvchi',
-            username: tgUser.username || '',
-            photoUrl: tgUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUser.first_name || 'User')}&background=667eea&color=fff`,
-            isTelegramUser: true
-        };
-        console.log('✅ Real Telegram foydalanuvchisi:', userData.firstName);
-    } else {
-        // Test foydalanuvchi uchun (random)
+    try {
+        // Telegram test qilish
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe) {
+            const tgUser = Telegram.WebApp.initDataUnsafe.user || {};
+            if (tgUser.id) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+                
+                userData = {
+                    id: tgUser.id.toString(),
+                    firstName: tgUser.first_name || 'Foydalanuvchi',
+                    username: tgUser.username || '',
+                    photoUrl: tgUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUser.first_name || 'User')}&background=667eea&color=fff`,
+                    isTelegramUser: true
+                };
+                console.log('✅ Telegram foydalanuvchisi:', userData.firstName);
+            } else {
+                throw new Error('Telegram user topilmadi');
+            }
+        } else {
+            throw new Error('Telegram Web App mavjud emas');
+        }
+    } catch (error) {
+        // Test foydalanuvchi yaratish
         const randomUser = generateRandomUser();
         userData = {
             id: gameState.uniqueUserId,
@@ -195,40 +195,31 @@ function initUserProfile() {
             photoUrl: userState.userPhoto || randomUser.photoUrl,
             isTelegramUser: false
         };
-        console.log('✅ Random test foydalanuvchi:', userData.firstName);
+        console.log('✅ Test foydalanuvchi:', userData.firstName);
         
-        // Random user ma'lumotlarini saqlash
+        // Ma'lumotlarni saqlash
         if (!userState.userName) {
             userState.userName = userData.firstName;
             userState.userPhoto = userData.photoUrl;
-            localStorage.setItem('userName', userData.firstName);
-            localStorage.setItem('userPhoto', userData.photoUrl);
         }
     }
     
     // DOM elementlarini yangilash
-    const myAvatar = document.getElementById('myAvatar');
-    const myName = document.getElementById('myName');
-    const myUsername = document.getElementById('myUsername');
-    const profileAvatar = document.getElementById('profileAvatar');
-    const profileName = document.getElementById('profileName');
-    const profileUsername = document.getElementById('profileUsername');
-    const startBtn = document.getElementById('startBtn');
-    
-    if (myAvatar) myAvatar.src = userData.photoUrl;
-    if (myName) myName.textContent = userData.firstName;
-    if (myUsername) myUsername.textContent = userData.username ? `@${userData.username}` : `@${userData.firstName.toLowerCase().replace(' ', '_')}`;
-    if (profileAvatar) profileAvatar.src = userData.photoUrl;
-    if (profileName) profileName.textContent = userData.firstName;
-    if (profileUsername) profileUsername.textContent = userData.username ? `@${userData.username}` : `@${userData.firstName.toLowerCase().replace(' ', '_')}`;
+    document.getElementById('myAvatar').src = userData.photoUrl;
+    document.getElementById('myName').textContent = userData.firstName;
+    document.getElementById('myUsername').textContent = userData.username ? `@${userData.username}` : `@${userData.firstName.toLowerCase().replace(' ', '_')}`;
+    document.getElementById('profileAvatar').src = userData.photoUrl;
+    document.getElementById('profileName').textContent = userData.firstName;
+    document.getElementById('profileUsername').textContent = userData.username ? `@${userData.username}` : `@${userData.firstName.toLowerCase().replace(' ', '_')}`;
     
     // Gender badge qo'shish
     if (userState.hasSelectedGender && userState.currentGender) {
-        addGenderBadge(myName, userState.currentGender);
-        addGenderBadge(profileName, userState.currentGender);
+        addGenderBadge(document.getElementById('myName'), userState.currentGender);
+        addGenderBadge(document.getElementById('profileName'), userState.currentGender);
     }
     
     // Start tugmasini sozlash
+    const startBtn = document.getElementById('startBtn');
     if (startBtn) {
         if (userState.hasSelectedGender) {
             startBtn.disabled = false;
@@ -254,7 +245,7 @@ function initUserProfile() {
     return userData;
 }
 
-// ==================== SERVERGA ULANISH (YANGILANGAN) ====================
+// ==================== SERVERGA ULANISH ====================
 function connectToServer() {
     console.log('🔗 Serverga ulanmoqda...');
     
@@ -263,21 +254,12 @@ function connectToServer() {
         return;
     }
     
-    // Render.com manzilini aniqlash
+    // URL aniqlash
     const isLocalhost = window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1' ||
                        window.location.hostname === '';
     
-    let socketUrl;
-    
-    if (isLocalhost) {
-        socketUrl = 'http://localhost:3000';
-        console.log('📍 Local development rejimi');
-    } else {
-        socketUrl = 'https://like-duel.onrender.com';
-        console.log('📍 Production (Render.com) rejimi');
-    }
-    
+    const socketUrl = isLocalhost ? 'http://localhost:3000' : 'https://like-duel.onrender.com';
     console.log('🔌 Socket URL:', socketUrl);
     
     // Socket.IO ulanishini yaratish
@@ -289,7 +271,7 @@ function connectToServer() {
         timeout: 20000,
         query: {
             userId: gameState.uniqueUserId,
-            version: '2.0'
+            version: '3.0'
         }
     });
     
@@ -298,7 +280,7 @@ function connectToServer() {
         console.log('✅ Serverga ulandi! Socket ID:', gameState.socket.id);
         gameState.isConnected = true;
         
-        // Foydalanuvchi ma'lumotlarini olish
+        // Foydalanuvchi ma'lumotlarini yuborish
         const myName = document.getElementById('myName');
         const myUsername = document.getElementById('myUsername');
         const myAvatar = document.getElementById('myAvatar');
@@ -327,24 +309,22 @@ function connectToServer() {
         // UserState yangilash
         userState.currentGender = data.gender;
         userState.hasSelectedGender = data.hasSelectedGender;
-        userState.coins = data.coins;
-        userState.level = data.level;
-        userState.rating = data.rating;
-        userState.matches = data.matches;
-        userState.duels = data.duels;
-        userState.wins = data.wins;
-        userState.totalLikes = data.totalLikes;
-        userState.dailySuperLikes = data.dailySuperLikes;
+        userState.coins = data.coins || userState.coins;
+        userState.level = data.level || userState.level;
+        userState.rating = data.rating || userState.rating;
+        userState.matches = data.matches || userState.matches;
+        userState.duels = data.duels || userState.duels;
+        userState.wins = data.wins || userState.wins;
+        userState.totalLikes = data.totalLikes || userState.totalLikes;
+        userState.dailySuperLikes = data.dailySuperLikes || userState.dailySuperLikes;
         
         saveUserStateToLocalStorage();
         updateStats();
         
         // Gender badge qo'shish
-        const myName = document.getElementById('myName');
-        const profileName = document.getElementById('profileName');
         if (userState.hasSelectedGender && userState.currentGender) {
-            addGenderBadge(myName, userState.currentGender);
-            addGenderBadge(profileName, userState.currentGender);
+            addGenderBadge(document.getElementById('myName'), userState.currentGender);
+            addGenderBadge(document.getElementById('profileName'), userState.currentGender);
         }
         
         // Start tugmasini yoqish
@@ -355,15 +335,10 @@ function connectToServer() {
             startBtn.classList.remove('disabled');
         }
         
-        // Ekran ko'rsatish
-        showScreen('queue');
-        
         // Agar gender tanlangan bo'lsa, avtomatik navbatga kirish
         if (userState.hasSelectedGender) {
             setTimeout(() => {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
-                console.log('🔄 Avtomatik navbatga kirish...');
+                enterQueue();
             }, 500);
         } else {
             showGenderModal(true);
@@ -384,10 +359,8 @@ function connectToServer() {
         saveUserStateToLocalStorage();
         
         // Gender badge qo'shish
-        const myName = document.getElementById('myName');
-        const profileName = document.getElementById('profileName');
-        addGenderBadge(myName, data.gender);
-        addGenderBadge(profileName, data.gender);
+        addGenderBadge(document.getElementById('myName'), data.gender);
+        addGenderBadge(document.getElementById('profileName'), data.gender);
         
         // Start tugmasini yoqish
         const startBtn = document.getElementById('startBtn');
@@ -400,13 +373,9 @@ function connectToServer() {
         hideGenderModal();
         
         // Navbatga kirish
-        if (gameState.socket && gameState.isConnected) {
-            setTimeout(() => {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
-                console.log('🔄 Navbatga kirish...');
-            }, 500);
-        }
+        setTimeout(() => {
+            enterQueue();
+        }, 500);
         
         showNotification('🎉 Jins tanlandi', data.message);
     });
@@ -416,30 +385,15 @@ function connectToServer() {
         gameState.isInQueue = true;
         showScreen('queue');
         
-        const queueStatus = document.getElementById('queueStatus');
-        if (queueStatus) {
-            queueStatus.textContent = `Navbatdasiz. O'rningiz: ${data.position}/${data.total}`;
-        }
+        document.getElementById('queueStatus').textContent = `Navbatdasiz. O'rningiz: ${data.position}/${data.total}`;
     });
     
     gameState.socket.on('waiting_count', (data) => {
-        const waitingCount = document.getElementById('waitingCount');
-        const position = document.getElementById('position');
-        const positionInfo = document.getElementById('positionInfo');
-        const queueStatus = document.getElementById('queueStatus');
-        
-        if (waitingCount) waitingCount.textContent = data.count;
-        if (position) {
-            position.textContent = data.position;
-            if (positionInfo) {
-                positionInfo.style.display = data.position > 0 ? 'block' : 'none';
-            }
-        }
-        if (queueStatus) {
-            queueStatus.textContent = data.position > 0 ? 
-                `Navbatdasiz. O'rningiz: ${data.position}/${data.count}` : 
-                'Navbatda...';
-        }
+        document.getElementById('waitingCount').textContent = data.count;
+        document.getElementById('position').textContent = data.position;
+        document.getElementById('queueStatus').textContent = data.position > 0 ? 
+            `Navbatdasiz. O'rningiz: ${data.position}/${data.count}` : 
+            'Navbatda...';
     });
     
     gameState.socket.on('duel_started', (data) => {
@@ -448,10 +402,11 @@ function connectToServer() {
         
         gameState.isInDuel = true;
         gameState.currentDuelId = data.duelId;
+        gameState.currentOpponent = data.opponent;
         gameState.isInQueue = false;
         showScreen('duel');
         
-        // Tugmalarni qayta faollashtirish
+        // Ovoz berish tugmalarini yoqish
         enableVoteButtons();
         
         // Raqib ma'lumotlarini ko'rsatish
@@ -461,25 +416,40 @@ function connectToServer() {
         const opponentRating = document.getElementById('opponentRating');
         const opponentMatches = document.getElementById('opponentMatches');
         const opponentLevel = document.getElementById('opponentLevel');
+        const opponentBio = document.getElementById('opponentBio');
         
-        if (opponentAvatar) opponentAvatar.src = data.opponent.photo;
-        if (opponentName) {
-            opponentName.innerHTML = data.opponent.name;
-            addGenderBadge(opponentName, data.opponent.gender);
+        opponentAvatar.src = data.opponent.photo;
+        opponentName.innerHTML = data.opponent.name;
+        addGenderBadge(opponentName, data.opponent.gender);
+        opponentUsername.textContent = data.opponent.username ? '@' + data.opponent.username : '';
+        opponentRating.textContent = data.opponent.rating;
+        opponentMatches.textContent = data.opponent.matches;
+        opponentLevel.textContent = data.opponent.level;
+        opponentBio.textContent = data.opponent.bio || 'Bio kiritilmagan';
+        
+        // Oldingi ovoz tarixini ko'rsatish
+        if (data.previousHistory) {
+            const duelStatus = document.getElementById('duelStatus');
+            if (duelStatus && data.previousHistory.myVote) {
+                let historyText = '';
+                if (data.previousHistory.wasMatch) {
+                    historyText = 'Oldin match bo\'lgansiz!';
+                } else if (data.previousHistory.myVote === 'like' && data.previousHistory.opponentVote === 'skip') {
+                    historyText = 'Oldin siz like bergan edingiz';
+                } else if (data.previousHistory.myVote === 'skip' && data.previousHistory.opponentVote === 'like') {
+                    historyText = 'Oldin raqib sizga like bergan edi';
+                }
+                
+                if (historyText) {
+                    duelStatus.innerHTML = `<i class="fas fa-history"></i> ${historyText}`;
+                }
+            }
         }
-        if (opponentUsername) opponentUsername.textContent = data.opponent.username;
-        if (opponentRating) opponentRating.textContent = data.opponent.rating;
-        if (opponentMatches) opponentMatches.textContent = data.opponent.matches;
-        if (opponentLevel) opponentLevel.textContent = data.opponent.level;
         
         startTimer();
         
-        const duelStatus = document.getElementById('duelStatus');
-        if (duelStatus) duelStatus.textContent = 'Ovoz bering: ❤️ yoki 💖 yoki ✖';
-        
         // Super like count yangilash
-        const superLikeCount = document.getElementById('superLikeCount');
-        if (superLikeCount) superLikeCount.textContent = userState.dailySuperLikes;
+        document.getElementById('superLikeCountDuel').textContent = userState.dailySuperLikes;
     });
     
     gameState.socket.on('match', (data) => {
@@ -491,33 +461,42 @@ function connectToServer() {
         console.log('❤️ Faqat siz like berdidingiz:', data);
         gameState.isInDuel = false;
         gameState.currentDuelId = null;
+        gameState.currentOpponent = null;
         
         showScreen('queue');
-        showNotification('❤️ Like berdidingiz', `${data.opponentName} sizni like bermadi. +${data.reward.coins} coin oldingiz.`);
+        showNotification('❤️ Like berdidingiz', 
+            `${data.opponentName} sizni like bermadi. +${data.reward.coins} coin oldingiz.`);
         
         // Mukofotlarni qo'shish
         userState.coins += data.reward.coins;
         userState.xp += data.reward.xp;
         userState.duels++;
+        userState.totalLikes++;
         saveUserStateToLocalStorage();
         updateStats();
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
+            if (userState.hasSelectedGender) {
+                enterQueue();
             }
         }, 2000);
     });
     
-    gameState.socket.on('no_match', () => {
+    gameState.socket.on('no_match', (data) => {
         console.log('❌ Match bo\'lmadi');
         gameState.isInDuel = false;
         gameState.currentDuelId = null;
+        gameState.currentOpponent = null;
         
         showScreen('queue');
-        showNotification('😔 Match bo\'lmadi', 'Keyingi duelga tayyorlanaylik!');
+        
+        let notificationText = 'Match bo\'lmadi';
+        if (data && data.yourVote && data.opponentVote) {
+            notificationText = `Siz ${data.yourVote === 'like' ? 'like' : 'skip'} berdidingiz, raqib ${data.opponentVote === 'like' ? 'like' : 'skip'} berdi`;
+        }
+        
+        showNotification('😔 Match bo\'lmadi', notificationText);
         
         // Duel statistikasini yangilash
         userState.duels++;
@@ -526,9 +505,8 @@ function connectToServer() {
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
+            if (userState.hasSelectedGender) {
+                enterQueue();
             }
         }, 2000);
     });
@@ -537,6 +515,7 @@ function connectToServer() {
         console.log('⏰ Duel vaqti tugadi');
         gameState.isInDuel = false;
         gameState.currentDuelId = null;
+        gameState.currentOpponent = null;
         
         showScreen('queue');
         showNotification('⏰ Vaqt tugadi', 'Duel vaqti tugadi, yangi raqib izlanmoqda...');
@@ -548,17 +527,16 @@ function connectToServer() {
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
+            if (userState.hasSelectedGender) {
+                enterQueue();
             }
         }, 2000);
     });
     
-    // CHAT SO'ROVLARI
     gameState.socket.on('chat_request_received', (data) => {
         console.log('💬 Chat so\'rovi keldi:', data);
-        showNotification('💬 Chat so\'rovi', `${data.name} chatga o'tishni xohlaydi. Siz ham so'rasangiz chat boshlanadi.`);
+        showNotification('💬 Chat so\'rovi', 
+            `${data.name} chatga o'tishni xohlaydi. Siz ham so'rasangiz chat boshlanadi.`);
     });
     
     gameState.socket.on('chat_started', (data) => {
@@ -570,15 +548,16 @@ function connectToServer() {
         console.log('🚪 Chat o\'tkazib yuborildi');
         gameState.isInDuel = false;
         gameState.currentDuelId = null;
+        gameState.currentOpponent = null;
         
         showScreen('queue');
-        showNotification('💬 Chat o\'tkazib yuborildi', `Raqib chatga o'tishni xohlamadi${data.by ? ` (${data.by})` : ''}.`);
+        showNotification('💬 Chat o\'tkazib yuborildi', 
+            `Raqib chatga o'tishni xohlamadi${data.by ? ` (${data.by})` : ''}.`);
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
+            if (userState.hasSelectedGender) {
+                enterQueue();
             }
         }, 2000);
     });
@@ -590,7 +569,6 @@ function connectToServer() {
     
     gameState.socket.on('chat_message_sent', (data) => {
         console.log('✅ Chat xabari yuborildi:', data);
-        // Xabarni lokal ravishda ko'rsatish
         displayChatMessage(data.message);
     });
     
@@ -598,13 +576,13 @@ function connectToServer() {
         console.log('👋 Chat tugadi:', data);
         closeChat();
         showScreen('queue');
-        showNotification('👋 Chat tugadi', `Suhbat yakunlandi${data.by ? ` (${data.by})` : ''}.`);
+        showNotification('👋 Chat tugadi', 
+            `Suhbat yakunlandi${data.by ? ` (${data.by})` : ''}.`);
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
+            if (userState.hasSelectedGender) {
+                enterQueue();
             }
         }, 2000);
     });
@@ -613,38 +591,50 @@ function connectToServer() {
         console.log('🔄 Navbatga qaytarildi:', data);
         gameState.isInDuel = false;
         gameState.currentDuelId = null;
+        gameState.currentOpponent = null;
         gameState.isInQueue = true;
         
         showScreen('queue');
         
-        const queueStatus = document.getElementById('queueStatus');
-        if (queueStatus) {
-            queueStatus.textContent = data ? `Navbatdasiz. O'rningiz: ${data.position}/${data.total}` : 'Navbatda...';
-        }
+        document.getElementById('queueStatus').textContent = data ? 
+            `Navbatdasiz. O'rningiz: ${data.position}/${data.total}` : 
+            'Navbatda...';
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.socket.emit('enter_queue');
-            }
+            enterQueue();
         }, 1000);
+    });
+    
+    gameState.socket.on('left_queue', () => {
+        console.log('🚪 Navbatdan chiqildi');
+        gameState.isInQueue = false;
+        showScreen('welcome');
     });
     
     gameState.socket.on('opponent_left', (data) => {
         console.log('⚠️ Raqib duelni tark etdi:', data);
         gameState.isInDuel = false;
         gameState.currentDuelId = null;
+        gameState.currentOpponent = null;
         
         showScreen('queue');
-        showNotification('⚠️ Raqib ketdi', `${data?.name || 'Raqib'} duelni tark etdi. Yangi raqib izlanmoqda...`);
+        showNotification('⚠️ Raqib ketdi', 
+            `${data?.name || 'Raqib'} duelni tark etdi. Yangi raqib izlanmoqda...`);
         
         // Yangi duel qidirish
         setTimeout(() => {
-            if (gameState.socket && gameState.isConnected && userState.hasSelectedGender) {
-                gameState.isInQueue = true;
-                gameState.socket.emit('enter_queue');
+            if (userState.hasSelectedGender) {
+                enterQueue();
             }
         }, 2000);
+    });
+    
+    gameState.socket.on('vote_registered', () => {
+        console.log('✅ Ovoz qabul qilindi');
+        // Faqat bosilgan tugmani bloklash
+        // Qolgan tugmalarni bloklash
+        disableVoteButtonsExcept(null);
     });
     
     gameState.socket.on('error', (data) => {
@@ -660,11 +650,47 @@ function connectToServer() {
         gameState.isInChat = false;
         showNotification('🔌 Ulanish uzildi', 'Serverga qayta ulanmoqda...');
     });
+}
+
+// ==================== NAVBAT FUNKSIYALARI ====================
+function enterQueue() {
+    if (!userState.hasSelectedGender) {
+        showGenderModal(true);
+        showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+        return;
+    }
     
-    gameState.socket.on('reconnect', () => {
-        console.log('🔄 Serverga qayta ulandi');
-        showNotification('✅ Qayta ulandi', 'Serverga muvaffaqiyatli qayta ulandik!');
-    });
+    if (gameState.isInQueue) {
+        console.log('ℹ️ Allaqachon navbatdasiz');
+        return;
+    }
+    
+    console.log('🚀 Navbatga kirish...');
+    gameState.isInQueue = true;
+    
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('enter_queue');
+    } else {
+        connectToServer();
+    }
+    
+    showScreen('queue');
+}
+
+function leaveQueue() {
+    console.log('🚪 Navbatdan chiqish...');
+    gameState.isInQueue = false;
+    gameState.isInDuel = false;
+    gameState.isInChat = false;
+    gameState.currentDuelId = null;
+    gameState.currentOpponent = null;
+    
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('leave_queue');
+    }
+    
+    showScreen('welcome');
+    showNotification('🚪', 'Navbatdan chiqdingiz');
 }
 
 // ==================== GENDER TANLASH ====================
@@ -677,10 +703,8 @@ function selectGender(gender) {
     saveUserStateToLocalStorage();
     
     // Gender badge qo'shish
-    const myName = document.getElementById('myName');
-    const profileName = document.getElementById('profileName');
-    addGenderBadge(myName, gender);
-    addGenderBadge(profileName, gender);
+    addGenderBadge(document.getElementById('myName'), gender);
+    addGenderBadge(document.getElementById('profileName'), gender);
     
     // Start tugmasini yoqish
     const startBtn = document.getElementById('startBtn');
@@ -692,12 +716,12 @@ function selectGender(gender) {
     
     hideGenderModal();
     
-    // Agar socket ulanmagan bo'lsa, ulanish
-    if (!gameState.socket || !gameState.isConnected) {
-        connectToServer();
-    } else {
-        // Socket ulangan bo'lsa, serverga bildirish
+    // Serverga gender tanlaganligini bildirish
+    if (gameState.socket && gameState.isConnected) {
         gameState.socket.emit('select_gender', { gender: gender });
+    } else {
+        // Agar socket ulanmagan bo'lsa, ulanish
+        connectToServer();
     }
     
     showNotification('🎉 Jins tanlandi', 
@@ -708,34 +732,23 @@ function selectGender(gender) {
 
 // ==================== MODAL FUNKSIYALARI ====================
 function showGenderModal(mandatory = true) {
-    const genderModal = document.getElementById('genderModal');
-    const genderWarning = document.getElementById('genderWarning');
-    
-    if (genderModal) genderModal.classList.add('active');
-    if (mandatory && genderWarning) {
-        genderWarning.classList.remove('hidden');
+    document.getElementById('genderModal').classList.add('active');
+    if (mandatory) {
+        document.getElementById('mandatoryWarning').style.display = 'block';
     }
 }
 
 function hideGenderModal() {
-    const genderModal = document.getElementById('genderModal');
-    const genderWarning = document.getElementById('genderWarning');
-    
-    if (genderModal) genderModal.classList.remove('active');
-    if (genderWarning) genderWarning.classList.add('hidden');
+    document.getElementById('genderModal').classList.remove('active');
+    document.getElementById('mandatoryWarning').style.display = 'none';
 }
 
 // ==================== EKRANLARNI ALMASHTIRISH ====================
 function showScreen(screen) {
-    const screens = ['welcomeScreen', 'queueScreen', 'duelScreen', 'matchScreen'];
-    
-    screens.forEach(screenId => {
-        const element = document.getElementById(screenId);
-        if (element) element.classList.add('hidden');
+    ['welcomeScreen', 'queueScreen', 'duelScreen', 'matchScreen'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
     });
-    
-    const targetScreen = document.getElementById(screen + 'Screen');
-    if (targetScreen) targetScreen.classList.remove('hidden');
+    document.getElementById(screen + 'Screen').classList.remove('hidden');
 }
 
 // ==================== TIMER FUNKSIYASI ====================
@@ -744,16 +757,14 @@ function startTimer() {
     gameState.timeLeft = 20;
     
     const timer = document.getElementById('timer');
-    if (timer) {
-        timer.textContent = 20;
-        timer.style.color = '#fff';
-    }
+    timer.textContent = 20;
+    timer.style.color = '#fff';
     
     gameState.timerInterval = setInterval(() => {
         gameState.timeLeft--;
-        if (timer) timer.textContent = gameState.timeLeft;
+        timer.textContent = gameState.timeLeft;
         
-        if (gameState.timeLeft <= 5 && timer) {
+        if (gameState.timeLeft <= 5) {
             timer.style.color = '#ff4444';
         }
         
@@ -763,47 +774,66 @@ function startTimer() {
     }, 1000);
 }
 
-// ==================== OVOZ BERISH TUGMALARINI YANGILASH ====================
+// ==================== OVOZ BERISH FUNKSIYALARI ====================
 function enableVoteButtons() {
-    const noBtn = document.getElementById('noBtn');
-    const likeBtn = document.getElementById('likeBtn');
-    const superLikeBtn = document.getElementById('superLikeBtn');
+    ['noBtn', 'likeBtn', 'superLikeBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+    });
+}
+
+function disableVoteButtonsExcept(voteType) {
+    // voteType: 'skip', 'like', 'super_like' yoki null
+    const buttons = {
+        'skip': document.getElementById('noBtn'),
+        'like': document.getElementById('likeBtn'),
+        'super_like': document.getElementById('superLikeBtn')
+    };
     
-    [noBtn, likeBtn, superLikeBtn].forEach(b => {
-        if (b) {
-            b.disabled = false;
-            b.style.opacity = '1';
-            b.style.cursor = 'pointer';
+    Object.entries(buttons).forEach(([type, btn]) => {
+        if (btn) {
+            if (type === voteType) {
+                // Bosilgan tugmani bloklash
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else if (voteType === null) {
+                // Barcha tugmalarni bloklash (ovoz berilgandan keyin)
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            }
         }
     });
 }
 
-// ==================== OVOZ BERISH ====================
+let lastVoteTime = 0;
+const VOTE_COOLDOWN = 300;
+
 function handleVote(choice) {
-    if (!gameState.socket || !gameState.isInDuel || !gameState.currentDuelId) {
-        console.log('❌ Vote qilish mumkin emas: socket, duel yoki duelId yo\'q');
+    const now = Date.now();
+    if (now - lastVoteTime < VOTE_COOLDOWN) {
+        console.log('⚠️ Ovoz berish tezligi cheklangan');
         return;
     }
     
-    const noBtn = document.getElementById('noBtn');
-    const likeBtn = document.getElementById('likeBtn');
-    const superLikeBtn = document.getElementById('superLikeBtn');
+    lastVoteTime = now;
     
-    // Tugmalarni bloklash
-    [noBtn, likeBtn, superLikeBtn].forEach(b => {
-        if (b) {
-            b.disabled = true;
-            b.style.opacity = '0.6';
-            b.style.cursor = 'not-allowed';
-        }
-    });
+    if (!gameState.socket || !gameState.isInDuel || !gameState.currentDuelId) {
+        console.log('❌ Vote qilish mumkin emas');
+        return;
+    }
     
     // SUPER LIKE limit tekshirish
     if (choice === 'super_like' && userState.dailySuperLikes <= 0) {
         showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
-        enableVoteButtons();
         return;
     }
+    
+    // Faqat bosilgan tugmani bloklash
+    disableVoteButtonsExcept(choice);
     
     console.log(`🗳️ Ovoz berish: ${choice} (duel: ${gameState.currentDuelId.substring(0, 10)}...)`);
     gameState.socket.emit('vote', { 
@@ -811,18 +841,23 @@ function handleVote(choice) {
         choice: choice 
     });
     
+    // Timer textni o'zgartirish
     const timer = document.getElementById('timer');
-    if (timer) {
-        if (choice === 'like') timer.textContent = '❤️';
-        else if (choice === 'super_like') timer.textContent = '💖';
-        else timer.textContent = '✖';
-    }
-    
     const duelStatus = document.getElementById('duelStatus');
-    if (duelStatus) {
-        duelStatus.textContent = choice === 'like' ? 'LIKE berdingiz...' : 
-                                choice === 'super_like' ? 'SUPER LIKE!' : 
-                                'O\'tkazib yubordingiz...';
+    
+    if (choice === 'like') {
+        timer.textContent = '❤️';
+        if (duelStatus) duelStatus.textContent = 'LIKE berdingiz...';
+    } else if (choice === 'super_like') {
+        timer.textContent = '💖';
+        if (duelStatus) duelStatus.textContent = 'SUPER LIKE!';
+        
+        // Super like count ni kamaytirish
+        userState.dailySuperLikes = Math.max(0, userState.dailySuperLikes - 1);
+        updateStats();
+    } else {
+        timer.textContent = '✖';
+        if (duelStatus) duelStatus.textContent = 'O\'tkazib yubordingiz...';
     }
 }
 
@@ -831,25 +866,32 @@ function handleMatch(data) {
     clearInterval(gameState.timerInterval);
     gameState.isInDuel = false;
     gameState.currentPartner = data.partner;
-    gameState.currentDuelId = data.duelId;
     showScreen('match');
     
-    const partnerName = document.getElementById('partnerName');
-    const matchText = document.getElementById('matchText');
-    const rewardCoins = document.getElementById('rewardCoins');
-    const rewardXP = document.getElementById('rewardXP');
-    const newRating = document.getElementById('newRating');
-    const matchOptions = document.getElementById('matchOptions');
+    // Partner ma'lumotlarini ko'rsatish
+    document.getElementById('partnerName').textContent = data.partner.name;
+    document.getElementById('partnerNameText').textContent = data.partner.name;
+    document.getElementById('partnerAvatar').src = data.partner.photo;
     
-    if (partnerName) partnerName.textContent = data.partner.name;
-    if (matchText) {
-        matchText.innerHTML = data.isRematch ? 
-            `<div style="font-size: 1.5rem;">🎉 QAYTA MATCH!</div>Yana birga bo'ldingiz!` :
-            `<div style="font-size: 1.5rem;">🎉 MATCH!</div>Bir-biringizni yoqtirdingiz!`;
+    // Agar username bo'lsa, ko'rsatish
+    const partnerUsername = document.getElementById('partnerUsername');
+    if (partnerUsername && data.partner.username) {
+        partnerUsername.textContent = '@' + data.partner.username;
+        partnerUsername.style.display = 'block';
     }
-    if (rewardCoins) rewardCoins.textContent = data.rewards.coins;
-    if (rewardXP) rewardXP.textContent = data.rewards.xp;
-    if (newRating) newRating.textContent = data.newRating;
+    
+    // Gender badge
+    const partnerGender = document.getElementById('partnerGender');
+    if (partnerGender) {
+        partnerGender.innerHTML = data.partner.gender === 'male' ? 
+            '<i class="fas fa-mars"></i> Erkak' : 
+            '<i class="fas fa-venus"></i> Ayol';
+    }
+    
+    // Mukofotlarni ko'rsatish
+    document.getElementById('rewardCoins').textContent = data.rewards.coins;
+    document.getElementById('rewardXP').textContent = data.rewards.xp;
+    document.getElementById('newRating').textContent = data.newRating;
     
     // Mukofotlarni qo'shish
     userState.coins += data.rewards.coins;
@@ -857,55 +899,73 @@ function handleMatch(data) {
     userState.matches++;
     userState.duels++;
     userState.wins++;
+    userState.totalLikes++;
+    
+    // Rating yangilash
+    userState.rating = data.newRating;
     
     // Level tekshirish
     const neededXP = userState.level * 100;
     if (userState.xp >= neededXP) {
         userState.level++;
         userState.xp -= neededXP;
+        showNotification('🎊 Level Up!', `Siz ${userState.level}-levelga chiqdingiz!`);
     }
     
     saveUserStateToLocalStorage();
     updateStats();
     
     // Tugmalarni yaratish
-    if (matchOptions) {
-        matchOptions.innerHTML = '';
-        
-        // Chatga o'tish tugmasi
-        const chatBtn = document.createElement('button');
-        chatBtn.className = 'match-option-btn';
-        chatBtn.style.background = '#2ecc71';
-        chatBtn.innerHTML = '<i class="fas fa-comment"></i> Chatga O\'tish';
-        chatBtn.onclick = () => {
-            if (gameState.socket && gameState.isConnected && gameState.currentDuelId) {
-                console.log(`💬 Chat so'rovi yuborilmoqda: ${gameState.currentDuelId.substring(0, 10)}...`);
-                gameState.socket.emit('chat_request', { 
-                    duelId: gameState.currentDuelId 
-                });
-                
-                // Loading holatini ko'rsatish
-                matchOptions.innerHTML = '<div style="padding: 20px; text-align: center;">Raqib javobini kutish...</div>';
-            }
+    const matchOptions = document.getElementById('matchOptions');
+    matchOptions.innerHTML = '';
+    
+    // Telegram tugmasi (agar username bo'lsa)
+    if (data.partner.username && !data.partner.username.includes('_') && data.partner.username.length > 3) {
+        const telegramBtn = document.createElement('button');
+        telegramBtn.className = 'match-option-btn';
+        telegramBtn.style.background = '#0088cc';
+        telegramBtn.innerHTML = `
+            <i class="fab fa-telegram"></i> Telegramga o'tish
+            <span style="font-size: 0.8rem; opacity: 0.8;">@${data.partner.username}</span>
+        `;
+        telegramBtn.onclick = () => {
+            window.open(`https://t.me/${data.partner.username}`, '_blank');
         };
-        matchOptions.appendChild(chatBtn);
-        
-        // O'tkazib yuborish tugmasi
-        const skipBtn = document.createElement('button');
-        skipBtn.className = 'match-option-btn';
-        skipBtn.style.background = '#ff6b6b';
-        skipBtn.innerHTML = '<i class="fas fa-forward"></i> O\'tkazish';
-        skipBtn.onclick = () => {
-            if (gameState.socket && gameState.isConnected && gameState.currentDuelId) {
-                console.log(`🚪 Chat o'tkazib yuborilmoqda: ${gameState.currentDuelId.substring(0, 10)}...`);
-                gameState.socket.emit('skip_chat', { 
-                    duelId: gameState.currentDuelId 
-                });
-                returnToQueue();
-            }
-        };
-        matchOptions.appendChild(skipBtn);
+        matchOptions.appendChild(telegramBtn);
     }
+    
+    // Chat tugmasi
+    const chatBtn = document.createElement('button');
+    chatBtn.className = 'match-option-btn';
+    chatBtn.style.background = '#2ecc71';
+    chatBtn.innerHTML = '<i class="fas fa-comments"></i> Chat';
+    chatBtn.onclick = () => {
+        if (gameState.socket && gameState.isConnected && gameState.currentDuelId) {
+            console.log('💬 Chat so\'rovi yuborilmoqda...');
+            gameState.socket.emit('chat_request', { 
+                duelId: gameState.currentDuelId 
+            });
+            
+            // Loading holatini ko'rsatish
+            matchOptions.innerHTML = '<div style="padding: 20px; text-align: center;">Raqib javobini kutish...</div>';
+        }
+    };
+    matchOptions.appendChild(chatBtn);
+    
+    // O'tkazish tugmasi
+    const skipBtn = document.createElement('button');
+    skipBtn.className = 'match-option-btn';
+    skipBtn.style.background = '#ff6b6b';
+    skipBtn.innerHTML = '<i class="fas fa-forward"></i> Keyingisi';
+    skipBtn.onclick = () => {
+        if (gameState.socket && gameState.isConnected && gameState.currentDuelId) {
+            gameState.socket.emit('skip_chat', { 
+                duelId: gameState.currentDuelId 
+            });
+            returnToQueue();
+        }
+    };
+    matchOptions.appendChild(skipBtn);
     
     // Konfetti
     if (typeof confetti === 'function') {
@@ -940,19 +1000,17 @@ function returnToQueue() {
     gameState.currentDuelId = null;
     gameState.currentPartner = null;
     gameState.currentChatId = null;
-    gameState.isInQueue = true;
+    gameState.currentOpponent = null;
     
     showScreen('queue');
+    document.getElementById('queueStatus').textContent = 'Yangi raqib izlanmoqda...';
     
-    const queueStatus = document.getElementById('queueStatus');
-    if (queueStatus) queueStatus.textContent = 'Yangi raqib izlanmoqda...';
-    
-    // Agar gender tanlagan bo'lsa, navbatga qayta kirish
-    if (userState.hasSelectedGender && gameState.socket && gameState.isConnected) {
-        setTimeout(() => {
-            gameState.socket.emit('enter_queue');
-        }, 1000);
-    }
+    // Yangi duel qidirish
+    setTimeout(() => {
+        if (userState.hasSelectedGender) {
+            enterQueue();
+        }
+    }, 1000);
 }
 
 // ==================== CHAT FUNKSIYALARI ====================
@@ -963,69 +1021,59 @@ function openChat(data) {
     gameState.isInQueue = false;
     
     const chatModal = document.getElementById('chatModal');
-    const chatPartnerAvatar = document.getElementById('chatPartnerAvatar');
-    const chatPartnerName = document.getElementById('chatPartnerName');
-    const chatMessages = document.getElementById('chatMessages');
+    chatModal.classList.add('active');
     
-    if (chatModal) chatModal.classList.add('active');
-    if (chatPartnerAvatar) chatPartnerAvatar.src = data.partner.photo;
-    if (chatPartnerName) chatPartnerName.textContent = data.partner.name;
-    if (chatMessages) {
-        chatMessages.innerHTML = `
-            <div class="chat-welcome">
-                <div style="text-align: center; padding: 20px; opacity: 0.7;">
-                    <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">💬 Chat boshlandi!</div>
-                    <div>${data.partner.name} bilan suhbatlashishingiz mumkin</div>
-                    <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.5;">
-                        Xabar yuborish uchun yozing va Enter ni bosing
-                    </div>
+    document.getElementById('chatPartnerAvatar').src = data.partner.photo;
+    document.getElementById('chatPartnerName').textContent = data.partner.name;
+    
+    const chatMessages = document.getElementById('chatMessages');
+    chatMessages.innerHTML = `
+        <div class="chat-welcome">
+            <div style="text-align: center; padding: 20px; opacity: 0.7;">
+                <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">💬 Chat boshlandi!</div>
+                <div>${data.partner.name} bilan suhbatlashishingiz mumkin</div>
+                <div style="font-size: 0.8rem; margin-top: 10px; opacity: 0.5;">
+                    Xabar yuborish uchun yozing va Enter ni bosing
                 </div>
             </div>
-        `;
-    }
+        </div>
+    `;
     
     // Match ekranini yashirish
-    const matchScreen = document.getElementById('matchScreen');
-    if (matchScreen) matchScreen.classList.add('hidden');
+    document.getElementById('matchScreen').classList.add('hidden');
     
     // Chat inputni focus qilish
     setTimeout(() => {
         const chatInput = document.getElementById('chatInput');
-        if (chatInput) {
-            chatInput.focus();
-            chatInput.value = '';
-        }
+        chatInput.focus();
+        chatInput.value = '';
     }, 300);
     
     showNotification('💬 Chat', `${data.partner.name} bilan chat boshlandi!`);
 }
 
 function closeChat() {
-    const chatModal = document.getElementById('chatModal');
-    if (chatModal) chatModal.classList.remove('active');
-    
+    document.getElementById('chatModal').classList.remove('active');
     gameState.isInChat = false;
     gameState.currentChatId = null;
 }
 
 function sendChatMessage() {
     const chatInput = document.getElementById('chatInput');
-    if (!chatInput || !chatInput.value.trim()) {
-        console.log('❌ Chat xabari bo\'sh');
+    const message = chatInput.value.trim();
+    
+    if (!message) {
         return;
     }
     
     if (!gameState.currentChatId) {
-        console.log('❌ Chat ID topilmadi');
         showNotification('Xato', 'Chat topilmadi');
         return;
     }
     
-    const message = chatInput.value.trim();
     chatInput.value = '';
     
     if (gameState.socket && gameState.isConnected) {
-        console.log(`📤 Chat xabari yuborilmoqda: "${message.substring(0, 30)}${message.length > 30 ? '...' : ''}"`);
         gameState.socket.emit('send_chat_message', {
             chatId: gameState.currentChatId,
             message: message
@@ -1037,15 +1085,11 @@ function sendChatMessage() {
             message: message,
             timestamp: new Date()
         });
-    } else {
-        console.log('❌ Socket ulanmagan');
-        showNotification('Xato', 'Serverga ulanmagan');
     }
 }
 
 function displayChatMessage(message) {
     const chatMessages = document.getElementById('chatMessages');
-    if (!chatMessages) return;
     
     // Avvalgi "chat boshlandi" xabarini o'chirish
     const welcomeDiv = chatMessages.querySelector('.chat-welcome');
@@ -1076,107 +1120,178 @@ function showNotification(title, message) {
     const notificationTitle = document.getElementById('notificationTitle');
     const notificationMessage = document.getElementById('notificationMessage');
     
-    if (notification && notificationTitle && notificationMessage) {
-        notificationTitle.textContent = title;
-        notificationMessage.textContent = message;
-        notification.classList.add('active');
-        
-        setTimeout(() => {
-            notification.classList.remove('active');
-        }, 3000);
-    }
-}
-
-// ==================== O'YINNI BOSHLASH ====================
-function startGame() {
-    if (!userState.hasSelectedGender) {
-        showGenderModal(true);
-        showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
-        return;
-    }
+    notificationTitle.textContent = title;
+    notificationMessage.textContent = message;
+    notification.classList.add('active');
     
-    connectToServer();
+    setTimeout(() => {
+        notification.classList.remove('active');
+    }, 3000);
 }
 
 // ==================== DOM YUKLANGANDA ====================
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ Like Duel - MUKAMMAL VERSIYA DOM yuklandi');
-    console.log('🆔 User ID:', generateUniqueUserId());
+    console.log('✅ Like Duel - MUKAMMAL VERSIYA 3.0 DOM yuklandi');
     
     // Profilni yuklash
-    const userData = initUserProfile();
+    initUserProfile();
     
-    // Tugmalar uchun event listenerlar
-    const startBtn = document.getElementById('startBtn');
-    if (startBtn) {
-        startBtn.addEventListener('click', startGame);
-    }
+    // ==================== EVENT LISTENERS ====================
     
-    const leaveQueueBtn = document.getElementById('leaveQueueBtn');
-    if (leaveQueueBtn) {
-        leaveQueueBtn.addEventListener('click', () => {
-            if (gameState.socket && gameState.isConnected) {
-                gameState.socket.emit('leave_queue');
-            }
-            gameState.isInQueue = false;
-            showScreen('welcome');
-            showNotification('🚪 Navbat', 'Navbatdan chiqdingiz');
-        });
-    }
+    // Start button
+    document.getElementById('startBtn').addEventListener('click', () => {
+        if (!userState.hasSelectedGender) {
+            showGenderModal(true);
+            showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+            return;
+        }
+        
+        if (!gameState.isConnected) {
+            connectToServer();
+        } else {
+            enterQueue();
+        }
+    });
+    
+    // Leave queue button
+    document.getElementById('leaveQueueBtn').addEventListener('click', leaveQueue);
+    
+    // Refresh queue button
+    document.getElementById('refreshQueueBtn').addEventListener('click', () => {
+        if (gameState.socket && gameState.isConnected) {
+            gameState.socket.emit('enter_queue');
+        }
+    });
+    
+    // Select gender now button
+    document.getElementById('selectGenderNowBtn').addEventListener('click', () => {
+        showGenderModal(true);
+    });
     
     // Gender tanlash tugmalari
-    document.querySelectorAll('.gender-option-btn').forEach(btn => {
+    document.querySelectorAll('.gender-select-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
+            const gender = btn.getAttribute('data-gender');
+            selectGender(gender);
         });
     });
     
-    const selectMaleBtn = document.getElementById('selectMaleBtn');
-    const selectFemaleBtn = document.getElementById('selectFemaleBtn');
-    const selectAllBtn = document.getElementById('selectAllBtn');
+    // Gender option cardlar
+    document.querySelectorAll('.gender-option-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            const gender = card.getAttribute('data-gender');
+            selectGender(gender);
+        });
+    });
     
-    if (selectMaleBtn) selectMaleBtn.addEventListener('click', () => selectGender('male'));
-    if (selectFemaleBtn) selectFemaleBtn.addEventListener('click', () => selectGender('female'));
-    if (selectAllBtn) selectAllBtn.addEventListener('click', () => selectGender('not_specified'));
+    // Close gender modal
+    document.getElementById('closeGenderModal').addEventListener('click', hideGenderModal);
     
     // Ovoz berish tugmalari
-    const noBtn = document.getElementById('noBtn');
-    const likeBtn = document.getElementById('likeBtn');
-    const superLikeBtn = document.getElementById('superLikeBtn');
-    
-    if (noBtn) noBtn.addEventListener('click', () => handleVote('skip'));
-    if (likeBtn) likeBtn.addEventListener('click', () => handleVote('like'));
-    if (superLikeBtn) superLikeBtn.addEventListener('click', () => handleVote('super_like'));
+    document.getElementById('noBtn').addEventListener('click', () => handleVote('skip'));
+    document.getElementById('likeBtn').addEventListener('click', () => handleVote('like'));
+    document.getElementById('superLikeBtn').addEventListener('click', () => handleVote('super_like'));
     
     // Chat funksiyalari
-    const chatInput = document.getElementById('chatInput');
-    const sendChatBtn = document.getElementById('sendChatBtn');
-    const closeChatBtn = document.getElementById('closeChatBtn');
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChatMessage();
+        }
+    });
     
-    if (chatInput) {
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendChatMessage();
+    document.getElementById('sendChatBtn').addEventListener('click', sendChatMessage);
+    document.getElementById('closeChatBtn').addEventListener('click', () => {
+        if (gameState.socket && gameState.isConnected && gameState.currentChatId) {
+            gameState.socket.emit('leave_chat', { chatId: gameState.currentChatId });
+        }
+        closeChat();
+        returnToQueue();
+    });
+    
+    document.getElementById('leaveChatBtn').addEventListener('click', () => {
+        if (gameState.socket && gameState.isConnected && gameState.currentChatId) {
+            gameState.socket.emit('leave_chat', { chatId: gameState.currentChatId });
+        }
+        closeChat();
+        returnToQueue();
+    });
+    
+    // Navigation tabs
+    document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Faqat welcome yoki queue ekranlarida navigation ishlaydi
+            if (gameState.isInDuel || gameState.isInChat) {
+                showNotification('Diqqat', 'Duel yoki chat davom etayotganida menyu o\'zgartirib bo\'lmaydi');
+                return;
             }
+            
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            const tabId = tab.getAttribute('data-tab');
+            document.getElementById(tabId + 'Tab').classList.add('active');
         });
-    }
+    });
     
-    if (sendChatBtn) {
-        sendChatBtn.addEventListener('click', sendChatMessage);
-    }
+    // Profile edit
+    document.getElementById('editProfileBtn').addEventListener('click', () => {
+        document.getElementById('profileEditModal').classList.add('active');
+    });
     
-    if (closeChatBtn) {
-        closeChatBtn.addEventListener('click', () => {
-            if (gameState.socket && gameState.isConnected && gameState.currentChatId) {
-                gameState.socket.emit('leave_chat', { chatId: gameState.currentChatId });
-            }
-            closeChat();
-            returnToQueue();
-        });
-    }
+    document.getElementById('closeProfileEditModal').addEventListener('click', () => {
+        document.getElementById('profileEditModal').classList.remove('active');
+    });
     
-    // Test rejimi: agar localhost bo'lsa
+    document.getElementById('cancelProfileEdit').addEventListener('click', () => {
+        document.getElementById('profileEditModal').classList.remove('active');
+    });
+    
+    document.getElementById('saveProfileBtn').addEventListener('click', () => {
+        const firstName = document.getElementById('editFirstName').value;
+        const username = document.getElementById('editUsername').value;
+        const bio = document.getElementById('editBio').value;
+        const gender = document.getElementById('editGender').value;
+        
+        if (firstName) {
+            userState.userName = firstName;
+            document.getElementById('myName').textContent = firstName;
+            document.getElementById('profileName').textContent = firstName;
+        }
+        
+        if (username) {
+            document.getElementById('myUsername').textContent = '@' + username;
+            document.getElementById('profileUsername').textContent = '@' + username;
+        }
+        
+        if (bio) {
+            userState.userBio = bio;
+            document.getElementById('profileBioText').textContent = bio;
+        }
+        
+        if (gender && gender !== userState.currentGender) {
+            userState.currentGender = gender;
+            addGenderBadge(document.getElementById('myName'), gender);
+            addGenderBadge(document.getElementById('profileName'), gender);
+        }
+        
+        saveUserStateToLocalStorage();
+        document.getElementById('profileEditModal').classList.remove('active');
+        showNotification('✅ Profil yangilandi', 'Profil muvaffaqiyatli yangilandi');
+    });
+    
+    // Edit bio button
+    document.getElementById('editBioBtn').addEventListener('click', () => {
+        document.getElementById('editBio').value = userState.userBio;
+        document.getElementById('profileEditModal').classList.add('active');
+    });
+    
+    // Test rejimi uchun
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         console.log('🔧 Test rejimi faollashtirildi');
         setTimeout(() => {
@@ -1187,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ==================== CSS STYLE QO'SHISH ====================
+// ==================== STYLE QO'SHISH ====================
 const style = document.createElement('style');
 style.textContent = `
     .gender-badge {
@@ -1222,93 +1337,36 @@ style.textContent = `
         display: none !important;
     }
     
-    /* Chat CSS */
-    .chat-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.9);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        visibility: hidden;
-        transition: all 0.3s ease;
-        padding: 20px;
+    .vote-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed !important;
+        transform: none !important;
     }
     
-    .chat-modal.active {
-        opacity: 1;
-        visibility: visible;
-    }
-    
-    .chat-box {
-        background: white;
-        border-radius: 20px;
-        width: 90%;
-        max-width: 500px;
-        height: 80vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-    
-    .chat-header {
+    .match-option-btn {
+        width: 100%;
+        padding: 15px;
+        margin-bottom: 10px;
+        border: none;
+        border-radius: 10px;
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
-        padding: 15px 20px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
         display: flex;
-        justify-content: space-between;
+        flex-direction: column;
         align-items: center;
+        gap: 5px;
     }
     
-    .chat-header button {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.2rem;
-        cursor: pointer;
-        padding: 5px;
+    .match-option-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     }
     
-    .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 20px;
-        background: #f5f5f5;
-    }
-    
-    .chat-input {
-        display: flex;
-        padding: 15px;
-        background: white;
-        border-top: 1px solid #eee;
-    }
-    
-    .chat-input input {
-        flex: 1;
-        padding: 12px 15px;
-        border: 2px solid #667eea;
-        border-radius: 10px;
-        font-size: 16px;
-        outline: none;
-    }
-    
-    .chat-input button {
-        background: #667eea;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 0 20px;
-        margin-left: 10px;
-        cursor: pointer;
-        font-size: 16px;
-    }
-    
+    /* Chat styles */
     .chat-message {
         margin-bottom: 15px;
         max-width: 80%;
@@ -1324,7 +1382,7 @@ style.textContent = `
     
     .chat-message-content {
         background: white;
-        padding: 12px 15px;
+        padding: 10px 15px;
         border-radius: 15px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
@@ -1336,7 +1394,7 @@ style.textContent = `
     }
     
     .chat-message.other .chat-message-content {
-        background: #e8eaf6;
+        background: #f0f0f0;
         border-bottom-left-radius: 5px;
     }
     
@@ -1348,20 +1406,19 @@ style.textContent = `
     }
     
     .chat-message-text {
-        font-size: 16px;
+        font-size: 14px;
         line-height: 1.4;
         word-break: break-word;
     }
     
     .chat-message-time {
-        font-size: 11px;
+        font-size: 10px;
         text-align: right;
         margin-top: 5px;
         opacity: 0.6;
     }
     
-    /* Notification */
-    .notification {
+    .notification-container {
         position: fixed;
         top: 20px;
         right: 20px;
@@ -1376,93 +1433,16 @@ style.textContent = `
         transition: transform 0.3s ease;
     }
     
-    .notification.active {
+    .notification-container.active {
         transform: translateX(0);
     }
     
-    /* Modal */
-    .gender-modal.mandatory-modal .modal-content {
-        background: white;
-        border-radius: 20px;
-        padding: 30px;
-        max-width: 400px;
-        width: 100%;
-        text-align: center;
-    }
-    
-    /* Timer */
-    .timer {
-        font-size: 2rem;
-        font-weight: bold;
-    }
-    
-    /* Match options */
-    .match-option-btn {
-        padding: 15px;
-        border: none;
-        border-radius: 15px;
-        color: white;
-        font-size: 1rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    
-    .match-option-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    }
-    
-    /* Vote buttons */
-    .vote-btn {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        border: none;
-        font-size: 2rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .vote-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none !important;
-    }
-    
-    .vote-btn:hover:not(:disabled) {
-        transform: scale(1.1);
-    }
-    
-    /* Responsive */
-    @media (max-width: 480px) {
-        .vote-btn {
-            width: 60px;
-            height: 60px;
-            font-size: 1.7rem;
-        }
-        
-        .chat-box {
-            width: 95%;
-            height: 85vh;
-        }
-        
-        .gender-modal .modal-content {
-            padding: 20px;
-            margin: 10px;
-        }
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
     }
 `;
 
 document.head.appendChild(style);
 
-console.log('✅ main.js chat funksiyasi bilan to\'liq yuklandi');
+console.log('✅ main.js to\'liq yuklandi');

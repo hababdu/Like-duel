@@ -1,39 +1,35 @@
-# ❤️ Like Duel - Real-time Matching Game
+# 🎮 Like Duel - Real-time Dating Game
 
-Like Duel - bu real-time matching o'yini bo'lib, foydalanuvchilar bir-birini "like" yoki "super like" berish orqali match bo'lishlari mumkin. Match bo'lgan foydalanuvchilar chat orqali suhbatlashish imkoniyatiga ega bo'ladilar.
+Like Duel - bu real-time dating o'yini bo'lib, foydalanuvchilar bir-birlarini like/dislike qilish orqali match bo'lishadi va chat orqali suhbatlashishadi.
 
-## ✨ Xususiyatlar
+## ✨ Features
 
-### 🎮 Gameplay
-- **Real-time matchmaking** - gender filtr bilan
-- **20 soniyalik duel** - tez qaror qabul qilish
-- **3 xil ovoz** - Like, Super Like, Skip
-- **ELO rating tizimi** - adolatli reyting
+- ✅ Real-time matchmaking
+- ✅ Gender-based filtering
+- ✅ Like/Super Like/Dislike system
+- ✅ Real-time chat
+- ✅ ELO rating system
+- ✅ User profiles and statistics
+- ✅ Telegram WebApp integration
+- ✅ Responsive design
 
-### 💬 Chat Tizimi
-- **Real-time chat** - match bo'lganlar uchun
-- **Ikkala tomon roziligi** - chatga kirish uchun
-- **Xabarlar tarixi** - suhbatni davom ettirish
+## 🚀 Quick Start
 
-### 👤 Foydalanuvchi Profili
-- **Custom avatar va bio**
-- **Statistika paneli** - rating, matchlar, g'alabalar
-- **Level tizimi** - XP orqali ko'tarilish
+### Prerequisites
+- Node.js 16+
+- npm 8+
 
-### 🛍️ Do'kon
-- **Super Like sotib olish**
-- **Boostlar va bonuslar**
-- **Tashqi ko'rinish elementlari**
-
-### 🏆 Liderlar Doskasi
-- **Reyting bo'yicha**
-- **Matchlar soni bo'yicha**
-- **Level bo'yicha**
-
-## 🚀 O'rnatish
-
-### Server
+### Installation
 ```bash
-cd server
+# Clone repository
+git clone https://github.com/yourusername/like-duel.git
+cd like-duel
+
+# Install dependencies
 npm install
-npm start
+
+# Create environment file
+cp .env.example .env
+
+# Start development server
+npm run dev

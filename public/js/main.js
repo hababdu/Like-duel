@@ -1079,6 +1079,8 @@ function debugSimulateDuel() {
     startDuel(opponent);
 }
 
+
+
 // Add debug functions to window for testing
 window.debugSimulateMatch = debugSimulateMatch;
 window.debugSimulateDuel = debugSimulateDuel;

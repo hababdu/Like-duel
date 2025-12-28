@@ -1,4 +1,4 @@
-// main.js - Render.com uchun maxsus optimallashtirilgan
+// main.js - TO'LIQ ISHLAYDIAGAN VERSIYA
 
 // ==================== O'YIN HOLATLARI ====================
 const gameState = {
@@ -13,7 +13,8 @@ const gameState = {
     currentPartner: null,
     lastOpponent: null,
     reconnectAttempts: 0,
-    maxReconnectAttempts: 5
+    maxReconnectAttempts: 5,
+    currentTab: 'duel'
 };
 
 // ==================== USER STATE ====================
@@ -27,27 +28,32 @@ const userState = {
     duels: parseInt(localStorage.getItem('userDuels')) || 0,
     wins: parseInt(localStorage.getItem('userWins')) || 0,
     totalLikes: parseInt(localStorage.getItem('userTotalLikes')) || 0,
-    dailySuperLikes: parseInt(localStorage.getItem('userDailySuperLikes')) || 3
+    dailySuperLikes: parseInt(localStorage.getItem('userDailySuperLikes')) || 3,
+    bio: localStorage.getItem('userBio') || ''
 };
 
 // ==================== DOM ELEMENTLARI ====================
 const elements = {
+    // Asosiy ekranlar
     welcomeScreen: document.getElementById('welcomeScreen'),
     queueScreen: document.getElementById('queueScreen'),
     duelScreen: document.getElementById('duelScreen'),
     matchScreen: document.getElementById('matchScreen'),
     
+    // Profil elementlari
     myAvatar: document.getElementById('myAvatar'),
     myName: document.getElementById('myName'),
     myUsername: document.getElementById('myUsername'),
     myMatches: document.getElementById('myMatches'),
     myLikes: document.getElementById('myLikes'),
     
+    // Navbat elementlari
     waitingCount: document.getElementById('waitingCount'),
     position: document.getElementById('position'),
     positionInfo: document.getElementById('positionInfo'),
     queueStatus: document.getElementById('queueStatus'),
     
+    // Duel elementlari
     opponentAvatar: document.getElementById('opponentAvatar'),
     opponentName: document.getElementById('opponentName'),
     opponentUsername: document.getElementById('opponentUsername'),
@@ -58,12 +64,14 @@ const elements = {
     duelStatus: document.getElementById('duelStatus'),
     superLikeCount: document.getElementById('superLikeCount'),
     
+    // Tugmalar
     startBtn: document.getElementById('startBtn'),
     leaveQueueBtn: document.getElementById('leaveQueueBtn'),
     noBtn: document.getElementById('noBtn'),
     likeBtn: document.getElementById('likeBtn'),
     superLikeBtn: document.getElementById('superLikeBtn'),
     
+    // Match elementlari
     partnerName: document.getElementById('partnerName'),
     matchText: document.getElementById('matchText'),
     matchRewards: document.getElementById('matchRewards'),
@@ -72,6 +80,7 @@ const elements = {
     newRating: document.getElementById('newRating'),
     matchOptions: document.getElementById('matchOptions'),
     
+    // Profil tab elementlari
     profileAvatar: document.getElementById('profileAvatar'),
     profileName: document.getElementById('profileName'),
     profileUsername: document.getElementById('profileUsername'),
@@ -81,14 +90,17 @@ const elements = {
     statDuels: document.getElementById('statDuels'),
     statWinRate: document.getElementById('statWinRate'),
     
+    // Statistikalar
     coinsCount: document.getElementById('coinsCount'),
     levelCount: document.getElementById('levelCount'),
     shopCoinsCount: document.getElementById('shopCoinsCount'),
     
+    // Notifikatsiya
     notification: document.getElementById('notification'),
     notificationTitle: document.getElementById('notificationTitle'),
     notificationMessage: document.getElementById('notificationMessage'),
     
+    // Modallar
     genderModal: document.getElementById('genderModal'),
     genderWarning: document.getElementById('genderWarning'),
     selectGenderNowBtn: document.getElementById('selectGenderNowBtn'),
@@ -105,9 +117,43 @@ const elements = {
     editGender: document.getElementById('editGender'),
     saveProfileBtn: document.getElementById('saveProfileBtn'),
     
+    // Gender tanlash tugmalari
     selectMaleBtn: document.getElementById('selectMaleBtn'),
     selectFemaleBtn: document.getElementById('selectFemaleBtn'),
-    selectAllBtn: document.getElementById('selectAllBtn')
+    selectAllBtn: document.getElementById('selectAllBtn'),
+    
+    // Chat modal elementlari
+    chatModal: document.getElementById('chatModal'),
+    chatPartnerAvatar: document.getElementById('chatPartnerAvatar'),
+    chatPartnerName: document.getElementById('chatPartnerName'),
+    chatMessages: document.getElementById('chatMessages'),
+    chatInput: document.getElementById('chatInput'),
+    sendChatBtn: document.getElementById('sendChatBtn'),
+    closeChatBtn: document.getElementById('closeChatBtn'),
+    
+    // Do'stlar tab elementlari
+    friendRequestsSection: document.getElementById('friendRequestsSection'),
+    friendRequestsList: document.getElementById('friendRequestsList'),
+    friendsList: document.getElementById('friendsList'),
+    friendsCount: document.getElementById('friendsCount'),
+    onlineFriendsCount: document.getElementById('onlineFriendsCount'),
+    mutualLikesBadge: document.getElementById('mutualLikesBadge'),
+    mutualLikesCount: document.getElementById('mutualLikesCount'),
+    
+    // Do'kon elementlari
+    shopItemsList: document.getElementById('shopItemsList'),
+    
+    // Liderlar tab elementlari
+    leaderboardList: document.getElementById('leaderboardList'),
+    leaderboardUpdated: document.getElementById('leaderboardUpdated'),
+    
+    // Kunlik vazifalar
+    profileQuestsList: document.getElementById('profileQuestsList'),
+    dailyQuestsList: document.getElementById('dailyQuestsList'),
+    questsPreview: document.getElementById('questsPreview'),
+    
+    // View stats button
+    viewStatsBtn: document.getElementById('viewStatsBtn')
 };
 
 // ==================== GLOBAL USER ====================
@@ -190,6 +236,10 @@ function updateUIFromUserState() {
     if (elements.myLikes) elements.myLikes.textContent = userState.totalLikes;
     if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
     
+    if (elements.profileBio && userState.bio) {
+        elements.profileBio.textContent = userState.bio;
+    }
+    
     // Start tugmasini yangilash
     if (elements.startBtn) {
         if (userState.hasSelectedGender) {
@@ -242,9 +292,7 @@ function connectToServer() {
     console.log('🔗 Serverga ulanmoqda...');
     updateQueueStatus('Serverga ulanmoqda...');
     
-    // ========== MUHIM: Render.com uchun Socket URL ==========
-    // Agar localhost da ishlayotgan bo'lsangiz, localhost ga ulaning
-    // Agar Render.com da ishlayotgan bo'lsangiz, Render URL ga ulaning
+    // Render.com uchun Socket URL
     const isLocalhost = window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1' ||
                        window.location.hostname === '';
@@ -252,18 +300,15 @@ function connectToServer() {
     let socketUrl;
     
     if (isLocalhost) {
-        // Local development uchun
         socketUrl = 'http://localhost:3000';
         console.log('📍 Local development rejimi');
     } else {
-        // Render.com production uchun
         socketUrl = 'https://like-duel.onrender.com';
         console.log('📍 Production (Render.com) rejimi');
     }
     
     console.log('🔌 Socket URL:', socketUrl);
     
-    // Socket.IO ulanishini yaratish
     gameState.socket = io(socketUrl, {
         transports: ['websocket', 'polling'],
         reconnection: true,
@@ -280,7 +325,6 @@ function connectToServer() {
         gameState.reconnectAttempts = 0;
         updateQueueStatus('Serverga ulandi...');
         
-        // Autentifikatsiya
         gameState.socket.emit('auth', {
             userId: tgUserGlobal.id,
             firstName: tgUserGlobal.first_name,
@@ -289,7 +333,8 @@ function connectToServer() {
             photoUrl: tgUserGlobal.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUserGlobal.first_name || 'User')}&background=667eea&color=fff`,
             language: tgUserGlobal.language_code || 'uz',
             gender: userState.currentGender,
-            hasSelectedGender: userState.hasSelectedGender
+            hasSelectedGender: userState.hasSelectedGender,
+            bio: userState.bio
         });
         
         showNotification('✅ Ulanish', 'Serverga muvaffaqiyatli ulandik');
@@ -298,34 +343,28 @@ function connectToServer() {
     gameState.socket.on('auth_ok', (data) => {
         console.log('✅ Autentifikatsiya muvaffaqiyatli:', data);
         
-        // UserState yangilash
-        if (data.gender) userState.currentGender = data.gender;
-        if (data.hasSelectedGender !== undefined) userState.hasSelectedGender = data.hasSelectedGender;
-        if (data.coins) userState.coins = data.coins;
-        if (data.level) userState.level = data.level;
-        if (data.rating) userState.rating = data.rating;
-        if (data.matches) userState.matches = data.matches;
-        if (data.duels) userState.duels = data.duels;
-        if (data.wins) userState.wins = data.wins;
-        if (data.totalLikes) userState.totalLikes = data.totalLikes;
-        if (data.dailySuperLikes) userState.dailySuperLikes = data.dailySuperLikes;
+        userState.currentGender = data.gender || userState.currentGender;
+        userState.hasSelectedGender = data.hasSelectedGender !== undefined ? data.hasSelectedGender : userState.hasSelectedGender;
+        userState.coins = data.coins || userState.coins;
+        userState.level = data.level || userState.level;
+        userState.rating = data.rating || userState.rating;
+        userState.matches = data.matches || userState.matches;
+        userState.duels = data.duels || userState.duels;
+        userState.wins = data.wins || userState.wins;
+        userState.totalLikes = data.totalLikes || userState.totalLikes;
+        userState.dailySuperLikes = data.dailySuperLikes || userState.dailySuperLikes;
+        userState.bio = data.bio || userState.bio;
         
-        // LocalStorage ga saqlash
         saveUserStateToLocalStorage();
-        
-        // UI yangilash
         updateUIFromUserState();
         
-        // Ekran ko'rsatish
         showScreen('queue');
         
-        // Agar gender tanlangan bo'lsa, avtomatik navbatga kirish
         if (userState.hasSelectedGender) {
             console.log('🚀 Gender tanlangan, navbatga kirilmoqda...');
             gameState.isInQueue = true;
             gameState.socket.emit('enter_queue');
         } else {
-            // Gender tanlanmagan bo'lsa, modalni ko'rsatish
             console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
             updateQueueStatus('Gender tanlash kerak...');
             showGenderModal(true);
@@ -341,20 +380,14 @@ function connectToServer() {
     gameState.socket.on('gender_selected', (data) => {
         console.log('✅ Gender tanlandi:', data);
         
-        // UserState yangilash
         userState.currentGender = data.gender;
         userState.hasSelectedGender = true;
         
-        // LocalStorage ga saqlash
         saveUserStateToLocalStorage();
-        
-        // UI yangilash
         updateUIFromUserState();
         
-        // Modalni yopish
         hideGenderModal();
         
-        // Navbatga kirish
         if (gameState.socket && gameState.isConnected) {
             gameState.isInQueue = true;
             gameState.socket.emit('enter_queue');
@@ -390,21 +423,19 @@ function connectToServer() {
         gameState.currentDuelId = data.duelId;
         showScreen('duel');
         
-        // Raqib ma'lumotlarini ko'rsatish
         if (elements.opponentAvatar) elements.opponentAvatar.src = data.opponent.photo || 'https://ui-avatars.com/api/?name=O&background=764ba2&color=fff';
-        if (elements.opponentName) elements.opponentName.innerHTML = data.opponent.name;
+        if (elements.opponentName) {
+            elements.opponentName.innerHTML = data.opponent.name;
+            addGenderBadge(elements.opponentName, data.opponent.gender);
+        }
         if (elements.opponentUsername) elements.opponentUsername.textContent = data.opponent.username || '';
         if (elements.opponentRating) elements.opponentRating.textContent = data.opponent.rating || 1500;
         if (elements.opponentMatches) elements.opponentMatches.textContent = data.opponent.matches || 0;
         if (elements.opponentLevel) elements.opponentLevel.textContent = data.opponent.level || 1;
         
-        // Raqib genderini ko'rsatish
-        addGenderBadge(elements.opponentName, data.opponent.gender);
-        
         startTimer();
         updateDuelStatus('Ovoz bering: ❤️ yoki 💖 yoki ✖');
         
-        // Tugmalarni qayta faollashtirish
         [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
             if (b) {
                 b.disabled = false;
@@ -501,7 +532,6 @@ function connectToServer() {
             updateQueueStatus('Ulanish uzildi. Qayta ulanmoqda...');
         }
         
-        // 5 soniyadan keyin qayta ulanish
         setTimeout(() => {
             if (!gameState.isConnected) {
                 console.log('🔄 Qayta ulanmoqda...');
@@ -523,30 +553,24 @@ function saveUserStateToLocalStorage() {
     localStorage.setItem('userWins', userState.wins.toString());
     localStorage.setItem('userTotalLikes', userState.totalLikes.toString());
     localStorage.setItem('userDailySuperLikes', userState.dailySuperLikes.toString());
+    localStorage.setItem('userBio', userState.bio.toString());
 }
 
 // ==================== GENDER TANLASH ====================
 function selectGender(gender) {
     console.log(`🎯 Gender tanlash: ${gender}`);
     
-    // UserState yangilash
     userState.currentGender = gender;
     userState.hasSelectedGender = true;
     
-    // LocalStorage ga saqlash
     saveUserStateToLocalStorage();
-    
-    // UI yangilash
     updateUIFromUserState();
     
-    // Modalni yopish
     hideGenderModal();
     
-    // Agar socket ulangan bo'lsa, serverga bildirish
     if (gameState.socket && gameState.isConnected) {
         gameState.socket.emit('select_gender', { gender: gender });
     } else {
-        // Socket ulanmagan bo'lsa, serverga ulanish
         connectToServer();
     }
     
@@ -597,7 +621,6 @@ function handleVote(choice) {
     
     console.log(`🗳️ Ovoz berish: ${choice}`);
     
-    // Tugmalarni bloklash
     [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
         if (b) {
             b.disabled = true;
@@ -605,7 +628,6 @@ function handleVote(choice) {
         }
     });
     
-    // SUPER LIKE limit tekshirish
     if (choice === 'super_like' && userState.dailySuperLikes <= 0) {
         showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
         [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
@@ -617,13 +639,11 @@ function handleVote(choice) {
         return;
     }
     
-    // Ovozni yuborish
     gameState.socket.emit('vote', { 
         duelId: gameState.currentDuelId, 
         choice: choice 
     });
     
-    // UI yangilash
     clearInterval(gameState.timerInterval);
     if (choice === 'like') {
         if (elements.timer) elements.timer.textContent = '❤️';
@@ -631,7 +651,6 @@ function handleVote(choice) {
     } else if (choice === 'super_like') {
         if (elements.timer) elements.timer.textContent = '💖';
         updateDuelStatus('SUPER LIKE!');
-        // Super like sonini yangilash
         userState.dailySuperLikes--;
         if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
         saveUserStateToLocalStorage();
@@ -659,14 +678,12 @@ function handleMatch(data) {
     if (elements.rewardXP) elements.rewardXP.textContent = data.rewards.xp;
     if (elements.newRating) elements.newRating.textContent = data.newRating;
     
-    // Mukofotlarni userState ga qo'shish
     userState.coins += data.rewards.coins;
     userState.rating = data.newRating;
     userState.matches++;
     saveUserStateToLocalStorage();
     updateUIFromUserState();
     
-    // Tugmalarni yaratish
     if (elements.matchOptions) {
         elements.matchOptions.innerHTML = '';
         const options = [
@@ -688,7 +705,6 @@ function handleMatch(data) {
         });
     }
     
-    // Konfetti
     if (typeof confetti === 'function') {
         confetti({ 
             particleCount: 300, 
@@ -697,12 +713,65 @@ function handleMatch(data) {
         });
     }
     
-    // 10 soniyadan keyin avtomatik o'tkazish
     setTimeout(() => {
         if (elements.chatModal && !elements.chatModal.classList.contains('active')) {
             returnToQueue();
         }
     }, 10000);
+}
+
+function handleMatchOption(action, partnerId) {
+    console.log(`Match option: ${action} for partner: ${partnerId}`);
+    
+    switch(action) {
+        case 'open_chat':
+            openChat(partnerId);
+            break;
+        case 'rematch':
+            requestRematch(partnerId);
+            break;
+        case 'skip':
+        default:
+            returnToQueue();
+            break;
+    }
+}
+
+function openChat(partnerId) {
+    const partner = gameState.currentPartner;
+    if (!partner) return;
+    
+    if (elements.chatPartnerAvatar) {
+        elements.chatPartnerAvatar.src = partner.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(partner.name);
+    }
+    if (elements.chatPartnerName) {
+        elements.chatPartnerName.textContent = partner.name;
+    }
+    
+    if (elements.chatModal) {
+        elements.chatModal.classList.add('active');
+    }
+    
+    if (elements.chatMessages) {
+        elements.chatMessages.innerHTML = `
+            <div class="message-container">
+                <div class="message message-received">
+                    <div class="message-text">Salom! Match bo'lganimizdan xursandman! 👋</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function requestRematch(partnerId) {
+    if (!gameState.socket || !partnerId) return;
+    
+    gameState.socket.emit('request_rematch', { opponentId: partnerId });
+    showNotification('Qayta Duel', 'So\'rovingiz yuborildi!');
+    
+    setTimeout(() => {
+        returnToQueue();
+    }, 2000);
 }
 
 function handleLikedOnly(data) {
@@ -786,7 +855,6 @@ function returnToQueue() {
     gameState.currentDuelId = null;
     gameState.currentPartner = null;
     
-    // Modallarni yopish
     if (elements.chatModal && elements.chatModal.classList.contains('active')) {
         elements.chatModal.classList.remove('active');
     }
@@ -797,7 +865,6 @@ function returnToQueue() {
     showScreen('queue');
     updateQueueStatus('Yangi raqib izlanmoqda...');
     
-    // Agar gender tanlagan bo'lsa, navbatga qayta kirish
     if (userState.hasSelectedGender && gameState.socket && gameState.isConnected) {
         gameState.isInQueue = true;
         gameState.socket.emit('enter_queue');
@@ -808,13 +875,11 @@ function returnToQueue() {
 function showScreen(screen) {
     console.log(`📱 Ekran o'zgartirildi: ${screen}`);
     
-    // Barcha ekranlarni yashirish
     [elements.welcomeScreen, elements.queueScreen, elements.duelScreen, elements.matchScreen]
         .forEach(s => {
             if (s) s.classList.add('hidden');
         });
     
-    // Kerakli ekranni ko'rsatish
     if (screen === 'welcome' && elements.welcomeScreen) {
         elements.welcomeScreen.classList.remove('hidden');
     }
@@ -826,6 +891,200 @@ function showScreen(screen) {
     }
     if (screen === 'match' && elements.matchScreen) {
         elements.matchScreen.classList.remove('hidden');
+    }
+}
+
+// ==================== TAB NAVIGATSIYASI ====================
+function initTabNavigation() {
+    const tabs = document.querySelectorAll('.nav-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === tabName + 'Tab') {
+                    content.classList.add('active');
+                }
+            });
+            
+            gameState.currentTab = tabName;
+            
+            switch(tabName) {
+                case 'friends':
+                    loadFriendsList();
+                    break;
+                case 'shop':
+                    loadShopItems();
+                    break;
+                case 'leaderboard':
+                    loadLeaderboard();
+                    break;
+                case 'profile':
+                    loadProfileQuests();
+                    break;
+            }
+        });
+    });
+}
+
+// ==================== DO'STLAR FUNKSIYALARI ====================
+function loadFriendsList() {
+    const friends = [
+        { id: 1, name: 'Ali', username: '@ali', online: true, gender: 'male', lastActive: 'hozir' },
+        { id: 2, name: 'Malika', username: '@malika', online: true, gender: 'female', lastActive: '5 daqiqa oldin' },
+        { id: 3, name: 'Sanjar', username: '@sanjar', online: false, gender: 'male', lastActive: '2 kun oldin' },
+        { id: 4, name: 'Dilnoza', username: '@dilnoza', online: true, gender: 'female', lastActive: 'hozir' }
+    ];
+    
+    if (elements.friendsList) {
+        elements.friendsList.innerHTML = friends.map(friend => `
+            <div class="friend-item">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="position: relative;">
+                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=${friend.gender === 'male' ? '667eea' : 'f5576c'}&color=fff" 
+                             alt="${friend.name}" style="width: 50px; height: 50px; border-radius: 50%;">
+                        <div style="position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; 
+                                    background: ${friend.online ? '#2ecc71' : '#95a5a6'}; 
+                                    border-radius: 50%; border: 2px solid white;"></div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold;">${friend.name}</div>
+                        <div style="font-size: 0.9rem; color: #666;">${friend.username}</div>
+                        <div style="font-size: 0.8rem; color: ${friend.online ? '#2ecc71' : '#95a5a6'}">
+                            ${friend.online ? 'Onlayn' : 'Oxirgi faol: ' + friend.lastActive}
+                        </div>
+                    </div>
+                </div>
+                <button class="match-option-btn" style="padding: 8px 15px; font-size: 0.9rem;">
+                    ${friend.online ? 'Duel taklif' : 'Xabar'}
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    if (elements.friendsCount) elements.friendsCount.textContent = friends.length;
+    if (elements.onlineFriendsCount) {
+        const onlineCount = friends.filter(f => f.online).length;
+        elements.onlineFriendsCount.textContent = onlineCount;
+    }
+}
+
+// ==================== DO'KON FUNKSIYALARI ====================
+function loadShopItems() {
+    const items = [
+        { id: 1, name: '10 Super Like', price: 100, icon: '💖', description: '10 ta kunlik SUPER LIKE' },
+        { id: 2, name: '50 Super Like', price: 450, icon: '💎', description: '50 ta kunlik SUPER LIKE', discount: '10%' },
+        { id: 3, name: '100 Super Like', price: 800, icon: '👑', description: '100 ta kunlik SUPER LIKE', discount: '20%' },
+        { id: 4, name: 'Premium Profil', price: 300, icon: '⭐', description: '30 kunlik premium status' }
+    ];
+    
+    if (elements.shopItemsList) {
+        elements.shopItemsList.innerHTML = items.map(item => `
+            <div class="shop-item">
+                <div class="shop-item-icon">${item.icon}</div>
+                <div class="shop-item-info">
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-description">${item.description}</div>
+                </div>
+                <button class="shop-item-buy" onclick="buyItem(${item.id})" 
+                        ${userState.coins < item.price ? 'disabled' : ''}>
+                    <i class="fas fa-coins"></i> ${item.price}
+                </button>
+                ${item.discount ? `<div class="shop-item-discount">${item.discount}</div>` : ''}
+            </div>
+        `).join('');
+    }
+}
+
+window.buyItem = function(itemId) {
+    const items = [
+        { id: 1, price: 100 },
+        { id: 2, price: 450 },
+        { id: 3, price: 800 },
+        { id: 4, price: 300 }
+    ];
+    
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+    
+    if (userState.coins >= item.price) {
+        userState.coins -= item.price;
+        saveUserStateToLocalStorage();
+        updateUIFromUserState();
+        showNotification('✅ Xarid qilindi', 'Mahsulot muvaffaqiyatli sotib olindi!');
+    } else {
+        showNotification('⚠️ Yetarli emas', 'Coinlaringiz yetarli emas!');
+    }
+};
+
+// ==================== LIDERLAR FUNKSIYALARI ====================
+function loadLeaderboard() {
+    const leaders = [
+        { rank: 1, name: 'Ali', rating: 1850, matches: 45, coins: 1250, gender: 'male' },
+        { rank: 2, name: 'Malika', rating: 1790, matches: 38, coins: 980, gender: 'female' },
+        { rank: 3, name: 'Sanjar', rating: 1720, matches: 32, coins: 750, gender: 'male' },
+        { rank: 4, name: 'Dilnoza', rating: 1680, matches: 29, coins: 620, gender: 'female' },
+        { rank: 5, name: 'Sardor', rating: 1620, matches: 25, coins: 580, gender: 'male' }
+    ];
+    
+    if (elements.leaderboardList) {
+        elements.leaderboardList.innerHTML = leaders.map(leader => `
+            <div class="leaderboard-item">
+                <div class="leaderboard-rank">${leader.rank}</div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name">
+                        ${leader.name}
+                        <span class="gender-badge" style="background: ${leader.gender === 'male' ? '#667eea' : '#f5576c'};">
+                            <i class="fas fa-${leader.gender === 'male' ? 'mars' : 'venus'}"></i>
+                            ${leader.gender === 'male' ? 'Erkak' : 'Ayol'}
+                        </span>
+                    </div>
+                    <div class="leaderboard-stats">
+                        <span><i class="fas fa-trophy"></i> ${leader.rating}</span> •
+                        <span><i class="fas fa-heart"></i> ${leader.matches}</span> •
+                        <span><i class="fas fa-coins"></i> ${leader.coins}</span>
+                    </div>
+                </div>
+                <div class="leaderboard-value">${leader.rating}</div>
+            </div>
+        `).join('');
+    }
+    
+    if (elements.leaderboardUpdated) {
+        elements.leaderboardUpdated.textContent = 'hozir';
+    }
+}
+
+// ==================== KUNLIK VAZIFALAR ====================
+function loadProfileQuests() {
+    const quests = [
+        { id: 1, title: '3 ta duel o\'ynash', progress: Math.min(userState.duels, 3), total: 3, reward: 50 },
+        { id: 2, title: '5 ta like berish', progress: Math.min(userState.totalLikes, 5), total: 5, reward: 30 },
+        { id: 3, title: '1 ta match olish', progress: Math.min(userState.matches, 1), total: 1, reward: 100 },
+        { id: 4, title: 'Reytingni 50 ga oshirish', progress: Math.min(userState.rating - 1500, 50), total: 50, reward: 200 }
+    ];
+    
+    if (elements.profileQuestsList) {
+        elements.profileQuestsList.innerHTML = quests.map(quest => `
+            <div class="quest-item">
+                <div class="quest-info">
+                    <div class="quest-title">${quest.title}</div>
+                    <div class="quest-progress">${quest.progress}/${quest.total}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(quest.progress / quest.total) * 100}%"></div>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <i class="fas fa-coins"></i> ${quest.reward}
+                </div>
+            </div>
+        `).join('');
     }
 }
 
@@ -853,6 +1112,7 @@ function updateStats(data) {
     if (data.wins !== undefined) userState.wins = data.wins;
     if (data.totalLikes !== undefined) userState.totalLikes = data.totalLikes;
     if (data.dailySuperLikes !== undefined) userState.dailySuperLikes = data.dailySuperLikes;
+    if (data.bio !== undefined) userState.bio = data.bio;
     
     saveUserStateToLocalStorage();
     updateUIFromUserState();
@@ -892,13 +1152,11 @@ function leaveQueue() {
         gameState.socket.emit('leave_queue');
     }
     
-    // GameState ni tozalash
     gameState.isInQueue = false;
     gameState.isInDuel = false;
     gameState.currentDuelId = null;
     clearInterval(gameState.timerInterval);
     
-    // Welcome ekraniga qaytish
     showScreen('welcome');
     
     showNotification('Navbatdan chiqdingiz', 'Yana o\'ynash uchun "O\'yinni Boshlash" tugmasini bosing');
@@ -910,6 +1168,31 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Profilni yuklash
     initUserProfile();
+    
+    // Tab navigatsiyasini ishga tushirish
+    initTabNavigation();
+    
+    // Gender tugmalarini ishga tushirish
+    if (elements.selectMaleBtn) {
+        elements.selectMaleBtn.onclick = () => {
+            selectGender('male');
+            hideGenderModal();
+        };
+    }
+    
+    if (elements.selectFemaleBtn) {
+        elements.selectFemaleBtn.onclick = () => {
+            selectGender('female');
+            hideGenderModal();
+        };
+    }
+    
+    if (elements.selectAllBtn) {
+        elements.selectAllBtn.onclick = () => {
+            selectGender('not_specified');
+            hideGenderModal();
+        };
+    }
     
     // Event listener'lar
     if (elements.startBtn) {
@@ -930,18 +1213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (elements.superLikeBtn) {
         elements.superLikeBtn.addEventListener('click', () => handleVote('super_like'));
-    }
-    
-    if (elements.selectMaleBtn) {
-        elements.selectMaleBtn.addEventListener('click', () => selectGender('male'));
-    }
-    
-    if (elements.selectFemaleBtn) {
-        elements.selectFemaleBtn.addEventListener('click', () => selectGender('female'));
-    }
-    
-    if (elements.selectAllBtn) {
-        elements.selectAllBtn.addEventListener('click', () => selectGender('not_specified'));
     }
     
     if (elements.selectGenderNowBtn) {
@@ -971,7 +1242,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (elements.editProfileBtn) {
         elements.editProfileBtn.addEventListener('click', () => {
-            if (elements.editBio) elements.editBio.value = elements.profileBio?.textContent || '';
+            if (elements.editBio) elements.editBio.value = userState.bio || '';
             if (elements.editGender) elements.editGender.value = userState.currentGender || 'not_specified';
             if (elements.profileEditModal) {
                 elements.profileEditModal.classList.add('active');
@@ -1001,12 +1272,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (gameState.socket) {
                 gameState.socket.emit('update_profile', { bio, gender });
                 
+                userState.bio = bio;
                 if (gender !== userState.currentGender) {
                     userState.currentGender = gender;
                     userState.hasSelectedGender = true;
-                    saveUserStateToLocalStorage();
-                    updateUIFromUserState();
                 }
+                saveUserStateToLocalStorage();
+                updateUIFromUserState();
                 
                 if (bio && elements.profileBio) {
                     elements.profileBio.textContent = bio;
@@ -1020,94 +1292,255 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Test rejimi
-    if (['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.protocol === 'file:') {
-        console.log('🧪 Test rejimi aktiv');
+    // Chat modal event listener'lar
+    if (elements.closeChatBtn) {
+        elements.closeChatBtn.addEventListener('click', () => {
+            if (elements.chatModal) {
+                elements.chatModal.classList.remove('active');
+            }
+        });
     }
+    
+    if (elements.sendChatBtn && elements.chatInput) {
+        elements.sendChatBtn.addEventListener('click', sendChatMessage);
+        elements.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+    }
+    
+    function sendChatMessage() {
+        const message = elements.chatInput?.value.trim();
+        if (!message) return;
+        
+        if (elements.chatMessages) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message message-sent';
+            messageElement.innerHTML = `
+                <div class="message-text">${message}</div>
+            `;
+            elements.chatMessages.appendChild(messageElement);
+            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+        }
+        
+        if (elements.chatInput) {
+            elements.chatInput.value = '';
+        }
+    }
+    
+    // View stats button
+    if (elements.viewStatsBtn) {
+        elements.viewStatsBtn.addEventListener('click', () => {
+            const stats = `
+                Reyting: ${userState.rating}
+                Matchlar: ${userState.matches}
+                Duellar: ${userState.duels}
+                G'alabalar: ${userState.wins}
+                G'alaba %: ${userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0}%
+                Total Like: ${userState.totalLikes}
+                Coin: ${userState.coins}
+                Level: ${userState.level}
+                Kunlik Super Like: ${userState.dailySuperLikes}/3
+            `;
+            alert('Batafsil statistika:\n\n' + stats);
+        });
+    }
+    
+    // Kunlik vazifalarni ko'rsatish
+    loadProfileQuests();
+    loadShopItems();
+    loadLeaderboard();
+    loadFriendsList();
+    
+    // CSS style qo'shish
+    const style = document.createElement('style');
+    style.textContent = `
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .shop-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .shop-item:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .shop-item-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-right: 15px;
+        }
+        
+        .shop-item-info {
+            flex: 1;
+        }
+        
+        .shop-item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .shop-item-description {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .shop-item-buy {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .shop-item-buy:hover {
+            transform: scale(1.05);
+        }
+        
+        .shop-item-buy:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .shop-item-discount {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .leaderboard-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .leaderboard-rank {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .leaderboard-info {
+            flex: 1;
+        }
+        
+        .leaderboard-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .leaderboard-stats {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .leaderboard-value {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+        
+        .message {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .message-sent {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        
+        .message-received {
+            background: #f1f3f4;
+            color: #333;
+            align-self: flex-start;
+        }
+        
+        .message-text {
+            word-wrap: break-word;
+        }
+        
+        .gender-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-left: 10px;
+            color: white;
+            font-weight: bold;
+            vertical-align: middle;
+            animation: badgeAppear 0.5s ease-out;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes badgeAppear {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(-10px);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
 });
-
-// ==================== GLOBAL FUNKSIYALAR ====================
-window.selectGender = selectGender;
-window.hideGenderModal = hideGenderModal;
-
-// ==================== CSS STYLE QO'SHISH ====================
-const style = document.createElement('style');
-style.textContent = `
-    .gender-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        margin-left: 10px;
-        color: white;
-        font-weight: bold;
-        vertical-align: middle;
-        animation: badgeAppear 0.5s ease-out;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-    }
-    
-    .gender-male-badge {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-    }
-    
-    .gender-female-badge {
-        background: linear-gradient(135deg, #f093fb, #f5576c);
-    }
-    
-    .gender-not_specified-badge {
-        background: linear-gradient(135deg, #4facfe, #00f2fe);
-    }
-    
-    .met-again-indicator {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        padding: 10px 15px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-        text-align: center;
-        font-weight: bold;
-        animation: pulse 2s infinite;
-    }
-    
-    .rematch-bonus {
-        background: linear-gradient(135deg, #f093fb, #f5576c);
-        color: white;
-        padding: 10px;
-        border-radius: 10px;
-        margin-top: 10px;
-        text-align: center;
-        font-weight: bold;
-    }
-    
-    .disabled {
-        opacity: 0.5;
-        cursor: not-allowed !important;
-    }
-    
-    .hidden {
-        display: none !important;
-    }
-    
-    @keyframes badgeAppear {
-        0% {
-            opacity: 0;
-            transform: scale(0.8) translateY(-10px);
-        }
-        50% {
-            transform: scale(1.1);
-        }
-        100% {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-        }
-    }
-    
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
-    }
-`;
-
-document.head.appendChild(style);
-
-console.log('✅ main.js to\'liq yuklandi - Render.com optimallashtirildi');

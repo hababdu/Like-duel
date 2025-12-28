@@ -1,4 +1,4 @@
-// server.js - Render.com uchun maxsus optimallashtirilgan
+// server.js - TO'LIQ ISHLAYDIAGAN VERSIYA
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -6,8 +6,8 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const server = http.createServer(app); // MUHIM: http server yaratish
-const io = new Server(server, { // MUHIM: io'ni serverga ulash
+const server = http.createServer(app);
+const io = new Server(server, {
     cors: {
         origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"],
         methods: ["GET", "POST"],
@@ -241,16 +241,24 @@ function processDuelResult(duelId) {
         
         player1.matches++;
         player2.matches++;
-        player1.coins += 50;
-        player2.coins += 50;
+        player1.duels++;
+        player2.duels++;
+        player1.wins++;
+        player2.wins++;
         
-        // SUPER LIKE bonus
+        // Mukofotlar
+        let player1Reward = 50;
+        let player2Reward = 50;
+        
         if (player1Vote === 'super_like') {
-            player1.coins += 20;
+            player1Reward += 20;
         }
         if (player2Vote === 'super_like') {
-            player2.coins += 20;
+            player2Reward += 20;
         }
+        
+        player1.coins += player1Reward;
+        player2.coins += player2Reward;
         
         // Player1 ga xabar
         const player1Socket = io.sockets.sockets.get(player1.socketId);
@@ -263,7 +271,7 @@ function processDuelResult(duelId) {
                     gender: player2.gender
                 },
                 rewards: {
-                    coins: player1Vote === 'super_like' ? 70 : 50,
+                    coins: player1Reward,
                     xp: 30
                 },
                 newRating: player1.rating,
@@ -282,7 +290,7 @@ function processDuelResult(duelId) {
                     gender: player1.gender
                 },
                 rewards: {
-                    coins: player2Vote === 'super_like' ? 70 : 50,
+                    coins: player2Reward,
                     xp: 30
                 },
                 newRating: player2.rating,
@@ -292,8 +300,10 @@ function processDuelResult(duelId) {
         
     } else if (player1Vote === 'like' || player1Vote === 'super_like') {
         // Faqat player1 like berdi
+        player1.duels++;
         const coins = player1Vote === 'super_like' ? 30 : 10;
         player1.coins += coins;
+        player1.totalLikes++;
         
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
@@ -310,8 +320,10 @@ function processDuelResult(duelId) {
         
     } else if (player2Vote === 'like' || player2Vote === 'super_like') {
         // Faqat player2 like berdi
+        player2.duels++;
         const coins = player2Vote === 'super_like' ? 30 : 10;
         player2.coins += coins;
+        player2.totalLikes++;
         
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
@@ -328,6 +340,9 @@ function processDuelResult(duelId) {
         
     } else {
         // Hech kim like bermadi
+        player1.duels++;
+        player2.duels++;
+        
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) player1Socket.emit('no_match');
         
@@ -393,6 +408,7 @@ io.on('connection', (socket) => {
                 photoUrl: data.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.firstName || 'User')}&background=667eea&color=fff`,
                 gender: data.gender || null,
                 hasSelectedGender: data.hasSelectedGender || false,
+                bio: data.bio || '',
                 rating: 1500,
                 coins: 100,
                 level: 1,
@@ -402,18 +418,30 @@ io.on('connection', (socket) => {
                 wins: 0,
                 totalLikes: 0,
                 dailySuperLikes: 3,
-                bio: '',
                 socketId: socket.id,
                 connected: true,
-                lastActive: new Date()
+                lastActive: new Date(),
+                lastResetDate: new Date().toDateString()
             };
         } else {
             users[userId].socketId = socket.id;
             users[userId].connected = true;
             users[userId].lastActive = new Date();
+            
+            // Yangilangan ma'lumotlarni saqlash
+            if (data.gender) users[userId].gender = data.gender;
+            if (data.hasSelectedGender !== undefined) users[userId].hasSelectedGender = data.hasSelectedGender;
+            if (data.bio !== undefined) users[userId].bio = data.bio;
         }
         
         socket.userId = userId;
+        
+        // Kunlik reset tekshirish
+        const today = new Date().toDateString();
+        if (users[userId].lastResetDate !== today) {
+            users[userId].dailySuperLikes = 3;
+            users[userId].lastResetDate = today;
+        }
         
         // Clientga ma'lumot yuborish
         socket.emit('auth_ok', {
@@ -576,7 +604,7 @@ io.on('connection', (socket) => {
             const oldGender = user.gender;
             user.gender = data.gender;
             
-            // Navbatdan chiqarish va qayta qo'shish (gender o'zgarganda)
+            // Gender o'zgarsa, navbatdan chiqarish
             const index = queue.indexOf(userId);
             if (index > -1) queue.splice(index, 1);
             
@@ -618,7 +646,7 @@ io.on('connection', (socket) => {
         
         if (!userId || !opponentId || !users[userId] || !users[opponentId]) return;
         
-        // Navbatdan olish (agar bo'lsa)
+        // Navbatdan olish
         const userIndex = queue.indexOf(userId);
         const opponentIndex = queue.indexOf(opponentId);
         
@@ -666,10 +694,8 @@ io.on('connection', (socket) => {
 });
 
 // ==================== SERVER ISHGA TUSHIRISH ====================
-// Render.com PORT ni o'zi belgilaydi
 const PORT = process.env.PORT || 3000;
 
-// MUHIM: app.listen EMAS, server.listen ishlatish kerak
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
     console.log('🚀 LIKE DUEL SERVER - RENDER.COM OPTIMIZATION');
@@ -699,3 +725,8 @@ setInterval(() => {
         }
     });
 }, 60000);
+
+// Har 30 soniyada faol duel va navbat holatini log qilish
+setInterval(() => {
+    console.log(`📊 Stats: Users: ${Object.keys(users).length}, Queue: ${queue.length}, Active Duels: ${Object.keys(activeDuels).length}`);
+}, 30000);

@@ -62,7 +62,7 @@
                 <p style="opacity: 0.8; margin-bottom: 20px;">Yoqtirganingiz bilan MATCH bo'ling!</p>
 
                 <div class="profile-card" id="profileCard">
-                    <img src="" alt="Siz" class="profile-avatar" id="myAvatar" style="width: 100px; height: 100px;">
+                    <img src="" alt="Siz" class="profile-avatar" id="myAvatar" style="width: 100px; height: 100px; border-radius: 10px;">
                     <div class="profile-name" id="myName" style="font-size: 1.3rem;">Foydalanuvchi</div>
                     <div class="profile-username" id="myUsername" style="opacity: 0.8;">@username</div>
 
@@ -111,16 +111,11 @@
                 <button class="start-btn" id="leaveQueueBtn" style="background: #ff6b6b; margin-top: 20px;">
                     🚪 Navbatdan Chiqish
                 </button>
-
-                <div class="quests-preview" id="questsPreview" style="margin-top: 20px; display: none;">
-                    <h3 style="margin-bottom: 10px;">📋 Kunlik Vazifalar</h3>
-                    <div id="dailyQuestsList"></div>
-                </div>
             </div>
 
             <!-- DUEL SCREEN -->
             <div class="duel-container hidden" id="duelScreen">
-                <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar">
+                <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar" style="border-radius: 10px;">
                 <div class="opponent-info">
                     <div class="opponent-name" id="opponentName">Raqib</div>
                     <div class="opponent-username" id="opponentUsername">@username</div>
@@ -192,7 +187,7 @@
         <div class="tab-content" id="profileTab">
             <div class="profile-container">
                 <div class="profile-header">
-                    <img src="" alt="Siz" class="profile-avatar" id="profileAvatar">
+                    <img src="" alt="Siz" class="profile-avatar" id="profileAvatar" style="border-radius: 10px;">
                     <div class="profile-info">
                         <h2 id="profileName">Foydalanuvchi</h2>
                         <p id="profileUsername">@username</p>
@@ -239,9 +234,9 @@
         <div class="tab-content" id="friendsTab">
             <div class="friends-container">
                 <div id="friendsStatus">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
-                            <div style="font-weight: bold; font-size: 1.1rem;">Do'stlar</div>
+                            <div style="font-weight: bold; font-size: 1.1rem;">Match bo'lganlar</div>
                             <div style="font-size: 0.8rem; opacity: 0.8;">
                                 <span id="friendsCount">0</span> ta do'st •
                                 <span id="onlineFriendsCount">0</span> ta onlayn
@@ -253,15 +248,7 @@
                     </div>
                 </div>
 
-                <div id="friendRequestsSection" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h4 style="margin: 0;"><i class="fas fa-user-plus"></i> Do'stlik So'rovlari</h4>
-                        <span id="friendRequestsCount">0</span>
-                    </div>
-                    <div id="friendRequestsList"></div>
-                </div>
-
-                <div class="friend-list" id="friendsList"></div>
+                <div class="friend-list" id="friendsList" style="margin-top: 10px;"></div>
             </div>
         </div>
 
@@ -382,40 +369,41 @@
             <div class="chat-messages" style="height: auto; padding: 20px;">
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Bio</label>
-                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..."></textarea>
+                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; resize: none;"></textarea>
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Jins</label>
-                    <select id="editGender">
+                    <select id="editGender" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
                         <option value="not_specified">Ko'rsatilmaydi (hamma bilan)</option>
                         <option value="male">Erkak (faqat ayollar bilan)</option>
                         <option value="female">Ayol (faqat erkaklar bilan)</option>
                     </select>
                 </div>
-                <button id="saveProfileBtn">Saqlash</button>
+                <button id="saveProfileBtn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer;">Saqlash</button>
             </div>
         </div>
     </div>
 
     <!-- Chat modal -->
     <div class="chat-modal" id="chatModal">
-        <div class="chat-box">
-            <div class="chat-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <img src="" alt="" class="profile-avatar" id="chatPartnerAvatar" style="width: 40px; height: 40px;">
-                    <div>
-                        <div id="chatPartnerName">Foydalanuvchi</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8;">Onlayn</div>
-                    </div>
-                </div>
-                <button id="closeChatBtn"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <div style="text-align: center; padding: 20px; opacity: 0.7;">Chat boshlandi!</div>
-            </div>
-            <div class="chat-input">
-                <input type="text" id="chatInput" placeholder="Xabar yozing...">
-                <button id="sendChatBtn"><i class="fas fa-paper-plane"></i></button>
+        <div class="chat-header">
+            <div>Telegram Chat</div>
+            <button id="closeChatBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-content">
+            <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
+            <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
+            <div class="chat-username" id="chatUsername">@username</div>
+            
+            <button class="chat-button" id="chatOpenTelegramBtn">
+                <i class="fab fa-telegram"></i> Telegramda ochish
+            </button>
+            
+            <div class="chat-note">
+                <p><i class="fas fa-info-circle"></i> Telegram chat ochiladi</p>
+                <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.7;">
+                    Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!
+                </p>
             </div>
         </div>
     </div>

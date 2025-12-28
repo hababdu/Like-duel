@@ -1,4 +1,4 @@
-// main.js - TO'LIQ ISHLAYDIAGAN VERSIYA
+// main.js - YANGILANGAN VERSIYA
 
 // ==================== O'YIN HOLATLARI ====================
 const gameState = {
@@ -14,7 +14,9 @@ const gameState = {
     lastOpponent: null,
     reconnectAttempts: 0,
     maxReconnectAttempts: 5,
-    currentTab: 'duel'
+    currentTab: 'duel',
+    // Yangi: chat modal ochiqligini kuzatish
+    isChatModalOpen: false
 };
 
 // ==================== USER STATE ====================
@@ -122,13 +124,12 @@ const elements = {
     selectFemaleBtn: document.getElementById('selectFemaleBtn'),
     selectAllBtn: document.getElementById('selectAllBtn'),
     
-    // Chat modal elementlari
+    // Chat modal elementlari (yangi dizayn)
     chatModal: document.getElementById('chatModal'),
     chatPartnerAvatar: document.getElementById('chatPartnerAvatar'),
     chatPartnerName: document.getElementById('chatPartnerName'),
-    chatMessages: document.getElementById('chatMessages'),
-    chatInput: document.getElementById('chatInput'),
-    sendChatBtn: document.getElementById('sendChatBtn'),
+    chatUsername: document.getElementById('chatUsername'),
+    chatOpenTelegramBtn: document.getElementById('chatOpenTelegramBtn'),
     closeChatBtn: document.getElementById('closeChatBtn'),
     
     // Do'stlar tab elementlari
@@ -170,6 +171,11 @@ function initUserProfile() {
             tgUser = Telegram.WebApp.initDataUnsafe.user || {};
             Telegram.WebApp.ready();
             Telegram.WebApp.expand();
+            
+            // Telegram username ni olish
+            if (tgUser.username) {
+                userState.telegramUsername = tgUser.username;
+            }
         }
     } catch (error) {
         console.log('ℹ️ Telegram Web App mavjud emas, test rejimida');
@@ -265,13 +271,10 @@ function addGenderBadge(element, gender) {
     
     if (gender === 'male') {
         badge.innerHTML = '<i class="fas fa-mars"></i> Erkak';
-        badge.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
     } else if (gender === 'female') {
         badge.innerHTML = '<i class="fas fa-venus"></i> Ayol';
-        badge.style.background = 'linear-gradient(135deg, #f093fb, #f5576c)';
     } else {
         badge.innerHTML = '<i class="fas fa-users"></i> Hammasi';
-        badge.style.background = 'linear-gradient(135deg, #4facfe, #00f2fe)';
     }
     
     element.appendChild(badge);
@@ -466,7 +469,10 @@ function connectToServer() {
     
     gameState.socket.on('return_to_queue', () => {
         console.log('🔄 Navbatga qaytish');
-        returnToQueue();
+        // Faqat chat modal ochiq bo'lmasa
+        if (!gameState.isChatModalOpen) {
+            returnToQueue();
+        }
     });
     
     gameState.socket.on('profile_updated', (data) => {
@@ -660,7 +666,7 @@ function handleVote(choice) {
     }
 }
 
-// ==================== MATCH HANDLERS ====================
+// ==================== MATCH HANDLERS (YANGILANGAN) ====================
 function handleMatch(data) {
     clearInterval(gameState.timerInterval);
     showScreen('match');
@@ -684,23 +690,21 @@ function handleMatch(data) {
     saveUserStateToLocalStorage();
     updateUIFromUserState();
     
+    // YANGI: Match options - faqat "Chatga o'tish" va "O'tkazish"
     if (elements.matchOptions) {
         elements.matchOptions.innerHTML = '';
-        const options = [
-            {action: 'open_chat', label: '💬 Chatga o\'tish'},
-            {action: 'skip', label: '➡️ O\'tkazish'}
-        ];
         
-        if (data.isRematch) {
-            options.splice(1, 0, {action: 'rematch', label: '🔄 Qayta duel'});
-        }
+        const options = [
+            {action: 'open_chat', label: '💬 Chatga o\'tish', style: 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);'},
+            {action: 'skip', label: '➡️ O\'tkazish', style: 'background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);'}
+        ];
         
         options.forEach(opt => {
             const btn = document.createElement('button');
             btn.className = 'match-option-btn';
             btn.innerHTML = opt.label;
-            btn.onclick = () => handleMatchOption(opt.action, data.partner.id);
-            if (opt.action === 'rematch') btn.style.background = '#9b59b6';
+            btn.style.cssText = opt.style;
+            btn.onclick = () => handleMatchOption(opt.action, data.partner);
             elements.matchOptions.appendChild(btn);
         });
     }
@@ -713,22 +717,21 @@ function handleMatch(data) {
         });
     }
     
+    // YANGI: 5 soniyadan keyin avtomatik navbatga qaytish
     setTimeout(() => {
-        if (elements.chatModal && !elements.chatModal.classList.contains('active')) {
+        if (!gameState.isChatModalOpen) {
             returnToQueue();
         }
-    }, 10000);
+    }, 5000); // 5 soniya
 }
 
-function handleMatchOption(action, partnerId) {
-    console.log(`Match option: ${action} for partner: ${partnerId}`);
+// YANGI: Match option funksiyalari
+function handleMatchOption(action, partner) {
+    console.log(`Match option: ${action} for partner:`, partner);
     
     switch(action) {
         case 'open_chat':
-            openChat(partnerId);
-            break;
-        case 'rematch':
-            requestRematch(partnerId);
+            openChat(partner);
             break;
         case 'skip':
         default:
@@ -737,41 +740,59 @@ function handleMatchOption(action, partnerId) {
     }
 }
 
-function openChat(partnerId) {
-    const partner = gameState.currentPartner;
+// YANGI: Chat funksiyasi - Telegram chatga o'tish
+function openChat(partner) {
     if (!partner) return;
     
+    // Chat modalni ko'rsatish
+    gameState.isChatModalOpen = true;
+    
     if (elements.chatPartnerAvatar) {
-        elements.chatPartnerAvatar.src = partner.photo || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(partner.name);
+        elements.chatPartnerAvatar.src = partner.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=667eea&color=fff`;
     }
     if (elements.chatPartnerName) {
         elements.chatPartnerName.textContent = partner.name;
+    }
+    if (elements.chatUsername && partner.username) {
+        elements.chatUsername.textContent = `@${partner.username}`;
+    } else if (elements.chatUsername) {
+        elements.chatUsername.textContent = '';
     }
     
     if (elements.chatModal) {
         elements.chatModal.classList.add('active');
     }
-    
-    if (elements.chatMessages) {
-        elements.chatMessages.innerHTML = `
-            <div class="message-container">
-                <div class="message message-received">
-                    <div class="message-text">Salom! Match bo'lganimizdan xursandman! 👋</div>
-                </div>
-            </div>
-        `;
-    }
 }
 
-function requestRematch(partnerId) {
-    if (!gameState.socket || !partnerId) return;
+// Telegram chatga o'tish funksiyasi
+function openTelegramChat(username) {
+    if (!username) {
+        showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
+        return;
+    }
     
-    gameState.socket.emit('request_rematch', { opponentId: partnerId });
-    showNotification('Qayta Duel', 'So\'rovingiz yuborildi!');
+    const telegramUrl = `https://t.me/${username.replace('@', '')}`;
     
-    setTimeout(() => {
-        returnToQueue();
-    }, 2000);
+    // Telegram Web App ichida ochish
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+        Telegram.WebApp.openTelegramLink(telegramUrl);
+    } else {
+        // Oddiy brauzerda ochish
+        window.open(telegramUrl, '_blank');
+    }
+    
+    // Chat modalni yopish
+    closeChatModal();
+}
+
+function closeChatModal() {
+    gameState.isChatModalOpen = false;
+    if (elements.chatModal) {
+        elements.chatModal.classList.remove('active');
+    }
+    
+    // Chat yopilganda navbatga qaytish
+    returnToQueue();
 }
 
 function handleLikedOnly(data) {
@@ -846,7 +867,7 @@ function startTimer() {
     }, 1000);
 }
 
-// ==================== NAVBATGA QAYTISH ====================
+// ==================== NAVBATGA QAYTISH (YANGILANGAN) ====================
 function returnToQueue() {
     console.log('🔄 Navbatga qaytish funksiyasi');
     
@@ -855,19 +876,20 @@ function returnToQueue() {
     gameState.currentDuelId = null;
     gameState.currentPartner = null;
     
-    if (elements.chatModal && elements.chatModal.classList.contains('active')) {
-        elements.chatModal.classList.remove('active');
-    }
+    // Modallarni yopish (faqat chat modal emas)
     if (elements.rematchModal && elements.rematchModal.classList.contains('active')) {
         elements.rematchModal.classList.remove('active');
     }
     
-    showScreen('queue');
-    updateQueueStatus('Yangi raqib izlanmoqda...');
-    
-    if (userState.hasSelectedGender && gameState.socket && gameState.isConnected) {
-        gameState.isInQueue = true;
-        gameState.socket.emit('enter_queue');
+    // Faqat chat modal ochiq bo'lmasa, queue ekraniga o'tish
+    if (!gameState.isChatModalOpen) {
+        showScreen('queue');
+        updateQueueStatus('Yangi raqib izlanmoqda...');
+        
+        if (userState.hasSelectedGender && gameState.socket && gameState.isConnected) {
+            gameState.isInQueue = true;
+            gameState.socket.emit('enter_queue');
+        }
     }
 }
 
@@ -935,34 +957,32 @@ function initTabNavigation() {
 
 // ==================== DO'STLAR FUNKSIYALARI ====================
 function loadFriendsList() {
+    // Bu test ma'lumotlar, aslida serverdan keladi
     const friends = [
-        { id: 1, name: 'Ali', username: '@ali', online: true, gender: 'male', lastActive: 'hozir' },
-        { id: 2, name: 'Malika', username: '@malika', online: true, gender: 'female', lastActive: '5 daqiqa oldin' },
-        { id: 3, name: 'Sanjar', username: '@sanjar', online: false, gender: 'male', lastActive: '2 kun oldin' },
-        { id: 4, name: 'Dilnoza', username: '@dilnoza', online: true, gender: 'female', lastActive: 'hozir' }
+        { id: 1, name: 'Ali', username: 'ali_jon', online: true, gender: 'male', lastActive: 'hozir', isMatch: true },
+        { id: 2, name: 'Malika', username: 'malika_flower', online: true, gender: 'female', lastActive: '5 daqiqa oldin', isMatch: true },
+        { id: 3, name: 'Sanjar', username: 'sanjarbek', online: false, gender: 'male', lastActive: '2 kun oldin', isMatch: false },
+        { id: 4, name: 'Dilnoza', username: 'dilnoza_girl', online: true, gender: 'female', lastActive: 'hozir', isMatch: true }
     ];
     
     if (elements.friendsList) {
         elements.friendsList.innerHTML = friends.map(friend => `
             <div class="friend-item">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="position: relative;">
-                        <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=${friend.gender === 'male' ? '667eea' : 'f5576c'}&color=fff" 
-                             alt="${friend.name}" style="width: 50px; height: 50px; border-radius: 50%;">
-                        <div style="position: absolute; bottom: 0; right: 0; width: 15px; height: 15px; 
-                                    background: ${friend.online ? '#2ecc71' : '#95a5a6'}; 
-                                    border-radius: 50%; border: 2px solid white;"></div>
+                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=${friend.gender === 'male' ? '667eea' : 'f5576c'}&color=fff" 
+                     alt="${friend.name}" class="friend-avatar">
+                <div class="friend-info">
+                    <div class="friend-name">
+                        ${friend.name}
+                        ${friend.isMatch ? '<span style="color: #667eea; font-size: 0.8rem; margin-left: 5px;">❤️</span>' : ''}
                     </div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold;">${friend.name}</div>
-                        <div style="font-size: 0.9rem; color: #666;">${friend.username}</div>
-                        <div style="font-size: 0.8rem; color: ${friend.online ? '#2ecc71' : '#95a5a6'}">
-                            ${friend.online ? 'Onlayn' : 'Oxirgi faol: ' + friend.lastActive}
-                        </div>
+                    <div class="friend-username">@${friend.username}</div>
+                    <div class="friend-status ${friend.online ? 'status-online' : 'status-offline'}">
+                        ${friend.online ? 'Onlayn' : 'Oxirgi faol: ' + friend.lastActive}
                     </div>
                 </div>
-                <button class="match-option-btn" style="padding: 8px 15px; font-size: 0.9rem;">
-                    ${friend.online ? 'Duel taklif' : 'Xabar'}
+                <button class="match-option-btn" style="padding: 8px 12px; font-size: 0.85rem; min-width: 80px;"
+                        onclick="${friend.isMatch ? `openTelegramChat('${friend.username}')` : 'showNotification("Xabar", "Match bo\'lmaganingiz uchun chat ochib bo\'lmaydi")'}"}>
+                    ${friend.online ? 'Chat' : 'Xabar'}
                 </button>
             </div>
         `).join('');
@@ -972,6 +992,15 @@ function loadFriendsList() {
     if (elements.onlineFriendsCount) {
         const onlineCount = friends.filter(f => f.online).length;
         elements.onlineFriendsCount.textContent = onlineCount;
+    }
+    if (elements.mutualLikesBadge && elements.mutualLikesCount) {
+        const mutualCount = friends.filter(f => f.isMatch).length;
+        if (mutualCount > 0) {
+            elements.mutualLikesCount.textContent = mutualCount;
+            elements.mutualLikesBadge.classList.remove('hidden');
+        } else {
+            elements.mutualLikesBadge.classList.add('hidden');
+        }
     }
 }
 
@@ -996,7 +1025,6 @@ function loadShopItems() {
                         ${userState.coins < item.price ? 'disabled' : ''}>
                     <i class="fas fa-coins"></i> ${item.price}
                 </button>
-                ${item.discount ? `<div class="shop-item-discount">${item.discount}</div>` : ''}
             </div>
         `).join('');
     }
@@ -1040,14 +1068,14 @@ function loadLeaderboard() {
                 <div class="leaderboard-info">
                     <div class="leaderboard-name">
                         ${leader.name}
-                        <span class="gender-badge" style="background: ${leader.gender === 'male' ? '#667eea' : '#f5576c'};">
+                        <span class="gender-badge gender-${leader.gender}-badge">
                             <i class="fas fa-${leader.gender === 'male' ? 'mars' : 'venus'}"></i>
                             ${leader.gender === 'male' ? 'Erkak' : 'Ayol'}
                         </span>
                     </div>
                     <div class="leaderboard-stats">
-                        <span><i class="fas fa-trophy"></i> ${leader.rating}</span> •
-                        <span><i class="fas fa-heart"></i> ${leader.matches}</span> •
+                        <span><i class="fas fa-trophy"></i> ${leader.rating}</span>
+                        <span><i class="fas fa-heart"></i> ${leader.matches}</span>
                         <span><i class="fas fa-coins"></i> ${leader.coins}</span>
                     </div>
                 </div>
@@ -1067,7 +1095,7 @@ function loadProfileQuests() {
         { id: 1, title: '3 ta duel o\'ynash', progress: Math.min(userState.duels, 3), total: 3, reward: 50 },
         { id: 2, title: '5 ta like berish', progress: Math.min(userState.totalLikes, 5), total: 5, reward: 30 },
         { id: 3, title: '1 ta match olish', progress: Math.min(userState.matches, 1), total: 1, reward: 100 },
-        { id: 4, title: 'Reytingni 50 ga oshirish', progress: Math.min(userState.rating - 1500, 50), total: 50, reward: 200 }
+        { id: 4, title: 'Reytingni 50 ga oshirish', progress: Math.min(Math.max(0, userState.rating - 1500), 50), total: 50, reward: 200 }
     ];
     
     if (elements.profileQuestsList) {
@@ -1295,36 +1323,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Chat modal event listener'lar
     if (elements.closeChatBtn) {
         elements.closeChatBtn.addEventListener('click', () => {
-            if (elements.chatModal) {
-                elements.chatModal.classList.remove('active');
+            closeChatModal();
+        });
+    }
+    
+    // Telegram chatga o'tish tugmasi
+    if (elements.chatOpenTelegramBtn) {
+        elements.chatOpenTelegramBtn.addEventListener('click', () => {
+            if (gameState.currentPartner && gameState.currentPartner.username) {
+                openTelegramChat(gameState.currentPartner.username);
+            } else {
+                showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
+                closeChatModal();
             }
         });
-    }
-    
-    if (elements.sendChatBtn && elements.chatInput) {
-        elements.sendChatBtn.addEventListener('click', sendChatMessage);
-        elements.chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendChatMessage();
-        });
-    }
-    
-    function sendChatMessage() {
-        const message = elements.chatInput?.value.trim();
-        if (!message) return;
-        
-        if (elements.chatMessages) {
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message message-sent';
-            messageElement.innerHTML = `
-                <div class="message-text">${message}</div>
-            `;
-            elements.chatMessages.appendChild(messageElement);
-            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-        }
-        
-        if (elements.chatInput) {
-            elements.chatInput.value = '';
-        }
     }
     
     // View stats button
@@ -1351,196 +1363,10 @@ document.addEventListener('DOMContentLoaded', () => {
     loadLeaderboard();
     loadFriendsList();
     
-    // CSS style qo'shish
-    const style = document.createElement('style');
-    style.textContent = `
-        .friend-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            margin-bottom: 10px;
-        }
-        
-        .shop-item {
-            display: flex;
-            align-items: center;
-            background: white;
-            border: 2px solid #eee;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-        }
-        
-        .shop-item:hover {
-            border-color: #667eea;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-        
-        .shop-item-icon {
-            font-size: 2rem;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f8f9fa;
-            border-radius: 15px;
-            margin-right: 15px;
-        }
-        
-        .shop-item-info {
-            flex: 1;
-        }
-        
-        .shop-item-name {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .shop-item-description {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .shop-item-buy {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        
-        .shop-item-buy:hover {
-            transform: scale(1.05);
-        }
-        
-        .shop-item-buy:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .shop-item-discount {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #ff6b6b;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        
-        .leaderboard-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 15px;
-            margin-bottom: 10px;
-            transition: all 0.3s;
-        }
-        
-        .leaderboard-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .leaderboard-rank {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-            font-weight: bold;
-            margin-right: 15px;
-        }
-        
-        .leaderboard-info {
-            flex: 1;
-        }
-        
-        .leaderboard-name {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .leaderboard-stats {
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .leaderboard-value {
-            font-weight: bold;
-            color: #667eea;
-            font-size: 1.2rem;
-        }
-        
-        .message {
-            max-width: 70%;
-            padding: 10px 15px;
-            border-radius: 20px;
-            margin-bottom: 10px;
-            position: relative;
-        }
-        
-        .message-sent {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            align-self: flex-end;
-            margin-left: auto;
-        }
-        
-        .message-received {
-            background: #f1f3f4;
-            color: #333;
-            align-self: flex-start;
-        }
-        
-        .message-text {
-            word-wrap: break-word;
-        }
-        
-        .gender-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            margin-left: 10px;
-            color: white;
-            font-weight: bold;
-            vertical-align: middle;
-            animation: badgeAppear 0.5s ease-out;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-        }
-        
-        @keyframes badgeAppear {
-            0% {
-                opacity: 0;
-                transform: scale(0.8) translateY(-10px);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-    `;
-    document.head.appendChild(style);
-    
     console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
 });
+
+// ==================== GLOBAL FUNKSIYALAR ====================
+window.selectGender = selectGender;
+window.hideGenderModal = hideGenderModal;
+window.openTelegramChat = openTelegramChat;

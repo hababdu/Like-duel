@@ -80,18 +80,9 @@ app.get('/api/stats', (req, res) => {
 const users = {};
 const queue = [];
 const activeDuels = {};
-const mutualLikes = {};
+const mutualMatches = {}; // Match bo'lganlar ro'yxati
 
 // ==================== YORDAMCHI FUNKSIYALAR ====================
-function calculateRatingChange(playerRating, opponentRating, result) {
-    const K = 32;
-    const expected = 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
-    
-    if (result === 'win') return Math.round(K * (1 - expected));
-    if (result === 'loss') return Math.round(K * (0 - expected));
-    return 0;
-}
-
 function generateDuelId() {
     return 'duel_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -260,6 +251,9 @@ function processDuelResult(duelId) {
         player1.coins += player1Reward;
         player2.coins += player2Reward;
         
+        // MUTUAL MATCHLARNI SAQLASH
+        addMutualMatch(duel.player1, duel.player2);
+        
         // Player1 ga xabar
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
@@ -267,6 +261,7 @@ function processDuelResult(duelId) {
                 partner: {
                     id: duel.player2,
                     name: player2.firstName,
+                    username: player2.username,
                     photo: player2.photoUrl,
                     gender: player2.gender
                 },
@@ -286,6 +281,7 @@ function processDuelResult(duelId) {
                 partner: {
                     id: duel.player1,
                     name: player1.firstName,
+                    username: player1.username,
                     photo: player1.photoUrl,
                     gender: player1.gender
                 },
@@ -355,6 +351,30 @@ function processDuelResult(duelId) {
         returnPlayersToQueue(duel.player1, duel.player2);
         delete activeDuels[duelId];
     }, 3000);
+}
+
+function addMutualMatch(userId1, userId2) {
+    // User1 uchun
+    if (!mutualMatches[userId1]) {
+        mutualMatches[userId1] = [];
+    }
+    if (!mutualMatches[userId1].includes(userId2)) {
+        mutualMatches[userId1].push(userId2);
+    }
+    
+    // User2 uchun
+    if (!mutualMatches[userId2]) {
+        mutualMatches[userId2] = [];
+    }
+    if (!mutualMatches[userId2].includes(userId1)) {
+        mutualMatches[userId2].push(userId1);
+    }
+    
+    console.log(`✅ Mutual match qo'shildi: ${userId1} <-> ${userId2}`);
+}
+
+function getMutualMatches(userId) {
+    return mutualMatches[userId] || [];
 }
 
 function handleDuelTimeout(duelId) {
@@ -655,6 +675,35 @@ io.on('connection', (socket) => {
         
         // Qayta duel boshlash
         startDuel(userId, opponentId);
+    });
+    
+    socket.on('get_friends_list', () => {
+        const userId = socket.userId;
+        if (!userId || !users[userId]) return;
+        
+        const mutualMatchIds = getMutualMatches(userId);
+        const friendsList = mutualMatchIds.map(friendId => {
+            const friend = users[friendId];
+            if (!friend) return null;
+            
+            return {
+                id: friend.id,
+                name: friend.firstName,
+                username: friend.username,
+                photo: friend.photoUrl,
+                online: friend.connected,
+                lastActive: friend.lastActive,
+                gender: friend.gender,
+                rating: friend.rating,
+                matches: friend.matches
+            };
+        }).filter(friend => friend !== null);
+        
+        socket.emit('friends_list', {
+            friends: friendsList,
+            total: friendsList.length,
+            online: friendsList.filter(f => f.online).length
+        });
     });
     
     socket.on('disconnect', () => {

@@ -1,4 +1,5 @@
-// server.js - TO'LIQ ISHLAYDIAGAN VERSIYA
+// server.js - YANGILANGAN VERSIYA - FILTER QO'SHILGAN
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -80,7 +81,7 @@ app.get('/api/stats', (req, res) => {
 const users = {};
 const queue = [];
 const activeDuels = {};
-const mutualMatches = {}; // Match bo'lganlar ro'yxati
+const mutualMatches = {};
 
 // ==================== YORDAMCHI FUNKSIYALAR ====================
 function generateDuelId() {
@@ -91,6 +92,29 @@ function checkGenderCompatibility(user1, user2) {
     if (!user1?.gender || !user2?.gender) return false;
     if (user1.gender === 'not_specified' || user2.gender === 'not_specified') return true;
     return user1.gender !== user2.gender;
+}
+
+// YANGI: Filter tekshirish funksiyasi
+function checkFilterCompatibility(user, opponent) {
+    const userFilter = user.filter || 'not_specified';
+    const opponentFilter = opponent.filter || 'not_specified';
+    
+    // Agar user faqat erkaklar bilan o'ynashni tanlagan bo'lsa
+    if (userFilter === 'male') {
+        return opponent.gender === 'male';
+    }
+    
+    // Agar user faqat ayollar bilan o'ynashni tanlagan bo'lsa
+    if (userFilter === 'female') {
+        return opponent.gender === 'female';
+    }
+    
+    // Agar user hamma bilan o'ynashni tanlagan bo'lsa
+    if (userFilter === 'not_specified') {
+        return true;
+    }
+    
+    return false;
 }
 
 function findOpponentFor(userId) {
@@ -106,9 +130,16 @@ function findOpponentFor(userId) {
         
         if (!opponent.hasSelectedGender || !opponent.gender) continue;
         
-        if (checkGenderCompatibility(user, opponent)) {
-            return opponentId;
-        }
+        // Gender compatibility tekshirish
+        if (!checkGenderCompatibility(user, opponent)) continue;
+        
+        // Filter compatibility tekshirish
+        if (!checkFilterCompatibility(user, opponent)) continue;
+        
+        // Opponentning filteri ham tekshirish
+        if (!checkFilterCompatibility(opponent, user)) continue;
+        
+        return opponentId;
     }
     
     return null;
@@ -354,7 +385,6 @@ function processDuelResult(duelId) {
 }
 
 function addMutualMatch(userId1, userId2) {
-    // User1 uchun
     if (!mutualMatches[userId1]) {
         mutualMatches[userId1] = [];
     }
@@ -362,7 +392,6 @@ function addMutualMatch(userId1, userId2) {
         mutualMatches[userId1].push(userId2);
     }
     
-    // User2 uchun
     if (!mutualMatches[userId2]) {
         mutualMatches[userId2] = [];
     }
@@ -419,7 +448,6 @@ io.on('connection', (socket) => {
     socket.on('auth', (data) => {
         const userId = data.userId;
         
-        // Foydalanuvchini saqlash yoki yangilash
         if (!users[userId]) {
             users[userId] = {
                 id: userId,
@@ -429,6 +457,7 @@ io.on('connection', (socket) => {
                 gender: data.gender || null,
                 hasSelectedGender: data.hasSelectedGender || false,
                 bio: data.bio || '',
+                filter: data.filter || 'not_specified', // Yangi: filter qo'shildi
                 rating: 1500,
                 coins: 100,
                 level: 1,
@@ -448,10 +477,10 @@ io.on('connection', (socket) => {
             users[userId].connected = true;
             users[userId].lastActive = new Date();
             
-            // Yangilangan ma'lumotlarni saqlash
             if (data.gender) users[userId].gender = data.gender;
             if (data.hasSelectedGender !== undefined) users[userId].hasSelectedGender = data.hasSelectedGender;
             if (data.bio !== undefined) users[userId].bio = data.bio;
+            if (data.filter !== undefined) users[userId].filter = data.filter; // Yangi: filter yangilash
         }
         
         socket.userId = userId;
@@ -476,7 +505,6 @@ io.on('connection', (socket) => {
                 queue.push(userId);
             }
         } else {
-            // Gender tanlanmagan bo'lsa, bildirishnoma
             setTimeout(() => {
                 socket.emit('show_gender_selection', {
                     mandatory: true,
@@ -487,7 +515,6 @@ io.on('connection', (socket) => {
         
         updateWaitingCount();
         
-        // Agar gender tanlagan bo'lsa, duel qidirish
         if (users[userId].hasSelectedGender) {
             setTimeout(() => findAndStartDuels(), 1000);
         }
@@ -512,7 +539,6 @@ io.on('connection', (socket) => {
             }`
         });
         
-        // Navbatga qo'shish
         if (!queue.includes(userId)) {
             queue.push(userId);
         }
@@ -529,7 +555,6 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // MAJBURIY TEKSHIRISH: Gender tanlanmagan bo'lsa
         if (!users[userId].hasSelectedGender) {
             socket.emit('show_gender_selection', {
                 mandatory: true,
@@ -538,7 +563,6 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // Agar allaqachon navbatda bo'lsa
         if (queue.includes(userId)) {
             socket.emit('queue_joined', {
                 position: queue.indexOf(userId) + 1,
@@ -547,7 +571,6 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // Navbatga qo'shish
         queue.push(userId);
         
         socket.emit('queue_joined', {
@@ -555,7 +578,6 @@ io.on('connection', (socket) => {
             total: queue.length
         });
         
-        // Duel qidirish
         setTimeout(() => findAndStartDuels(), 500);
     });
     
@@ -586,10 +608,8 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // Ovozni saqlash
         duel.votes[userId] = choice;
         
-        // SUPER LIKE uchun limit tekshirish
         if (choice === 'super_like') {
             const user = users[userId];
             if (user.dailySuperLikes <= 0) {
@@ -604,7 +624,6 @@ io.on('connection', (socket) => {
             });
         }
         
-        // Agar ikkala o'yinchi ham ovoz berganda
         if (duel.votes[duel.player1] && duel.votes[duel.player2]) {
             processDuelResult(duelId);
         }
@@ -624,7 +643,23 @@ io.on('connection', (socket) => {
             const oldGender = user.gender;
             user.gender = data.gender;
             
-            // Gender o'zgarsa, navbatdan chiqarish
+            const index = queue.indexOf(userId);
+            if (index > -1) queue.splice(index, 1);
+            
+            setTimeout(() => {
+                if (!queue.includes(userId) && user.hasSelectedGender) {
+                    queue.push(userId);
+                    updateWaitingCount();
+                    findAndStartDuels();
+                }
+            }, 500);
+        }
+        
+        // Yangi: filter yangilash
+        if (data.filter !== undefined) {
+            user.filter = data.filter;
+            
+            // Filter o'zgarsa, navbatdan chiqarish
             const index = queue.indexOf(userId);
             if (index > -1) queue.splice(index, 1);
             
@@ -640,6 +675,7 @@ io.on('connection', (socket) => {
         socket.emit('profile_updated', {
             bio: user.bio,
             gender: user.gender,
+            filter: user.filter,
             hasSelectedGender: user.hasSelectedGender
         });
     });
@@ -666,14 +702,12 @@ io.on('connection', (socket) => {
         
         if (!userId || !opponentId || !users[userId] || !users[opponentId]) return;
         
-        // Navbatdan olish
         const userIndex = queue.indexOf(userId);
         const opponentIndex = queue.indexOf(opponentId);
         
         if (userIndex > -1) queue.splice(userIndex, 1);
         if (opponentIndex > -1) queue.splice(opponentIndex, 1);
         
-        // Qayta duel boshlash
         startDuel(userId, opponentId);
     });
     
@@ -713,14 +747,12 @@ io.on('connection', (socket) => {
             users[userId].connected = false;
             users[userId].lastActive = new Date();
             
-            // Navbatdan olish
             const index = queue.indexOf(userId);
             if (index > -1) {
                 queue.splice(index, 1);
                 updateWaitingCount();
             }
             
-            // Faol duelda bo'lsa
             for (const duelId in activeDuels) {
                 const duel = activeDuels[duelId];
                 if ((duel.player1 === userId || duel.player2 === userId) && !duel.ended) {

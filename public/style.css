@@ -110,7 +110,7 @@ body {
 
 /* Duel Screens - Markazlashtirilgan */
 .duel-container {
-    padding: 0;
+    padding: 20px;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -130,27 +130,28 @@ body {
     margin: 0 auto;
 }
 
-/* Avatar - Markazda, kichikroq */
+/* Avatar - Markazda, KATTA (60% ekran) */
 .profile-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 4px solid #667eea;
-    margin: 0 auto 15px;
-    display: block;
-}
-
-/* Opponent Avatar - Markazda, kattaroq */
-.opponent-avatar {
-    width: 140px;
-    height: 140px;
-    border-radius: 10px;
+    width: 180px;
+    height: 180px;
+    border-radius: 20px;
     object-fit: cover;
     border: 5px solid #667eea;
     margin: 0 auto 20px;
     display: block;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+/* Opponent Avatar - Markazda, KATTA (60% ekran) */
+.opponent-avatar {
+    width: 200px;
+    height: 200px;
+    border-radius: 20px;
+    object-fit: cover;
+    border: 5px solid #667eea;
+    margin: 0 auto 25px;
+    display: block;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
 }
 
 /* Timer - Markazda */
@@ -319,6 +320,103 @@ body {
     font-weight: 500;
 }
 
+/* Gender Filter Container */
+.gender-filter-container {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    max-width: 320px;
+    margin: 20px auto;
+}
+
+.gender-filter-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+    text-align: center;
+}
+
+.gender-filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.gender-filter-option {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.gender-filter-option:hover {
+    background: #eef2ff;
+    transform: translateY(-2px);
+}
+
+.gender-filter-option.active {
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+}
+
+.gender-filter-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    margin-right: 15px;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.gender-filter-icon.male {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gender-filter-icon.female {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gender-filter-icon.all {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.gender-filter-info {
+    flex: 1;
+    text-align: left;
+}
+
+.gender-filter-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 1rem;
+}
+
+.gender-filter-description {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.gender-filter-check {
+    color: #667eea;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.gender-filter-option.active .gender-filter-check {
+    opacity: 1;
+}
+
 /* Modallar - Soddalashtirilgan */
 .gender-modal,
 .rematch-modal {
@@ -350,7 +448,7 @@ body {
     animation: modalAppear 0.3s ease-out;
 }
 
-/* Chat Modal - Yangi: Telegram chatga o'tish */
+/* Chat Modal */
 .chat-modal {
     position: fixed;
     top: 0;
@@ -390,9 +488,9 @@ body {
 }
 
 .chat-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 10px;
+    width: 150px;
+    height: 150px;
+    border-radius: 20px;
     object-fit: cover;
     border: 5px solid #667eea;
     margin-bottom: 20px;
@@ -475,9 +573,9 @@ body {
 }
 
 .friend-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
     object-fit: cover;
     margin-right: 12px;
     border: 3px solid #667eea;
@@ -725,6 +823,38 @@ body {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
+/* Start Button Container */
+.start-btn-container {
+    width: 100%;
+    max-width: 320px;
+    margin: 20px auto;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    width: 100%;
+    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+}
+
+.start-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+}
+
+.start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Animation Classes */
 @keyframes fadeIn {
     from { opacity: 0; }
@@ -787,8 +917,18 @@ body {
     }
     
     .opponent-avatar {
-        width: 120px;
-        height: 120px;
+        width: 180px;
+        height: 180px;
+    }
+    
+    .profile-avatar {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .chat-avatar {
+        width: 130px;
+        height: 130px;
     }
     
     .timer-circle {
@@ -832,6 +972,16 @@ body {
         width: 50px;
         height: 50px;
         font-size: 1.5rem;
+    }
+    
+    .opponent-avatar {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .profile-avatar {
+        width: 140px;
+        height: 140px;
     }
 }
 
@@ -881,35 +1031,6 @@ body {
     font-weight: 600;
     font-size: 0.9rem;
     box-shadow: 0 4px 12px rgba(240,147,251,0.3);
-}
-
-/* Buttons */
-.start-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 14px 30px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    width: 100%;
-    max-width: 280px;
-    margin: 20px auto;
-    display: block;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-}
-
-.start-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.start-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
 }
 
 /* Gender Options */
@@ -971,4 +1092,20 @@ p {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #764ba2;
+}
+
+/* Stats in duel screen */
+.opponent-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    color: #666;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.opponent-stats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }

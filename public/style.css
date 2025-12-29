@@ -1,479 +1,273 @@
-/* ==================== RESET & TELEGRAM WEB APP BASE ==================== */
+/* ==================== TELEGRAM MINI APPGA MOS JIDDIY DIZAYN ==================== */
+/* Bu CSS Telegram Mini Apps uchun optimallashtirilgan: */
+/* - Telegram theme params dan foydalanadi (avto dark/light mode) */
+/* - Toza, sodda va professional ko'rinish */
+/* - Mobile-first, responsive */
+/* - Gradientlar o'rniga Telegram ranglari (accent - link_color/button_color) */
+/* - Tinder-like duel app uchun mos, lekin jiddiy va zamonaviy */
+
+:root {
+    /* Telegram theme variables - avto yangilanadi */
+    --tg-bg-color: var(--tg-theme-bg-color, #ffffff);
+    --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    --tg-text-color: var(--tg-theme-text-color, #000000);
+    --tg-hint-color: var(--tg-theme-hint-color, #999999);
+    --tg-link-color: var(--tg-theme-link-color, #0088cc);
+    --tg-button-color: var(--tg-theme-button-color, #0088cc);
+    --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+    --tg-accent-text: var(--tg-theme-accent-text-color, #0088cc);
+    --tg-section-header: var(--tg-theme-section-header-text-color, #666666);
+    --tg-subtitle: var(--tg-theme-subtitle-text-color, #999999);
+    --tg-destructive: #ff3b30;
+
+    /* Qo'shimcha ranglar */
+    --primary-gradient-start: var(--tg-link-color);
+    --primary-gradient-end: var(--tg-button-color);
+    --like-color: #ff3b30;
+    --super-like-color: #ff5a5f;
+    --no-color: #999999;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: transparent;
 }
+
 body {
-    background: #0f1621;
-    color: #e1e7ed;
+    background: var(--tg-bg-color);
+    color: var(--tg-text-color);
     min-height: 100vh;
     font-size: 16px;
-    line-height: 1.5;
-}
-.app-container {
-    max-width: 480px;
-    margin: 0 auto;
-    background: #17212b;
-    min-height: 100vh;
-    position: relative;
     overflow-x: hidden;
 }
 
-/* ==================== HEADER (Telegram Mini App style) ==================== */
-.app-header {
-    background: rgba(23, 33, 43, 0.95);
-    backdrop-filter: blur(12px);
-    color: #fff;
-    padding: 14px 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    border-bottom: 1px solid #2b3a48;
-}
-.header-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.header-stats {
-    display: flex;
-    gap: 10px;
-    font-size: 0.9rem;
-}
-.stat-item {
-    background: rgba(255,255,255,0.08);
-    padding: 6px 12px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    border: 1px solid rgba(255,255,255,0.06);
+.app-container {
+    max-width: 100%;
+    margin: 0 auto;
+    background: var(--tg-bg-color);
+    min-height: 100vh;
+    position: relative;
 }
 
-/* ==================== BOTTOM NAVIGATION (Real Telegram Style) ==================== */
+/* ==================== NAVIGATION TABS (Telegram style) ==================== */
 .nav-tabs {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-width: 480px;
-    margin: 0 auto;
-    background: rgba(23, 33, 43, 0.95);
-    backdrop-filter: blur(12px);
-    border-top: 1px solid #2b3a48;
     display: flex;
-    height: 60px;
+    background: var(--tg-secondary-bg);
+    border-top: 1px solid var(--tg-hint-color);
+    position: sticky;
+    bottom: 0;
     z-index: 99;
+    height: 56px;
 }
+
 .nav-tab {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #6b7c8d;
+    padding: 6px;
+    color: var(--tg-hint-color);
     font-size: 0.75rem;
-    font-weight: 500;
-    transition: color 0.3s ease;
-    position: relative;
+    transition: color 0.2s;
 }
+
 .nav-tab.active {
-    color: #5298ff;
+    color: var(--tg-link-color);
 }
+
 .nav-tab i {
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     margin-bottom: 4px;
-    transition: transform 0.3s ease;
-}
-.nav-tab.active i {
-    transform: translateY(-2px);
-}
-.nav-tab-indicator {
-    position: absolute;
-    bottom: 0;
-    width: 30px;
-    height: 3px;
-    background: #5298ff;
-    border-radius: 2px 2px 0 0;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-.nav-tab.active .nav-tab-indicator {
-    opacity: 1;
 }
 
 /* ==================== TAB CONTENT ==================== */
 .tab-content {
     display: none;
-    padding: 16px 16px 80px;
-    min-height: calc(100vh - 60px);
+    padding: 16px;
+    min-height: calc(100vh - 56px);
 }
+
 .tab-content.active {
     display: block;
 }
 
-/* ==================== CARD & CONTAINER BASE ==================== */
+/* ==================== CARD STYLE (universal) ==================== */
 .card {
-    background: #1f2c39;
-    border-radius: 18px;
+    background: var(--tg-secondary-bg);
+    border-radius: 16px;
     padding: 20px;
     margin-bottom: 16px;
-    border: 1px solid #2b3a48;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* ==================== PROFILE CARD ==================== */
+.profile-card {
     text-align: center;
+    max-width: 360px;
+    margin: 0 auto;
 }
 
-/* ==================== AVATAR ==================== */
-.avatar {
-    width: 140px;
-    height: 140px;
-    border-radius: 24px;
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
     object-fit: cover;
-    border: 4px solid #5298ff;
-    box-shadow: 0 8px 25px rgba(82,152,255,0.3);
-    margin: 0 auto 20px;
-    display: block;
-}
-.opponent-avatar {
-    width: 180px;
-    height: 180px;
-    border-width: 5px;
+    border: 4px solid var(--tg-link-color);
+    margin-bottom: 16px;
 }
 
-/* ==================== USER INFO ==================== */
-.user-name {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+.profile-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 8px;
 }
-.user-username {
-    color: #8a9bad;
-    font-size: 0.95rem;
+
+.profile-username {
+    color: var(--tg-hint-color);
     margin-bottom: 20px;
 }
 
-/* ==================== STATS ==================== */
-.stats-grid, .opponent-stats {
+/* Stats */
+.stats {
     display: flex;
-    justify-content: center;
-    gap: 16px;
+    justify-content: space-around;
+    gap: 12px;
     margin: 20px 0;
-    flex-wrap: wrap;
 }
-.stat, .opponent-stats span {
-    background: rgba(82,152,255,0.1);
-    padding: 10px 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(82,152,255,0.15);
-    min-width: 80px;
+
+.stat {
+    flex: 1;
+    text-align: center;
 }
+
 .stat-value {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #5298ff;
-}
-.stat-label {
-    font-size: 0.8rem;
-    color: #8a9bad;
-    margin-top: 4px;
+    color: var(--tg-link-color);
 }
 
-/* ==================== GENDER FILTER ==================== */
-.gender-filter {
-    background: #1f2c39;
-    border-radius: 18px;
-    padding: 18px;
-    border: 1px solid #2b3a48;
-    margin: 16px 0;
-}
-.gender-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 12px;
-}
-.gender-option-btn {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background: #17212b;
-    border: 2px solid transparent;
-    border-radius: 16px;
-    color: #e1e7ed;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-.gender-option-btn.active {
-    border-color: #5298ff;
-    background: rgba(82,152,255,0.12);
-    box-shadow: 0 4px 15px rgba(82,152,255,0.2);
-}
-.gender-option-btn i {
-    font-size: 1.5rem;
-    width: 36px;
-    text-align: center;
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--tg-hint-color);
 }
 
 /* ==================== BUTTONS ==================== */
-.start-btn, .chat-button, .action-btn {
-    background: linear-gradient(135deg, #5298ff, #3d7dff);
-    color: #fff;
+.btn-primary {
+    background: var(--tg-button-color);
+    color: var(--tg-button-text);
     border: none;
-    padding: 18px;
-    border-radius: 18px;
-    font-size: 1.1rem;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 1rem;
     font-weight: 600;
     width: 100%;
+    max-width: 340px;
+    margin: 20px auto;
+    display: block;
     cursor: pointer;
-    box-shadow: 0 8px 25px rgba(82,152,255,0.3);
-    transition: all 0.3s ease;
-    margin-top: 12px;
-}
-.start-btn:hover, .chat-button:hover, .action-btn:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 35px rgba(82,152,255,0.4);
-}
-.start-btn:disabled, .vote-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
+    transition: opacity 0.2s;
 }
 
-/* ==================== VOTE BUTTONS ==================== */
-.vote-actions {
-    display: flex;
-    justify-content: center;
-    gap: 28px;
-    margin: 35px 0;
-}
-.vote-btn {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    border: none;
-    font-size: 2.1rem;
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-    transition: all 0.3s ease;
-}
-.vote-btn:hover:not(:disabled) {
-    transform: translateY(-10px) scale(1.12);
-}
-.no { background: linear-gradient(135deg, #e74c3c, #c42d2d); }
-.like { background: linear-gradient(135deg, #5298ff, #3d7dff); }
-.super-like { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-.vote-label {
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: #8a9bad;
+.btn-primary:hover {
+    opacity: 0.9;
 }
 
-/* ==================== TIMER ==================== */
-.timer-wrap {
-    text-align: center;
+.btn-danger {
+    background: var(--tg-destructive);
+}
+
+/* ==================== DUEL SCREEN ==================== */
+.opponent-avatar {
+    width: 160px;
+    height: 160px;
+    border-radius: 24px;
+    object-fit: cover;
+    border: 5px solid var(--tg-link-color);
+    margin: 20px auto;
+    display: block;
+}
+
+.timer-container {
     margin: 30px 0;
 }
+
 .timer-circle {
-    width: 110px;
-    height: 110px;
-    border: 6px solid #2b3a48;
-    border-top-color: #5298ff;
+    width: 100px;
+    height: 100px;
+    border: 6px solid var(--tg-hint-color);
+    border-top: 6px solid var(--tg-link-color);
     border-radius: 50%;
-    margin: 0 auto 16px;
-    animation: rotate 1.5s linear infinite;
+    margin: 0 auto;
+    animation: rotate 20s linear infinite;
 }
+
 .timer {
-    font-size: 2.4rem;
+    font-size: 2rem;
     font-weight: 700;
-    color: #5298ff;
+    color: var(--tg-link-color);
+    line-height: 100px;
+    text-align: center;
 }
+
+.vote-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 30px 0;
+}
+
+.vote-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-no { background: var(--tg-secondary-bg); color: var(--tg-hint-color); }
+.btn-like { background: var(--like-color); color: white; }
+.btn-super-like { background: var(--super-like-color); color: white; }
 
 /* ==================== MATCH SCREEN ==================== */
 .match-screen {
     text-align: center;
-    padding: 40px 20px;
-    min-height: calc(100vh - 120px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    min-height: calc(100vh - 56px);
 }
+
 .match-title {
-    font-size: 3.2rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #5298ff, #9b59b6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--tg-link-color);
     margin-bottom: 20px;
-    animation: bounce 1.8s infinite;
 }
+
 .rewards {
-    background: linear-gradient(135deg, #5298ff, #3d7dff);
-    padding: 25px;
-    border-radius: 24px;
-    width: 100%;
-    max-width: 380px;
-    margin: 20px 0;
-    box-shadow: 0 12px 40px rgba(82,152,255,0.35);
-    animation: pulse 2s infinite;
-}
-.match-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 380px;
-    margin-top: 20px;
-}
-
-/* ==================== MODALS (Telegram Style) ==================== */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 998;
-    display: none;
-}
-.modal-overlay.active { display: block; }
-
-.gender-modal, .chat-modal {
-    position: fixed;
-    inset: 0;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
+    background: var(--tg-secondary-bg);
     padding: 20px;
-}
-.gender-modal.active, .chat-modal.active { display: flex; }
-
-.modal-content, .chat-box {
-    background: #1f2c39;
-    border-radius: 20px;
-    width: 100%;
-    max-width: 380px;
-    border: 1px solid #2b3a48;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    overflow: hidden;
-}
-.chat-header {
-    background: #17212b;
-    padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.1rem;
-    font-weight: 600;
-    border-bottom: 1px solid #2b3a48;
-}
-.chat-header button {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 1.4rem;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.chat-header button:hover {
-    background: rgba(255,255,255,0.1);
-}
-
-/* Form elements */
-textarea, select {
-    width: 100%;
-    padding: 14px;
-    background: #17212b;
-    border: 1px solid #2b3a48;
-    border-radius: 14px;
-    color: #e1e7ed;
-    font-size: 1rem;
-    margin-bottom: 16px;
-}
-textarea:focus, select:focus {
-    outline: none;
-    border-color: #5298ff;
-    box-shadow: 0 0 0 3px rgba(82,152,255,0.15);
-}
-
-/* ==================== NOTIFICATION ==================== */
-.notification {
-    position: fixed;
-    top: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1f2c39;
-    color: #fff;
-    padding: 14px 20px;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-    border-left: 4px solid #5298ff;
-    z-index: 1000;
-    display: none;
-    max-width: 90%;
-    text-align: center;
-}
-.notification.active {
-    display: block;
-    animation: slideDown 0.4s ease;
-}
-
-/* ==================== LOADER & STATUS ==================== */
-.loader {
-    width: 60px;
-    height: 60px;
-    border: 5px solid #2b3a48;
-    border-top-color: #5298ff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 30px auto;
-}
-.waiting-count {
-    font-size: 3rem;
-    font-weight: 800;
-    color: #5298ff;
     margin: 20px 0;
-}
-.status-message {
-    padding: 12px;
-    background: rgba(82,152,255,0.1);
-    border-radius: 12px;
-    border: 1px solid rgba(82,152,255,0.2);
-    margin: 16px 0;
-    font-size: 0.95rem;
 }
 
 /* ==================== ANIMATIONS ==================== */
-@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes bounce { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-@keyframes slideDown { from { transform: translateY(-100px); opacity: 0; } to { opacity: 1; } }
-
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 420px) {
-    .avatar { width: 130px; height: 130px; }
-    .opponent-avatar { width: 160px; height: 160px; }
-    .vote-btn { width: 68px; height: 68px; font-size: 1.9rem; }
-    .match-title { font-size: 2.8rem; }
-    .timer-circle { width: 100px; height: 100px; }
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
+
+/* Responsive */
+@media (max-width: 480px) {
+    .vote-btn { width: 60px; height: 60px; font-size: 1.8rem; }
+    .opponent-avatar { width: 140px; height: 140px; }
+}
+
+/* Qo'shimcha: JS da Telegram.WebApp.expand() va theme o'zgarganda yangilash */

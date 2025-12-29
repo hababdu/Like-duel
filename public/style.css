@@ -1972,3 +1972,115 @@ textarea:focus, select:focus {
     text-align: center;
     flex-shrink: 0;
 }
+
+/* Match screen animation */
+@keyframes matchAppear {
+    0% {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+    }
+    50% {
+        transform: translateY(-10px) scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.match-screen {
+    animation: matchAppear 0.5s ease-out;
+}
+
+/* Button hover effects */
+.chat-option-btn.primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%) !important;
+}
+
+.chat-option-btn.secondary:hover {
+    background: linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%) !important;
+}
+
+/* Modal backdrop */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 999;
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: block;
+}
+
+/* Chat modal specific */
+.chat-modal {
+    z-index: 1000;
+}
+
+/* Pulse animation for timer */
+@keyframes timerPulse {
+    0%, 100% { 
+        transform: scale(1); 
+        opacity: 1;
+    }
+    50% { 
+        transform: scale(1.1); 
+        opacity: 0.8;
+    }
+}
+
+.timer.pulse {
+    animation: timerPulse 1s infinite;
+}
+
+/* Waiting button style */
+.btn-no.waiting {
+    background: linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%) !important;
+    animation: pulse 2s infinite;
+}
+
+/* Match rewards animation */
+@keyframes rewardPulse {
+    0%, 100% { 
+        transform: scale(1); 
+    }
+    50% { 
+        transform: scale(1.05); 
+    }
+}
+
+.rewards {
+    animation: rewardPulse 2s infinite;
+}
+
+/* Hidden class improvement */
+.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Active screen */
+.duel-container.active,
+.match-screen.active {
+    display: flex !important;
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* Button states */
+.vote-btn:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+}
+
+.start-btn:disabled {
+    background: #cccccc !important;
+    cursor: not-allowed;
+}

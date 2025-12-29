@@ -1109,3 +1109,49 @@ p {
     align-items: center;
     gap: 5px;
 }
+
+/* Duel tugashi ekrani uchun stillar */
+.duel-end-options {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin: 30px 0;
+    width: 100%;
+    max-width: 300px;
+}
+
+.duel-end-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    width: 100%;
+    margin: 10px 0;
+}
+
+
+
+        
+
+.duel-end-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+}
+
+.duel-end-btn.secondary {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.duel-end-btn.secondary:hover {
+    box-shadow: 0 8px 20px rgba(149,165,166,0.4);
+}
+
+/* Match ekranida avtomatik timeout-xabarni olib tashlash */
+#matchScreen div[style*="5 soniyadan keyin"] {
+    display: none !important;
+}

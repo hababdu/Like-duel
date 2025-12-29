@@ -1,4 +1,3 @@
-/* Reset va Asosiy Stillar */
 * {
     margin: 0;
     padding: 0;
@@ -22,7 +21,7 @@ body {
     overflow: hidden;
 }
 
-/* Header - Soddalashtirilgan */
+/* Header */
 .app-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -59,7 +58,7 @@ body {
     border-radius: 15px;
 }
 
-/* Nav Tabs - Soddalashtirilgan */
+/* Nav Tabs */
 .nav-tabs {
     display: flex;
     background: white;
@@ -108,8 +107,8 @@ body {
     display: block;
 }
 
-/* Duel Screens - Markazlashtirilgan */
-.duel-container {
+/* Screens */
+.duel-container, .match-screen {
     padding: 20px;
     text-align: center;
     display: flex;
@@ -119,7 +118,11 @@ body {
     min-height: calc(100vh - 106px);
 }
 
-/* Profile Card - Markazlashtirilgan */
+.hidden {
+    display: none !important;
+}
+
+/* Profile Card */
 .profile-card {
     background: white;
     padding: 30px 25px;
@@ -130,31 +133,52 @@ body {
     margin: 0 auto;
 }
 
-/* Avatar - Markazda, KATTA (60% ekran) */
 .profile-avatar {
-    width: 180px;
-    height: 180px;
-    border-radius: 20px;
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
     object-fit: cover;
-    border: 5px solid #667eea;
-    margin: 0 auto 20px;
-    display: block;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    border: 3px solid #667eea;
+    margin: 0 auto 15px;
 }
 
-/* Opponent Avatar - Markazda, KATTA (60% ekran) */
 .opponent-avatar {
-    width: 200px;
-    height: 200px;
-    border-radius: 20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
     object-fit: cover;
-    border: 5px solid #667eea;
-    margin: 0 auto 25px;
-    display: block;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    border: 3px solid #667eea;
+    margin: 0 auto 15px;
 }
 
-/* Timer - Markazda */
+/* Start Button */
+.start-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 20px;
+    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+}
+
+.start-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+}
+
+.start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #95a5a6;
+}
+
+/* Timer */
 .timer-container {
     margin: 30px 0;
     display: flex;
@@ -163,10 +187,10 @@ body {
 }
 
 .timer-circle {
-    width: 100px;
-    height: 100px;
-    border: 6px solid #e0e0e0;
-    border-top: 6px solid #667eea;
+    width: 80px;
+    height: 80px;
+    border: 4px solid #e0e0e0;
+    border-top: 4px solid #667eea;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -175,12 +199,12 @@ body {
 }
 
 .timer {
-    font-size: 2.5rem;
+    font-size: 2rem;
     font-weight: bold;
     color: #667eea;
 }
 
-/* Vote Buttons - Markazda */
+/* Vote Buttons */
 .vote-container {
     margin: 30px 0;
     width: 100%;
@@ -191,7 +215,7 @@ body {
 .vote-buttons {
     display: flex;
     justify-content: center;
-    gap: 30px;
+    gap: 20px;
     padding: 0 20px;
 }
 
@@ -215,21 +239,34 @@ body {
     margin-bottom: 8px;
 }
 
-.vote-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 500;
+.vote-btn.btn-no {
+    background: #95a5a6;
+    color: white;
 }
 
-/* Match Screen - Soddalashtirilgan */
+.vote-btn.btn-like {
+    background: #ff6b6b;
+    color: white;
+}
+
+.vote-btn.btn-super-like {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+}
+
+.vote-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+}
+
+.vote-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Match Screen */
 .match-screen {
     padding: 30px 20px;
     text-align: center;
-    min-height: calc(100vh - 106px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     animation: slideUp 0.5s ease-out;
 }
 
@@ -237,13 +274,6 @@ body {
     font-size: 2.5rem;
     margin-bottom: 15px;
     animation: bounce 1s infinite;
-}
-
-.match-text {
-    font-size: 1.2rem;
-    margin-bottom: 25px;
-    color: #333;
-    line-height: 1.4;
 }
 
 .rewards {
@@ -278,19 +308,10 @@ body {
     width: 100%;
 }
 
-.match-option-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.3);
-}
-
-/* Profile Container - Soddalashtirilgan */
+/* Profile Container */
 .profile-container {
     padding: 20px;
     text-align: center;
-}
-
-.profile-header {
-    margin-bottom: 25px;
 }
 
 .profile-stats {
@@ -320,13 +341,12 @@ body {
     font-weight: 500;
 }
 
-/* Gender Filter Container */
+/* Gender Filter */
 .gender-filter-container {
     background: white;
     padding: 20px;
     border-radius: 15px;
     margin: 20px 0;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     max-width: 320px;
     margin: 20px auto;
 }
@@ -354,11 +374,6 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
-}
-
-.gender-filter-option:hover {
-    background: #eef2ff;
-    transform: translateY(-2px);
 }
 
 .gender-filter-option.active {
@@ -390,36 +405,8 @@ body {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
-.gender-filter-info {
-    flex: 1;
-    text-align: left;
-}
-
-.gender-filter-name {
-    font-weight: bold;
-    margin-bottom: 3px;
-    font-size: 1rem;
-}
-
-.gender-filter-description {
-    font-size: 0.85rem;
-    color: #666;
-}
-
-.gender-filter-check {
-    color: #667eea;
-    font-size: 1.2rem;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.gender-filter-option.active .gender-filter-check {
-    opacity: 1;
-}
-
-/* Modallar - Soddalashtirilgan */
-.gender-modal,
-.rematch-modal {
+/* Modallar */
+.gender-modal, .rematch-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -433,8 +420,7 @@ body {
     padding: 20px;
 }
 
-.gender-modal.active,
-.rematch-modal.active {
+.gender-modal.active, .rematch-modal.active {
     display: flex;
 }
 
@@ -448,95 +434,44 @@ body {
     animation: modalAppear 0.3s ease-out;
 }
 
-/* Chat Modal */
-.chat-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: white;
-    display: none;
-    z-index: 1000;
-    flex-direction: column;
-}
-
-.chat-modal.active {
+/* Gender Options */
+.gender-options {
     display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
 }
 
-.chat-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+.gender-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.chat-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px 20px;
-    text-align: center;
-}
-
-.chat-avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 20px;
-    object-fit: cover;
-    border: 5px solid #667eea;
-    margin-bottom: 20px;
-}
-
-.chat-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.chat-username {
-    color: #666;
-    margin-bottom: 25px;
-    font-size: 1rem;
-}
-
-.chat-button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
     border: none;
-    padding: 16px 40px;
     border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    margin-bottom: 15px;
+    font-size: 1rem;
+    text-align: left;
     width: 100%;
-    max-width: 280px;
 }
 
-.chat-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+.gender-option-btn.gender-male {
+    background: #eef2ff;
+    color: #667eea;
 }
 
-.chat-note {
-    color: #666;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    margin-top: 15px;
+.gender-option-btn.gender-female {
+    background: #fff0f7;
+    color: #f5576c;
 }
 
-/* Notification - Soddalashtirilgan */
+.gender-option-btn.gender-all {
+    background: #f0f9ff;
+    color: #4facfe;
+}
+
+/* Notification */
 .notification {
     position: fixed;
     top: 20px;
@@ -557,305 +492,7 @@ body {
     animation: slideInRight 0.3s ease-out;
 }
 
-/* Friends List - Soddalashtirilgan */
-.friend-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin-bottom: 8px;
-    transition: all 0.3s;
-}
-
-.friend-item:hover {
-    background: #eef2ff;
-}
-
-.friend-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    object-fit: cover;
-    margin-right: 12px;
-    border: 3px solid #667eea;
-}
-
-.friend-info {
-    flex: 1;
-    text-align: left;
-}
-
-.friend-name {
-    font-weight: bold;
-    margin-bottom: 3px;
-    font-size: 1rem;
-}
-
-.friend-username {
-    color: #666;
-    font-size: 0.85rem;
-    margin-bottom: 3px;
-}
-
-.friend-status {
-    font-size: 0.8rem;
-}
-
-.status-online {
-    color: #2ecc71;
-}
-
-.status-offline {
-    color: #95a5a6;
-}
-
-/* Shop Items - Soddalashtirilgan */
-.shop-items {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 15px;
-}
-
-.shop-item {
-    background: white;
-    border: 2px solid #eee;
-    border-radius: 15px;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    transition: all 0.3s;
-}
-
-.shop-item:hover {
-    border-color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.shop-item-icon {
-    font-size: 1.8rem;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin-right: 15px;
-}
-
-.shop-item-info {
-    flex: 1;
-    text-align: left;
-}
-
-.shop-item-name {
-    font-weight: bold;
-    margin-bottom: 3px;
-    font-size: 1rem;
-}
-
-.shop-item-description {
-    font-size: 0.85rem;
-    color: #666;
-}
-
-.shop-item-buy {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.3s;
-}
-
-.shop-item-buy:hover:not(:disabled) {
-    transform: scale(1.05);
-}
-
-.shop-item-buy:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Leaderboard - Soddalashtirilgan */
-.leaderboard-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 15px;
-}
-
-.leaderboard-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    transition: all 0.3s;
-}
-
-.leaderboard-item:hover {
-    background: #eef2ff;
-}
-
-.leaderboard-rank {
-    width: 35px;
-    height: 35px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 8px;
-    font-weight: bold;
-    margin-right: 12px;
-    font-size: 1rem;
-}
-
-.leaderboard-info {
-    flex: 1;
-    text-align: left;
-}
-
-.leaderboard-name {
-    font-weight: bold;
-    margin-bottom: 3px;
-    font-size: 1rem;
-}
-
-.leaderboard-stats {
-    font-size: 0.85rem;
-    color: #666;
-    display: flex;
-    gap: 10px;
-}
-
-.leaderboard-value {
-    font-weight: bold;
-    color: #667eea;
-    font-size: 1.1rem;
-}
-
-/* Quests - Soddalashtirilgan */
-.quests-container {
-    padding: 15px;
-}
-
-.quest-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    margin-bottom: 8px;
-}
-
-.quest-info {
-    flex: 1;
-    text-align: left;
-}
-
-.quest-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 1rem;
-}
-
-.quest-progress {
-    font-size: 0.85rem;
-    color: #666;
-    margin-bottom: 5px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 6px;
-    background: #e0e0e0;
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
-.quest-reward {
-    background: #667eea;
-    color: white;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-left: 15px;
-}
-
-/* Gender Badge - Yangi dizayn */
-.gender-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 15px;
-    font-size: 0.7rem;
-    margin-left: 8px;
-    color: white;
-    font-weight: 600;
-    vertical-align: middle;
-    animation: badgeAppear 0.5s ease-out;
-}
-
-.gender-male-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.gender-female-badge {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.gender-all-badge {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-/* Start Button Container */
-.start-btn-container {
-    width: 100%;
-    max-width: 320px;
-    margin: 20px auto;
-}
-
-.start-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    width: 100%;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-}
-
-.start-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.start-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Animation Classes */
+/* Animatsiyalar */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -881,143 +518,6 @@ body {
     to { transform: translateX(0); opacity: 1; }
 }
 
-@keyframes badgeAppear {
-    0% {
-        opacity: 0;
-        transform: scale(0.8) translateY(-5px);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-/* Responsive Design */
-@media (max-width: 500px) {
-    .app-container {
-        max-width: 100%;
-    }
-    
-    .vote-buttons {
-        gap: 20px;
-    }
-    
-    .vote-btn {
-        width: 55px;
-        height: 55px;
-        font-size: 1.6rem;
-    }
-    
-    .opponent-avatar {
-        width: 180px;
-        height: 180px;
-    }
-    
-    .profile-avatar {
-        width: 160px;
-        height: 160px;
-    }
-    
-    .chat-avatar {
-        width: 130px;
-        height: 130px;
-    }
-    
-    .timer-circle {
-        width: 90px;
-        height: 90px;
-    }
-    
-    .timer {
-        font-size: 2.2rem;
-    }
-    
-    .match-title {
-        font-size: 2.2rem;
-    }
-}
-
-@media (max-width: 350px) {
-    .nav-tab span {
-        display: none;
-    }
-    
-    .nav-tab i {
-        margin-bottom: 0;
-        font-size: 1.3rem;
-    }
-    
-    .nav-tabs {
-        height: 45px;
-    }
-    
-    .nav-tab {
-        padding: 10px 5px;
-        min-height: 45px;
-    }
-    
-    .vote-buttons {
-        gap: 15px;
-    }
-    
-    .vote-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-    
-    .opponent-avatar {
-        width: 160px;
-        height: 160px;
-    }
-    
-    .profile-avatar {
-        width: 140px;
-        height: 140px;
-    }
-}
-
-/* Hidden class */
-.hidden {
-    display: none !important;
-}
-
-/* Loading States */
-.loader {
-    width: 50px;
-    height: 50px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
-    border-radius: 50%;
-    margin: 20px auto;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Status Messages */
-.status-message {
-    padding: 12px 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    color: #666;
-    font-size: 0.9rem;
-    margin: 20px auto;
-    max-width: 320px;
-    text-align: center;
-}
-
 /* Super Like Indicator */
 .super-like-indicator {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -1033,974 +533,7 @@ body {
     box-shadow: 0 4px 12px rgba(240,147,251,0.3);
 }
 
-/* Gender Options */
-.gender-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 20px 0;
-}
-
-.gender-option-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 1rem;
-    text-align: left;
-    width: 100%;
-}
-
-.gender-option-btn i {
-    font-size: 1.3rem;
-}
-
-.gender-option-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-/* Text Elements */
-h1, h2, h3, h4 {
-    color: #333;
-    font-weight: 600;
-}
-
-p {
-    color: #666;
-    line-height: 1.5;
-}
-
-/* Scrollbar Styling */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #667eea;
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #764ba2;
-}
-
-/* Stats in duel screen */
-.opponent-stats {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    color: #666;
-    margin-top: 10px;
-    font-size: 0.9rem;
-}
-
-.opponent-stats span {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-/* Duel tugashi ekrani uchun stillar */
-.duel-end-options {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin: 30px 0;
-    width: 100%;
-    max-width: 300px;
-}
-
-.duel-end-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    
-    margin: 10px 0;
-}
-
-
-
-
-/* ==================== SOVG'A MODAL STILLARI ==================== */
-.gift-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    animation: fadeIn 0.3s ease;
-}
-
-.gift-modal .modal-content {
-    background: white;
-    border-radius: 16px;
-    width: 90%;
-    max-width: 400px;
-    animation: slideUp 0.3s ease;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-}
-
-.modal-header .close-btn {
-    background: none;
-    border: none;
-    font-size: 1.8rem;
-    cursor: pointer;
-    color: #666;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-}
-
-.modal-header .close-btn:hover {
-    background: #f5f5f5;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-/* Sovg'a turlari */
-.gift-type-option:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
-}
-
-/* ==================== DO'STLAR RO'YXATIDA SOVG'A TUGMASI ==================== */
-.friend-item {
-    position: relative;
-}
-
-.send-gift-friend-btn {
-    position: absolute;
-    right: 70px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-    color: white;
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.3s;
-}
-
-.send-gift-friend-btn:hover {
-    transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-}
-
-/* ==================== DO'KON STILLARI ==================== */
-.shop-container {
-    padding: 15px;
-}
-
-.shop-categories {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    overflow-x: auto;
-    padding-bottom: 10px;
-}
-
-.shop-category-btn {
-    padding: 8px 16px;
-    background: #f8f9fa;
-    border: 1px solid #e7e8ec;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    white-space: nowrap;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.shop-category-btn.active {
-    background: #3390ec;
-    color: white;
-    border-color: #3390ec;
-}
-
-.shop-items-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 15px;
-}
-
-.shop-item-card {
-    background: white;
-    border-radius: 12px;
-    padding: 15px;
-    border: 1px solid #e7e8ec;
-    transition: all 0.3s;
-    position: relative;
-}
-
-.shop-item-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    border-color: #3390ec;
-}
-
-.shop-item-card.hot::before {
-    content: '🔥';
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #ff6b6b;
-    color: white;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-}
-
-.shop-item-icon {
-    font-size: 2rem;
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.shop-item-name {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 0.95rem;
-}
-
-.shop-item-description {
-    color: #666;
-    font-size: 0.8rem;
-    margin-bottom: 10px;
-    line-height: 1.3;
-}
-
-.shop-item-price {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.price-coins {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: bold;
-    color: #f39c12;
-}
-
-.buy-btn {
-    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.buy-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-}
-
-.buy-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* ==================== SOVG'ALAR TABI ==================== */
-.gifts-tabs {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 20px;
-    background: #f8f9fa;
-    padding: 5px;
-    border-radius: 10px;
-}
-
-.gift-tab-btn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.3s;
-}
-
-.gift-tab-btn.active {
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    font-weight: 500;
-}
-
-.gift-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: white;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    border: 1px solid #e7e8ec;
-}
-
-.gift-icon-large {
-    font-size: 2.5rem;
-    margin-right: 15px;
-}
-
-.gift-info {
-    flex: 1;
-}
-
-.gift-sender {
-    font-weight: bold;
-    margin-bottom: 3px;
-}
-
-.gift-type {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 3px;
-}
-
-.gift-time {
-    color: #95a5a6;
-    font-size: 0.8rem;
-}
-
-.gift-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.accept-gift-btn {
-    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.85rem;
-}
-
-/* ==================== LIMITLAR TABI ==================== */
-.limit-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: white;
-    border-radius: 12px;
-    margin-bottom: 10px;
-}
-
-.limit-icon {
-    font-size: 1.8rem;
-    margin-right: 15px;
-    width: 40px;
-    text-align: center;
-}
-
-.limit-details {
-    flex: 1;
-}
-
-.limit-name {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.limit-progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 5px;
-}
-
-.progress-bar {
-    flex: 1;
-    height: 6px;
-    background: #e7e8ec;
-    border-radius: 3px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-    border-radius: 3px;
-    transition: width 0.3s;
-}
-
-.limit-count {
-    font-size: 0.9rem;
-    color: #666;
-    min-width: 60px;
-    text-align: right;
-}
-
-/* ==================== ANIMATSIYALAR ==================== */
-@keyframes giftBounce {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-.gift-notification {
-    animation: giftBounce 0.5s ease 3;
-}
-
-@keyframes coinRain {
-    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(500px) rotate(360deg); opacity: 0; }
-}
-
-.coin-animation {
-    position: fixed;
-    font-size: 1.5rem;
-    z-index: 3000;
-    pointer-events: none;
-    animation: coinRain 2s linear forwards;
-}
-
-.duel-end-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.duel-end-btn.secondary {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-}
-
-.duel-end-btn.secondary:hover {
-    box-shadow: 0 8px 20px rgba(149,165,166,0.4);
-}
-
-/* Match ekranida avtomatik timeout-xabarni olib tashlash */
-#matchScreen div[style*="5 soniyadan keyin"] {
-    display: none !important;
-}
-
-
-/* ==================== WELCOME SCREEN DIZAYINI ==================== */
-.profile-card {
-    background: white;
-    padding: 30px 25px;
-    text-align: center;
-    animation: fadeIn 0.5s ease-out;
-    width: 100%;
-    max-width: 320px;
-    margin: 20px auto;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-
-/* Start tugmasiga maxsus dizayn */
-.start-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    width: 100%;
-    margin-top: 20px;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-}
-
-.start-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.start-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #95a5a6;
-}
-
-/* Loading state */
-.start-btn.loading {
-    position: relative;
-    color: transparent;
-}
-
-.start-btn.loading::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top: 2px solid white;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-/* Gender filter dizayni */
-.gender-filter-container {
-    background: white;
-    padding: 20px;
-    border-radius: 15px;
-    margin: 20px 0;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    max-width: 320px;
-    margin: 20px auto;
-    border: 2px solid #f0f0f0;
-}
-
-.gender-filter-title {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #333;
-    text-align: center;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.gender-filter-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.gender-filter-option {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 2px solid transparent;
-}
-
-.gender-filter-option:hover {
-    background: #eef2ff;
-    transform: translateY(-2px);
-}
-
-.gender-filter-option.active {
-    border-color: #667eea;
-    background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
-}
-
-.gender-filter-icon {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    margin-right: 15px;
-    color: white;
-    font-size: 1.2rem;
-}
-
-.gender-filter-icon.male {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.gender-filter-icon.female {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.gender-filter-icon.all {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.gender-filter-info {
-    flex: 1;
-    text-align: left;
-}
-
-.gender-filter-name {
-    font-weight: bold;
-    margin-bottom: 3px;
-    font-size: 1rem;
-}
-
-.gender-filter-description {
-    font-size: 0.85rem;
-    color: #666;
-}
-
-.gender-filter-check {
-    color: #667eea;
-    font-size: 1.2rem;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.gender-filter-option.active .gender-filter-check {
-    opacity: 1;
-}
-
-/* Gender badge dizayni */
-.gender-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 0.75rem;
-    margin-left: 8px;
-    color: white;
-    font-weight: 600;
-    vertical-align: middle;
-    animation: badgeAppear 0.5s ease-out;
-}
-
-.gender-male-badge {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.gender-female-badge {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.gender-all-badge {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-/* Queue screen dizayni */
-.queue-screen {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    text-align: center;
-}
-
-.waiting-count {
-    font-size: 4rem;
-    font-weight: bold;
-    color: #667eea;
-    margin: 20px 0;
-    text-shadow: 0 2px 10px rgba(102,126,234,0.3);
-    animation: pulse 1.5s infinite;
-}
-
-.status-message {
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 12px;
-    color: #666;
-    font-size: 0.9rem;
-    margin: 20px auto;
-    max-width: 320px;
-    text-align: center;
-    border-left: 4px solid #667eea;
-}
-
-/* Duel screen dizayni */
-.opponent-avatar {
-    width: 200px;
-    height: 200px;
-    border-radius: 20px;
-    object-fit: cover;
-    border: 5px solid #667eea;
-    margin: 0 auto 25px;
-    display: block;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-    animation: avatarAppear 0.5s ease-out;
-}
-
-.opponent-info {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.opponent-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-    color: #333;
-}
-
-.opponent-username {
-    color: #666;
-    margin-bottom: 15px;
-    font-size: 1rem;
-}
-
-.opponent-stats {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    color: #666;
-    margin-top: 10px;
-    font-size: 0.9rem;
-    flex-wrap: wrap;
-}
-
-.opponent-stats span {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-/* Timer dizayni */
-.timer-container {
-    margin: 30px 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.timer-circle {
-    width: 100px;
-    height: 100px;
-    border: 6px solid #e0e0e0;
-    border-top: 6px solid #667eea;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    animation: timerSpin 20s linear infinite;
-}
-
-@keyframes timerSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.timer {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #667eea;
-    animation: timerPulse 1s infinite;
-}
-
-@keyframes timerPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-/* Vote buttons dizayni */
-.vote-container {
-    margin: 30px 0;
-    width: 100%;
-    max-width: 320px;
-    margin: 30px auto;
-}
-
-.vote-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    padding: 0 20px;
-}
-
-.vote-btn-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.vote-btn {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.vote-btn:hover:not(:disabled) {
-    transform: scale(1.1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-}
-
-.vote-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-.vote-btn.btn-no {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-    color: white;
-}
-
-.vote-btn.btn-like {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-    color: white;
-}
-
-.vote-btn.btn-super-like {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-}
-
-.vote-label {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 500;
-    margin-top: 5px;
-}
-
-/* Super like indicator */
-.super-like-indicator {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 20px;
-    margin: 15px auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(240,147,251,0.3);
-}
-
-/* Match screen dizayni */
-.match-screen {
-    padding: 30px 20px;
-    text-align: center;
-    min-height: calc(100vh - 106px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    animation: slideUp 0.5s ease-out;
-    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-}
-
-.match-title {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    animation: bounce 1s infinite;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-}
-
-.match-text {
-    font-size: 1.3rem;
-    margin-bottom: 25px;
-    color: #333;
-    line-height: 1.4;
-    font-weight: 500;
-}
-
-.rewards {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 20px;
-    margin: 20px 0;
-    width: 100%;
-    max-width: 320px;
-    box-shadow: 0 10px 20px rgba(79,172,254,0.3);
-}
-
-.rewards > div {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.match-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 25px 0;
-    width: 100%;
-    max-width: 320px;
-}
-
-.match-option-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 12px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    width: 100%;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-}
-
-.match-option-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.match-option-btn:nth-child(2) {
-    background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
-}
-
-.match-option-btn:nth-child(3) {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-}
-
-/* Duel end screen dizayni */
+/* Duel End Options */
 .duel-end-options {
     display: flex;
     flex-direction: column;
@@ -2021,7 +554,6 @@ p {
     transition: all 0.3s;
     font-weight: 600;
     margin: 10px 0;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
 }
 
 .duel-end-btn:hover {
@@ -2033,168 +565,10 @@ p {
     background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
 }
 
-.duel-end-btn.secondary:hover {
-    box-shadow: 0 8px 20px rgba(149,165,166,0.4);
-}
-
-/* Notification dizayni */
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: white;
-    padding: 16px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    display: none;
-    z-index: 3000;
-    animation: slideInRight 0.3s ease-out;
-    max-width: 280px;
-    border-left: 5px solid #667eea;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.notification.active {
-    display: block;
-    animation: slideInRight 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-.notification #notificationTitle {
-    font-weight: bold;
-    margin-bottom: 8px;
-    font-size: 1.1rem;
-    color: #333;
-}
-
-.notification #notificationMessage {
-    color: #666;
-    font-size: 0.95rem;
-    line-height: 1.4;
-}
-
-/* Nav tabs dizayni */
-.nav-tab {
-    position: relative;
-}
-
-.nav-tab-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #e74c3c;
-    color: white;
-    font-size: 0.7rem;
-    min-width: 18px;
-    height: 18px;
-    border-radius: 9px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 4px;
-    font-weight: bold;
-    border: 2px solid white;
-    animation: badgePulse 2s infinite;
-}
-
-@keyframes badgePulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-/* Loading animations */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from { transform: translateY(50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes avatarAppear {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes badgeAppear {
-    0% {
-        opacity: 0;
-        transform: scale(0.8) translateY(-5px);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-/* Responsive design */
+/* Responsive */
 @media (max-width: 500px) {
-    .vote-buttons {
-        gap: 20px;
-    }
-    
-    .vote-btn {
-        width: 65px;
-        height: 65px;
-        font-size: 1.8rem;
-    }
-    
-    .opponent-avatar {
-        width: 180px;
-        height: 180px;
-    }
-    
-    .profile-avatar {
-        width: 160px;
-        height: 160px;
-    }
-    
-    .timer-circle {
-        width: 90px;
-        height: 90px;
-    }
-    
-    .timer {
-        font-size: 2.2rem;
-    }
-    
-    .match-title {
-        font-size: 2.5rem;
-    }
-    
-    .waiting-count {
-        font-size: 3rem;
-    }
-}
-
-@media (max-width: 350px) {
-    .nav-tab span {
-        display: none;
-    }
-    
-    .nav-tab i {
-        margin-bottom: 0;
-        font-size: 1.3rem;
+    .app-container {
+        max-width: 100%;
     }
     
     .vote-buttons {
@@ -2202,42 +576,17 @@ p {
     }
     
     .vote-btn {
-        width: 60px;
-        height: 60px;
+        width: 55px;
+        height: 55px;
         font-size: 1.6rem;
     }
     
-    .opponent-avatar {
-        width: 160px;
-        height: 160px;
+    .timer-circle {
+        width: 70px;
+        height: 70px;
     }
     
-    .profile-avatar {
-        width: 140px;
-        height: 140px;
+    .timer {
+        font-size: 1.8rem;
     }
-}
-
-/* Hidden class */
-.hidden {
-    display: none !important;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #764ba2;
 }

@@ -2442,6 +2442,7 @@ function startGame() {
         connectToServer();
     }
 }
+
 // ==================== FILTER QO'SHISH ====================
 function addFilterToWelcomeScreen() {
     const profileCard = document.getElementById('profileCard');
@@ -2517,6 +2518,7 @@ function addFilterToWelcomeScreen() {
         startBtn.parentNode.insertBefore(filterElement, startBtn);
     }
 }
+
 // ==================== EVENT LISTENER QO'SHISH ====================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
@@ -2595,6 +2597,7 @@ if (!window.Telegram || !Telegram.WebApp) {
         }
     }, 1000);
 }
+
 // ==================== NAVBATDAN CHIQISH ====================
 function leaveQueue() {
     console.log('🚪 Navbatdan chiqish');
@@ -2652,65 +2655,62 @@ function initTabNavigation() {
     });
 }
 
-// ==================== DOM YUKLANGANDA ====================
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
-    
-    initUserProfile();
-    createGiftsTab();
-    initTabNavigation();
-    addGiftStyles();
-    
-    // Event listener'lar
-    if (elements.startBtn) {
-        elements.startBtn.addEventListener('click', startGame);
+// ==================== YANGI FUNKSIYALAR ====================
+function updateQueueStatus(message) {
+    if (elements.queueStatus) {
+        elements.queueStatus.textContent = message;
     }
-    
-    if (elements.leaveQueueBtn) {
-        elements.leaveQueueBtn.addEventListener('click', leaveQueue);
+}
+
+function updateDuelStatus(message) {
+    if (elements.duelStatus) {
+        elements.duelStatus.textContent = message;
     }
+}
+
+function updateStats(data) {
+    if (data.coins) userState.coins = data.coins;
+    if (data.rating) userState.rating = data.rating;
+    if (data.matches) userState.matches = data.matches;
     
-    if (elements.noBtn) {
-        elements.noBtn.addEventListener('click', () => handleVote('skip'));
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
+}
+
+function showNotification(title, message) {
+    if (elements.notification) {
+        elements.notificationTitle.textContent = title;
+        elements.notificationMessage.textContent = message;
+        elements.notification.classList.add('active');
+        
+        setTimeout(() => {
+            elements.notification.classList.remove('active');
+        }, 3000);
     }
-    
-    if (elements.likeBtn) {
-        elements.likeBtn.addEventListener('click', () => handleVote('like'));
+}
+
+function showRematchModal(opponentName, opponentId) {
+    if (elements.rematchModal && elements.rematchOpponentName) {
+        elements.rematchOpponentName.textContent = opponentName;
+        elements.rematchModal.classList.add('active');
+        
+        // Event listener'lar
+        if (elements.acceptRematchBtn) {
+            elements.acceptRematchBtn.onclick = () => {
+                if (gameState.socket) {
+                    gameState.socket.emit('accept_rematch', { opponentId: opponentId });
+                }
+                elements.rematchModal.classList.remove('active');
+            };
+        }
+        
+        if (elements.declineRematchBtn) {
+            elements.declineRematchBtn.onclick = () => {
+                elements.rematchModal.classList.remove('active');
+            };
+        }
     }
-    
-    if (elements.superLikeBtn) {
-        elements.superLikeBtn.addEventListener('click', () => handleVote('super_like'));
-    }
-    
-    if (elements.selectGenderNowBtn) {
-        elements.selectGenderNowBtn.addEventListener('click', () => showGenderModal(true));
-    }
-    
-    if (elements.selectMaleBtn) {
-        elements.selectMaleBtn.onclick = () => {
-            selectGender('male');
-            hideGenderModal();
-        };
-    }
-    
-    if (elements.selectFemaleBtn) {
-        elements.selectFemaleBtn.onclick = () => {
-            selectGender('female');
-            hideGenderModal();
-        };
-    }
-    
-    if (elements.selectAllBtn) {
-        elements.selectAllBtn.onclick = () => {
-            selectGender('not_specified');
-            hideGenderModal();
-        };
-    }
-    
-    // Boshqa event listener'lar...
-    
-    console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
-});
+}
 
 // ==================== GLOBAL FUNKSIYALAR ====================
 window.selectGender = selectGender;

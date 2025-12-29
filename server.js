@@ -17,7 +17,6 @@ const io = new Server(server, {
     pingInterval: 25000
 });
 
-// ==================== CORS SOZLAMALARI ====================
 app.use(cors({
     origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500"],
     credentials: true
@@ -43,50 +42,334 @@ app.get('/style.css', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
-        message: 'Like Duel Server is running on Render',
+        message: 'Like Duel Server - Sovg\'a Tizimi',
         timestamp: new Date().toISOString(),
         platform: 'Render.com',
         websocket: 'Active',
         users: Object.keys(users).length,
         queue: queue.length,
-        activeDuels: Object.keys(activeDuels).length
+        activeDuels: Object.keys(activeDuels).length,
+        totalGifts: Object.keys(gifts).length
     });
 });
 
-app.get('/api/stats', (req, res) => {
-    const totalUsers = Object.keys(users).length;
-    const usersWithGender = Object.values(users).filter(u => u.hasSelectedGender).length;
-    const maleUsers = Object.values(users).filter(u => u.gender === 'male').length;
-    const femaleUsers = Object.values(users).filter(u => u.gender === 'female').length;
-    
+app.get('/api/shop', (req, res) => {
     res.json({
-        status: 'online',
-        server: 'Render.com',
-        totalUsers,
-        usersWithGender,
-        usersWithoutGender: totalUsers - usersWithGender,
-        genderStats: {
-            male: maleUsers,
-            female: femaleUsers,
-            all: Object.values(users).filter(u => u.gender === 'not_specified').length
-        },
-        waitingQueue: queue.length,
-        activeDuels: Object.keys(activeDuels).length
+        shopItems: Object.values(shopItems),
+        giftTypes: giftTypes,
+        stats: {
+            totalUsers: Object.keys(users).length,
+            premiumUsers: Object.values(users).filter(u => u.premium).length,
+            totalGiftsSent: Object.values(gifts).length,
+            giftsToday: Object.values(gifts).filter(g => 
+                new Date(g.createdAt).toDateString() === new Date().toDateString()
+            ).length
+        }
     });
 });
+
+// ==================== SOVG'A VA DO'KON TIZIMI ====================
+const shopItems = {
+    // SOVG'A LIMITLARINI OSHIRISH PAKETLARI
+    gift_hearts_10: { 
+        id: 'gift_hearts_10', 
+        name: '10 ta ❤️ Sovg\'a Limit', 
+        price: 100, 
+        type: 'gift_limit', 
+        giftType: 'hearts', 
+        quantity: 10, 
+        description: '❤️ sovg\'a limitini 10 taga oshiradi',
+        icon: '❤️',
+        category: 'gift_limits'
+    },
+    gift_hearts_50: { 
+        id: 'gift_hearts_50', 
+        name: '50 ta ❤️ Sovg\'a Limit', 
+        price: 450, 
+        type: 'gift_limit', 
+        giftType: 'hearts', 
+        quantity: 50, 
+        description: '❤️ sovg\'a limitini 50 taga oshiradi',
+        icon: '❤️',
+        category: 'gift_limits'
+    },
+    gift_hearts_100: { 
+        id: 'gift_hearts_100', 
+        name: '100 ta ❤️ Sovg\'a Limit', 
+        price: 800, 
+        type: 'gift_limit', 
+        giftType: 'hearts', 
+        quantity: 100, 
+        description: '❤️ sovg\'a limitini 100 taga oshiradi',
+        icon: '❤️',
+        category: 'gift_limits'
+    },
+    
+    gift_stars_10: { 
+        id: 'gift_stars_10', 
+        name: '10 ta ⭐ Sovg\'a Limit', 
+        price: 150, 
+        type: 'gift_limit', 
+        giftType: 'stars', 
+        quantity: 10, 
+        description: '⭐ sovg\'a limitini 10 taga oshiradi',
+        icon: '⭐',
+        category: 'gift_limits'
+    },
+    gift_stars_50: { 
+        id: 'gift_stars_50', 
+        name: '50 ta ⭐ Sovg\'a Limit', 
+        price: 700, 
+        type: 'gift_limit', 
+        giftType: 'stars', 
+        quantity: 50, 
+        description: '⭐ sovg\'a limitini 50 taga oshiradi',
+        icon: '⭐',
+        category: 'gift_limits'
+    },
+    
+    gift_crown_5: { 
+        id: 'gift_crown_5', 
+        name: '5 ta 👑 Sovg\'a Limit', 
+        price: 500, 
+        type: 'gift_limit', 
+        giftType: 'crown', 
+        quantity: 5, 
+        description: '👑 sovg\'a limitini 5 taga oshiradi',
+        icon: '👑',
+        category: 'gift_limits'
+    },
+    gift_crown_20: { 
+        id: 'gift_crown_20', 
+        name: '20 ta 👑 Sovg\'a Limit', 
+        price: 1800, 
+        type: 'gift_limit', 
+        giftType: 'crown', 
+        quantity: 20, 
+        description: '👑 sovg\'a limitini 20 taga oshiradi',
+        icon: '👑',
+        category: 'gift_limits'
+    },
+    
+    gift_fire_10: { 
+        id: 'gift_fire_10', 
+        name: '10 ta 🔥 Sovg\'a Limit', 
+        price: 200, 
+        type: 'gift_limit', 
+        giftType: 'fire', 
+        quantity: 10, 
+        description: '🔥 sovg\'a limitini 10 taga oshiradi',
+        icon: '🔥',
+        category: 'gift_limits'
+    },
+    
+    gift_diamond_5: { 
+        id: 'gift_diamond_5', 
+        name: '5 ta 💎 Sovg\'a Limit', 
+        price: 1000, 
+        type: 'gift_limit', 
+        giftType: 'diamond', 
+        quantity: 5, 
+        description: '💎 sovg\'a limitini 5 taga oshiradi',
+        icon: '💎',
+        category: 'gift_limits'
+    },
+    
+    // SUPER LIKE PAKETLARI
+    super_likes_10: { 
+        id: 'super_likes_10', 
+        name: '10 ta 💖 Super Like', 
+        price: 300, 
+        type: 'super_like', 
+        quantity: 10, 
+        description: '10 ta kunlik SUPER LIKE',
+        icon: '💖',
+        category: 'super_likes'
+    },
+    super_likes_50: { 
+        id: 'super_likes_50', 
+        name: '50 ta 💖 Super Like', 
+        price: 1200, 
+        type: 'super_like', 
+        quantity: 50, 
+        description: '50 ta kunlik SUPER LIKE',
+        icon: '💖',
+        category: 'super_likes'
+    },
+    super_likes_100: { 
+        id: 'super_likes_100', 
+        name: '100 ta 💖 Super Like', 
+        price: 2000, 
+        type: 'super_like', 
+        quantity: 100, 
+        description: '100 ta kunlik SUPER LIKE',
+        icon: '💖',
+        category: 'super_likes'
+    },
+    
+    // PREMIUM STATUS
+    premium_7: { 
+        id: 'premium_7', 
+        name: '7 kun Premium', 
+        price: 500, 
+        type: 'premium', 
+        days: 7, 
+        description: '7 kunlik premium status + limitlar 2x',
+        icon: '👑',
+        category: 'premium',
+        benefits: ['2x sovg\'a limitlari', 'Eksklyuziv sovg\'alar', 'Reklamalarsiz']
+    },
+    premium_30: { 
+        id: 'premium_30', 
+        name: '30 kun Premium', 
+        price: 1500, 
+        type: 'premium', 
+        days: 30, 
+        description: '30 kunlik premium status + limitlar 3x',
+        icon: '👑',
+        category: 'premium',
+        benefits: ['3x sovg\'a limitlari', 'Barcha sovg\'alar ochiq', 'Premium badge']
+    },
+    premium_90: { 
+        id: 'premium_90', 
+        name: '90 kun Premium', 
+        price: 3500, 
+        type: 'premium', 
+        days: 90, 
+        description: '90 kunlik premium status + cheksiz sovg\'alar',
+        icon: '👑',
+        category: 'premium',
+        benefits: ['Cheksiz sovg\'alar', 'VIP support', 'Maxsus avatar']
+    },
+    
+    // COIN PAKETLARI
+    coins_100: { 
+        id: 'coins_100', 
+        name: '100 Coin', 
+        price: 100, 
+        type: 'coins', 
+        quantity: 100, 
+        description: '100 ta coin',
+        icon: '🪙',
+        category: 'coins'
+    },
+    coins_500: { 
+        id: 'coins_500', 
+        name: '500 Coin (+50 bonus)', 
+        price: 450, 
+        type: 'coins', 
+        quantity: 550, 
+        description: '500 coin + 50 bonus',
+        icon: '🪙',
+        category: 'coins'
+    },
+    coins_1000: { 
+        id: 'coins_1000', 
+        name: '1000 Coin (+200 bonus)', 
+        price: 800, 
+        type: 'coins', 
+        quantity: 1200, 
+        description: '1000 coin + 200 bonus',
+        icon: '🪙',
+        category: 'coins'
+    },
+    coins_5000: { 
+        id: 'coins_5000', 
+        name: '5000 Coin (+1500 bonus)', 
+        price: 3500, 
+        type: 'coins', 
+        quantity: 6500, 
+        description: '5000 coin + 1500 bonus',
+        icon: '🪙',
+        category: 'coins'
+    }
+};
 
 // ==================== GLOBAL O'ZGARUVCHILAR ====================
 const users = {};
 const queue = [];
 const activeDuels = {};
 const mutualMatches = {};
-const pendingActions = {}; // Yangi: foydalanuvchilarning navbatdagi harakatlari
+const gifts = {}; // Sovg'alar bazasi {giftId: giftObject}
+const dailyGiftLimits = {}; // {userId: {date: {giftType: count}}}
+const giftInventory = {}; // {userId: {giftType: purchasedLimit}}
+
+// SOVG'A TURLARI VA STANDART LIMITLARI
+const giftTypes = {
+    hearts: { 
+        name: '❤️ Yurak', 
+        dailyFreeLimit: 5, 
+        price: 10,
+        description: 'Sevgi va mehr sovg\'asi',
+        color: '#ff6b6b',
+        bonus: { coins: 5, xp: 10 }
+    },
+    stars: { 
+        name: '⭐ Yulduz', 
+        dailyFreeLimit: 3, 
+        price: 15,
+        description: 'Yulduzli sovg\'a',
+        color: '#ffd700',
+        bonus: { coins: 10, xp: 20 }
+    },
+    crown: { 
+        name: '👑 Toj', 
+        dailyFreeLimit: 1, 
+        price: 50,
+        description: 'Qirollik sovg\'asi',
+        color: '#f39c12',
+        bonus: { coins: 50, xp: 100 }
+    },
+    fire: { 
+        name: '🔥 Olov', 
+        dailyFreeLimit: 2, 
+        price: 20,
+        description: 'Issiqlik va g\'ayrat sovg\'asi',
+        color: '#e74c3c',
+        bonus: { coins: 15, xp: 30 }
+    },
+    diamond: { 
+        name: '💎 Brilliant', 
+        dailyFreeLimit: 1, 
+        price: 100,
+        description: 'Qimmatbaho sovg\'a',
+        color: '#3498db',
+        bonus: { coins: 100, xp: 200 }
+    },
+    rocket: { 
+        name: '🚀 Raketa', 
+        dailyFreeLimit: 0, 
+        price: 75,
+        description: 'Premium sovg\'a - faqat premium foydalanuvchilar',
+        color: '#9b59b6',
+        bonus: { coins: 75, xp: 150 },
+        premiumOnly: true
+    },
+    trophy: { 
+        name: '🏆 Kubok', 
+        dailyFreeLimit: 0, 
+        price: 150,
+        description: 'Eksklyuziv sovg\'a - faqat premium foydalanuvchilar',
+        color: '#2ecc71',
+        bonus: { coins: 150, xp: 300 },
+        premiumOnly: true
+    }
+};
 
 // ==================== YORDAMCHI FUNKSIYALAR ====================
 function generateDuelId() {
     return 'duel_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
+function generateGiftId() {
+    return 'gift_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function generateTransactionId() {
+    return 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+// Gender va filter tekshirish funksiyalari...
 function checkGenderCompatibility(user1, user2) {
     if (!user1?.gender || !user2?.gender) return false;
     if (user1.gender === 'not_specified' || user2.gender === 'not_specified') return true;
@@ -112,345 +395,509 @@ function checkFilterCompatibility(user, opponent) {
     return false;
 }
 
-function findOpponentFor(userId) {
+// YANGI: Foydalanuvchining joriy sovg'a limitini hisoblash
+function getUserGiftLimit(userId, giftType) {
     const user = users[userId];
-    if (!user || !user.hasSelectedGender || !user.gender) return null;
+    if (!user) return { dailyLimit: 0, purchasedLimit: 0, totalLimit: 0 };
     
-    for (let i = 0; i < queue.length; i++) {
-        const opponentId = queue[i];
-        if (opponentId === userId) continue;
-        
-        const opponent = users[opponentId];
-        if (!opponent) continue;
-        
-        if (!opponent.hasSelectedGender || !opponent.gender) continue;
-        
-        if (!checkGenderCompatibility(user, opponent)) continue;
-        
-        if (!checkFilterCompatibility(user, opponent)) continue;
-        
-        if (!checkFilterCompatibility(opponent, user)) continue;
-        
-        return opponentId;
+    const giftInfo = giftTypes[giftType];
+    if (!giftInfo) return { dailyLimit: 0, purchasedLimit: 0, totalLimit: 0 };
+    
+    // Asosiy limit
+    let baseLimit = giftInfo.dailyFreeLimit;
+    
+    // Agar premium bo'lsa, limitni ko'paytirish
+    if (user.premium && user.premiumExpiry > new Date()) {
+        if (user.premiumDays >= 90) {
+            baseLimit = 9999; // Cheksiz
+        } else if (user.premiumDays >= 30) {
+            baseLimit *= 3;
+        } else if (user.premiumDays >= 7) {
+            baseLimit *= 2;
+        }
     }
     
-    return null;
+    // Sotib olingan limit
+    const purchasedLimit = giftInventory[userId]?.[giftType] || 0;
+    
+    // Premium sovg'alarni tekshirish
+    if (giftInfo.premiumOnly && !user.premium) {
+        return { dailyLimit: 0, purchasedLimit: 0, totalLimit: 0 };
+    }
+    
+    return {
+        dailyLimit: baseLimit,
+        purchasedLimit: purchasedLimit,
+        totalLimit: baseLimit + purchasedLimit
+    };
 }
 
-function updateWaitingCount() {
-    const count = queue.length;
+// YANGI: Sovg'a limitini tekshirish
+function checkGiftLimit(userId, giftType) {
+    const today = new Date().toDateString();
+    const user = users[userId];
     
-    queue.forEach((userId, index) => {
+    if (!user) {
+        return { 
+            canSend: false, 
+            reason: 'Foydalanuvchi topilmadi',
+            code: 'USER_NOT_FOUND'
+        };
+    }
+    
+    // Premium sovg'alarni tekshirish
+    const giftInfo = giftTypes[giftType];
+    if (giftInfo.premiumOnly && !user.premium) {
+        return { 
+            canSend: false, 
+            reason: 'Bu sovg\'a faqat premium foydalanuvchilar uchun',
+            code: 'PREMIUM_REQUIRED'
+        };
+    }
+    
+    // Joriy limitni olish
+    const limits = getUserGiftLimit(userId, giftType);
+    
+    // Bugungi yuborilgan sovg'alar soni
+    const userLimits = dailyGiftLimits[userId] || {};
+    const todayLimits = userLimits[today] || {};
+    const sentToday = todayLimits[giftType] || 0;
+    
+    // Limitni tekshirish
+    if (sentToday >= limits.totalLimit) {
+        return { 
+            canSend: false, 
+            reason: `Kunlik limit tugadi. ${giftInfo.name} sovg\'asidan faqat ${limits.totalLimit} ta yuborish mumkin.`,
+            code: 'DAILY_LIMIT_EXCEEDED',
+            limit: limits.totalLimit,
+            sent: sentToday,
+            remaining: 0,
+            baseLimit: limits.dailyLimit,
+            purchasedLimit: limits.purchasedLimit
+        };
+    }
+    
+    // Coin tekshirish
+    if (user.coins < giftInfo.price) {
+        return { 
+            canSend: false, 
+            reason: `Sovg\'a yuborish uchun yetarli coin yo'q. Kerak: ${giftInfo.price} coin`,
+            code: 'INSUFFICIENT_COINS',
+            required: giftInfo.price,
+            current: user.coins
+        };
+    }
+    
+    return { 
+        canSend: true, 
+        limit: limits.totalLimit,
+        sent: sentToday,
+        remaining: limits.totalLimit - sentToday,
+        baseLimit: limits.dailyLimit,
+        purchasedLimit: limits.purchasedLimit,
+        price: giftInfo.price
+    };
+}
+
+// YANGI: Sovg'ani yuborish
+function sendGift(senderId, receiverId, giftType) {
+    const sender = users[senderId];
+    const receiver = users[receiverId];
+    
+    if (!sender || !receiver) {
+        return { success: false, message: 'Foydalanuvchi topilmadi' };
+    }
+    
+    // Limitni tekshirish
+    const limitCheck = checkGiftLimit(senderId, giftType);
+    if (!limitCheck.canSend) {
+        return { 
+            success: false, 
+            message: limitCheck.reason,
+            code: limitCheck.code
+        };
+    }
+    
+    // Coinlarni hisobdan olib tashlash
+    sender.coins -= limitCheck.price;
+    
+    // Bugungi limitni yangilash
+    const today = new Date().toDateString();
+    if (!dailyGiftLimits[senderId]) dailyGiftLimits[senderId] = {};
+    if (!dailyGiftLimits[senderId][today]) dailyGiftLimits[senderId][today] = {};
+    
+    dailyGiftLimits[senderId][today][giftType] = 
+        (dailyGiftLimits[senderId][today][giftType] || 0) + 1;
+    
+    // Sovg'ani yaratish
+    const giftId = generateGiftId();
+    const giftInfo = giftTypes[giftType];
+    
+    gifts[giftId] = {
+        id: giftId,
+        senderId: senderId,
+        receiverId: receiverId,
+        giftType: giftType,
+        giftName: giftInfo.name,
+        giftIcon: giftType === 'hearts' ? '❤️' : 
+                 giftType === 'stars' ? '⭐' : 
+                 giftType === 'crown' ? '👑' : 
+                 giftType === 'fire' ? '🔥' : 
+                 giftType === 'diamond' ? '💎' : 
+                 giftType === 'rocket' ? '🚀' : '🏆',
+        price: giftInfo.price,
+        bonus: giftInfo.bonus,
+        status: 'pending',
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 soat
+        message: null
+    };
+    
+    // Transaction yaratish
+    const transactionId = generateTransactionId();
+    
+    return {
+        success: true,
+        giftId: giftId,
+        transactionId: transactionId,
+        senderCoins: sender.coins,
+        giftInfo: {
+            type: giftType,
+            name: giftInfo.name,
+            price: giftInfo.price
+        },
+        limits: {
+            sent: dailyGiftLimits[senderId][today][giftType],
+            remaining: limitCheck.limit - dailyGiftLimits[senderId][today][giftType],
+            totalLimit: limitCheck.limit
+        }
+    };
+}
+
+// YANGI: Sovg'ani qabul qilish
+function acceptGift(giftId, receiverId) {
+    const gift = gifts[giftId];
+    if (!gift) {
+        return { success: false, message: 'Sovg\'a topilmadi', code: 'GIFT_NOT_FOUND' };
+    }
+    
+    if (gift.receiverId !== receiverId) {
+        return { success: false, message: 'Bu sovg\'a sizga emas', code: 'NOT_YOUR_GIFT' };
+    }
+    
+    if (gift.status !== 'pending') {
+        return { 
+            success: false, 
+            message: gift.status === 'accepted' ? 'Sovg\'a allaqachon qabul qilingan' : 'Sovg\'a muddati tugagan',
+            code: gift.status === 'accepted' ? 'ALREADY_ACCEPTED' : 'EXPIRED'
+        };
+    }
+    
+    // Muddati tugaganligini tekshirish
+    if (new Date() > gift.expiresAt) {
+        gift.status = 'expired';
+        return { success: false, message: 'Sovg\'a muddati tugagan', code: 'EXPIRED' };
+    }
+    
+    const receiver = users[receiverId];
+    const sender = users[gift.senderId];
+    
+    if (!receiver) {
+        return { success: false, message: 'Qabul qiluvchi topilmadi', code: 'RECEIVER_NOT_FOUND' };
+    }
+    
+    // Sovg'ani qabul qilish
+    gift.status = 'accepted';
+    gift.acceptedAt = new Date();
+    
+    // Bonuslarni berish
+    receiver.coins += gift.bonus.coins;
+    receiver.xp = (receiver.xp || 0) + gift.bonus.xp;
+    
+    // Jo'natuvchiga ham bonus (agar u hali o'chirilmagan bo'lsa)
+    if (sender) {
+        const senderBonus = Math.floor(gift.bonus.coins * 0.3); // 30% bonus
+        sender.coins += senderBonus;
+        sender.totalGiftsSent = (sender.totalGiftsSent || 0) + 1;
+        
+        // Jo'natuvchiga xabar
+        const senderSocket = io.sockets.sockets.get(sender.socketId);
+        if (senderSocket) {
+            senderSocket.emit('gift_bonus_received', {
+                giftId: giftId,
+                receiverName: receiver.firstName,
+                giftType: gift.giftType,
+                giftName: gift.giftName,
+                bonus: senderBonus,
+                totalGiftsSent: sender.totalGiftsSent
+            });
+        }
+    }
+    
+    // Qabul qiluvchiga xabar
+    const receiverSocket = io.sockets.sockets.get(receiver.socketId);
+    if (receiverSocket) {
+        receiverSocket.emit('gift_accepted_success', {
+            giftId: giftId,
+            senderName: sender ? sender.firstName : 'Anonim',
+            giftType: gift.giftType,
+            giftName: gift.giftName,
+            giftIcon: gift.giftIcon,
+            bonus: gift.bonus,
+            newCoins: receiver.coins,
+            newXP: receiver.xp
+        });
+    }
+    
+    return { 
+        success: true, 
+        message: 'Sovg\'a muvaffaqiyatli qabul qilindi!',
+        gift: {
+            id: giftId,
+            type: gift.giftType,
+            name: gift.giftName,
+            icon: gift.giftIcon
+        },
+        bonuses: {
+            coins: gift.bonus.coins,
+            xp: gift.bonus.xp,
+            senderBonus: sender ? Math.floor(gift.bonus.coins * 0.3) : 0
+        }
+    };
+}
+
+// YANGI: Do'kon mahsulotini sotib olish
+function buyShopItem(userId, itemId) {
+    const user = users[userId];
+    if (!user) {
+        return { success: false, message: 'Foydalanuvchi topilmadi', code: 'USER_NOT_FOUND' };
+    }
+    
+    const item = shopItems[itemId];
+    if (!item) {
+        return { success: false, message: 'Mahsulot topilmadi', code: 'ITEM_NOT_FOUND' };
+    }
+    
+    // Coin tekshirish
+    if (user.coins < item.price) {
+        return { 
+            success: false, 
+            message: `Mahsulotni sotib olish uchun yetarli coin yo'q. Kerak: ${item.price} coin`,
+            code: 'INSUFFICIENT_COINS',
+            required: item.price,
+            current: user.coins
+        };
+    }
+    
+    // Coinlarni hisobdan olib tashlash
+    user.coins -= item.price;
+    
+    // Transaction yaratish
+    const transactionId = generateTransactionId();
+    
+    // Mahsulot turiga qarab ishlov berish
+    switch(item.type) {
+        case 'gift_limit':
+            // Sovg'a limitini oshirish
+            if (!giftInventory[userId]) giftInventory[userId] = {};
+            giftInventory[userId][item.giftType] = 
+                (giftInventory[userId][item.giftType] || 0) + item.quantity;
+            
+            return {
+                success: true,
+                transactionId: transactionId,
+                itemType: 'gift_limit',
+                giftType: item.giftType,
+                quantity: item.quantity,
+                newLimit: giftInventory[userId][item.giftType],
+                coinsSpent: item.price,
+                remainingCoins: user.coins
+            };
+            
+        case 'super_like':
+            // Super like lar sonini oshirish
+            user.dailySuperLikes += item.quantity;
+            
+            return {
+                success: true,
+                transactionId: transactionId,
+                itemType: 'super_like',
+                quantity: item.quantity,
+                newSuperLikes: user.dailySuperLikes,
+                coinsSpent: item.price,
+                remainingCoins: user.coins
+            };
+            
+        case 'premium':
+            // Premium status berish
+            const premiumExpiry = new Date();
+            premiumExpiry.setDate(premiumExpiry.getDate() + item.days);
+            
+            user.premium = true;
+            user.premiumExpiry = premiumExpiry;
+            user.premiumDays = item.days;
+            user.premiumSince = new Date();
+            
+            return {
+                success: true,
+                transactionId: transactionId,
+                itemType: 'premium',
+                days: item.days,
+                premiumExpiry: premiumExpiry,
+                coinsSpent: item.price,
+                remainingCoins: user.coins,
+                benefits: item.benefits || []
+            };
+            
+        case 'coins':
+            // Coin paketini qo'shish
+            user.coins += item.quantity; // Hisobdan olib tashlash bilan birga qo'shamiz
+            
+            return {
+                success: true,
+                transactionId: transactionId,
+                itemType: 'coins',
+                quantity: item.quantity,
+                totalCoins: user.coins,
+                coinsSpent: item.price
+            };
+            
+        default:
+            return { success: false, message: 'Noma\'lum mahsulot turi', code: 'UNKNOWN_ITEM_TYPE' };
+    }
+}
+
+// YANGI: Kunlik limitlarni yangilash
+function resetDailyLimits() {
+    const today = new Date().toDateString();
+    console.log(`🔄 Kunlik limitlar yangilanmoqda: ${today}`);
+    
+    Object.keys(users).forEach(userId => {
         const user = users[userId];
-        if (user && user.socketId) {
-            const socket = io.sockets.sockets.get(user.socketId);
-            if (socket) {
-                socket.emit('waiting_count', {
-                    count: count,
-                    position: index + 1,
-                    estimatedTime: (index + 1) * 10
+        
+        // Premium muddati tugaganligini tekshirish
+        if (user.premium && user.premiumExpiry < new Date()) {
+            user.premium = false;
+            user.premiumExpiry = null;
+            user.premiumDays = 0;
+            
+            const userSocket = io.sockets.sockets.get(user.socketId);
+            if (userSocket) {
+                userSocket.emit('premium_expired', {
+                    message: 'Premium status muddati tugadi'
+                });
+            }
+        }
+        
+        // Kunlik reset
+        if (user.lastResetDate !== today) {
+            // Super like larni yangilash
+            user.dailySuperLikes = 3;
+            
+            // Premium bo'lsa, ko'proq super like
+            if (user.premium) {
+                if (user.premiumDays >= 90) {
+                    user.dailySuperLikes = 20;
+                } else if (user.premiumDays >= 30) {
+                    user.dailySuperLikes = 10;
+                } else if (user.premiumDays >= 7) {
+                    user.dailySuperLikes = 5;
+                }
+            }
+            
+            user.lastResetDate = today;
+            
+            const userSocket = io.sockets.sockets.get(user.socketId);
+            if (userSocket) {
+                userSocket.emit('daily_reset', {
+                    superLikes: user.dailySuperLikes,
+                    date: today,
+                    isPremium: user.premium
                 });
             }
         }
     });
+    
+    // 30 kundan ortiq eski sovg'alarni tozalash
+    cleanupOldGifts();
 }
 
-// ==================== DUEL QIDIRISH VA BOSHLASH ====================
-function findAndStartDuels() {
-    if (queue.length < 2) return;
+// YANGI: Eski sovg'alarni tozalash
+function cleanupOldGifts() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    let cleanedCount = 0;
     
-    for (let i = 0; i < queue.length; i++) {
-        const userId = queue[i];
-        const opponentId = findOpponentFor(userId);
-        
-        if (opponentId) {
-            const userIndex = queue.indexOf(userId);
-            const opponentIndex = queue.indexOf(opponentId);
-            
-            if (userIndex > -1) queue.splice(userIndex, 1);
-            if (opponentIndex > -1) queue.splice(opponentIndex, 1);
-            
-            startDuel(userId, opponentId);
-            updateWaitingCount();
-            break;
-        }
-    }
-}
-
-function startDuel(player1Id, player2Id) {
-    const duelId = generateDuelId();
-    const player1 = users[player1Id];
-    const player2 = users[player2Id];
-    
-    activeDuels[duelId] = {
-        id: duelId,
-        player1: player1Id,
-        player2: player2Id,
-        votes: {},
-        startTime: new Date(),
-        ended: false,
-        resultsSent: false
-    };
-    
-    // Player1 ga ma'lumot
-    const player1Socket = io.sockets.sockets.get(player1.socketId);
-    if (player1Socket) {
-        player1Socket.emit('duel_started', {
-            duelId: duelId,
-            opponent: {
-                id: player2Id,
-                name: player2.firstName,
-                username: player2.username,
-                photo: player2.photoUrl,
-                rating: player2.rating,
-                matches: player2.matches,
-                level: player2.level,
-                gender: player2.gender
-            },
-            timeLeft: 20
-        });
-    }
-    
-    // Player2 ga ma'lumot
-    const player2Socket = io.sockets.sockets.get(player2.socketId);
-    if (player2Socket) {
-        player2Socket.emit('duel_started', {
-            duelId: duelId,
-            opponent: {
-                id: player1Id,
-                name: player1.firstName,
-                username: player1.username,
-                photo: player1.photoUrl,
-                rating: player1.rating,
-                matches: player1.matches,
-                level: player1.level,
-                gender: player1.gender
-            },
-            timeLeft: 20
-        });
-    }
-    
-    // 20 soniya timer
-    setTimeout(() => {
-        if (activeDuels[duelId] && !activeDuels[duelId].ended) {
-            handleDuelTimeout(duelId);
-        }
-    }, 20000);
-}
-
-function processDuelResult(duelId) {
-    const duel = activeDuels[duelId];
-    if (!duel || duel.ended || duel.resultsSent) return;
-    
-    duel.ended = true;
-    duel.resultsSent = true;
-    
-    const player1Vote = duel.votes[duel.player1];
-    const player2Vote = duel.votes[duel.player2];
-    
-    const player1 = users[duel.player1];
-    const player2 = users[duel.player2];
-    
-    // MATCH holati
-    if ((player1Vote === 'like' || player1Vote === 'super_like') && 
-        (player2Vote === 'like' || player2Vote === 'super_like')) {
-        
-        player1.matches++;
-        player2.matches++;
-        player1.duels++;
-        player2.duels++;
-        player1.wins++;
-        player2.wins++;
-        
-        // Mukofotlar
-        let player1Reward = 50;
-        let player2Reward = 50;
-        
-        if (player1Vote === 'super_like') {
-            player1Reward += 20;
-        }
-        if (player2Vote === 'super_like') {
-            player2Reward += 20;
-        }
-        
-        player1.coins += player1Reward;
-        player2.coins += player2Reward;
-        
-        // MUTUAL MATCHLARNI SAQLASH
-        addMutualMatch(duel.player1, duel.player2);
-        
-        // Player1 ga xabar - AVTOMATIK NAVBATGA QAYTARILMAYDI
-        const player1Socket = io.sockets.sockets.get(player1.socketId);
-        if (player1Socket) {
-            player1Socket.emit('match', {
-                partner: {
-                    id: duel.player2,
-                    name: player2.firstName,
-                    username: player2.username,
-                    photo: player2.photoUrl,
-                    gender: player2.gender
-                },
-                rewards: {
-                    coins: player1Reward,
-                    xp: 30
-                },
-                newRating: player1.rating,
-                isRematch: false,
-                showOptions: true // Yangi: Optionlarni ko'rsatish
-            });
-        }
-        
-        // Player2 ga xabar - AVTOMATIK NAVBATGA QAYTARILMAYDI
-        const player2Socket = io.sockets.sockets.get(player2.socketId);
-        if (player2Socket) {
-            player2Socket.emit('match', {
-                partner: {
-                    id: duel.player1,
-                    name: player1.firstName,
-                    username: player1.username,
-                    photo: player1.photoUrl,
-                    gender: player1.gender
-                },
-                rewards: {
-                    coins: player2Reward,
-                    xp: 30
-                },
-                newRating: player2.rating,
-                isRematch: false,
-                showOptions: true // Yangi: Optionlarni ko'rsatish
-            });
-        }
-        
-    } else if (player1Vote === 'like' || player1Vote === 'super_like') {
-        // Faqat player1 like berdi
-        player1.duels++;
-        const coins = player1Vote === 'super_like' ? 30 : 10;
-        player1.coins += coins;
-        player1.totalLikes++;
-        
-        const player1Socket = io.sockets.sockets.get(player1.socketId);
-        if (player1Socket) {
-            player1Socket.emit('liked_only', {
-                opponentName: player2.firstName,
-                reward: { coins: coins, xp: 5 },
-                showOptions: true // Yangi: Optionlarni ko'rsatish
-            });
-        }
-        
-        const player2Socket = io.sockets.sockets.get(player2.socketId);
-        if (player2Socket) {
-            player2Socket.emit('no_match', {
-                showOptions: true // Yangi: Optionlarni ko'rsatish
-            });
-        }
-        
-    } else if (player2Vote === 'like' || player2Vote === 'super_like') {
-        // Faqat player2 like berdi
-        player2.duels++;
-        const coins = player2Vote === 'super_like' ? 30 : 10;
-        player2.coins += coins;
-        player2.totalLikes++;
-        
-        const player2Socket = io.sockets.sockets.get(player2.socketId);
-        if (player2Socket) {
-            player2Socket.emit('liked_only', {
-                opponentName: player1.firstName,
-                reward: { coins: coins, xp: 5 },
-                showOptions: true // Yangi: Optionlarni ko'rsatish
-            });
-        }
-        
-        const player1Socket = io.sockets.sockets.get(player1.socketId);
-        if (player1Socket) {
-            player1Socket.emit('no_match', {
-                showOptions: true // Yangi: Optionlarni ko'rsatish
-            });
-        }
-        
-    } else {
-        // Hech kim like bermadi
-        player1.duels++;
-        player2.duels++;
-        
-        const player1Socket = io.sockets.sockets.get(player1.socketId);
-        if (player1Socket) player1Socket.emit('no_match', { showOptions: true });
-        
-        const player2Socket = io.sockets.sockets.get(player2.socketId);
-        if (player2Socket) player2Socket.emit('no_match', { showOptions: true });
-    }
-    
-    // Duelni o'chirish, lekin AVTOMATIK NAVBATGA QAYTARMASLIK
-    // Faqat foydalanuvchi "skip_to_next" yuborganida navbatga qaytariladi
-    setTimeout(() => {
-        delete activeDuels[duelId];
-    }, 1000);
-}
-
-function addMutualMatch(userId1, userId2) {
-    if (!mutualMatches[userId1]) {
-        mutualMatches[userId1] = [];
-    }
-    if (!mutualMatches[userId1].includes(userId2)) {
-        mutualMatches[userId1].push(userId2);
-    }
-    
-    if (!mutualMatches[userId2]) {
-        mutualMatches[userId2] = [];
-    }
-    if (!mutualMatches[userId2].includes(userId1)) {
-        mutualMatches[userId2].push(userId1);
-    }
-    
-    console.log(`✅ Mutual match qo'shildi: ${userId1} <-> ${userId2}`);
-}
-
-function getMutualMatches(userId) {
-    return mutualMatches[userId] || [];
-}
-
-function handleDuelTimeout(duelId) {
-    const duel = activeDuels[duelId];
-    if (!duel || duel.ended) return;
-    
-    duel.ended = true;
-    duel.resultsSent = true;
-    
-    const player1 = users[duel.player1];
-    const player2 = users[duel.player2];
-    
-    const player1Socket = io.sockets.sockets.get(player1?.socketId);
-    const player2Socket = io.sockets.sockets.get(player2?.socketId);
-    
-    if (player1Socket) player1Socket.emit('timeout', { showOptions: true });
-    if (player2Socket) player2Socket.emit('timeout', { showOptions: true });
-    
-    // Duelni o'chirish, AVTOMATIK NAVBATGA QAYTARMASLIK
-    setTimeout(() => {
-        delete activeDuels[duelId];
-    }, 1000);
-}
-
-function returnPlayersToQueue(player1Id, player2Id) {
-    [player1Id, player2Id].forEach(playerId => {
-        const player = users[playerId];
-        if (player && player.hasSelectedGender && !queue.includes(playerId)) {
-            queue.push(playerId);
-            
-            const playerSocket = io.sockets.sockets.get(player.socketId);
-            if (playerSocket) {
-                playerSocket.emit('return_to_queue');
-            }
+    Object.keys(gifts).forEach(giftId => {
+        const gift = gifts[giftId];
+        if (gift.createdAt < thirtyDaysAgo) {
+            delete gifts[giftId];
+            cleanedCount++;
         }
     });
     
-    updateWaitingCount();
-    setTimeout(findAndStartDuels, 1000);
+    console.log(`🧹 Eski sovg'alar tozalandi: ${cleanedCount} ta`);
+}
+
+// YANGI: Foydalanuvchining do'kon ma'lumotlarini olish
+function getShopDataForUser(userId) {
+    const user = users[userId];
+    if (!user) return null;
+    
+    const userGiftLimits = {};
+    Object.keys(giftTypes).forEach(giftType => {
+        const limits = getUserGiftLimit(userId, giftType);
+        userGiftLimits[giftType] = limits;
+    });
+    
+    // Bugungi limitlar
+    const today = new Date().toDateString();
+    const todayLimits = dailyGiftLimits[userId]?.[today] || {};
+    
+    // Kategoriyalar bo'yicha mahsulotlar
+    const itemsByCategory = {};
+    Object.values(shopItems).forEach(item => {
+        if (!itemsByCategory[item.category]) {
+            itemsByCategory[item.category] = [];
+        }
+        
+        // Foydalanuvchi uchun mahsulot ma'lumotlari
+        const userItem = {
+            ...item,
+            canAfford: user.coins >= item.price,
+            userCoins: user.coins,
+            isRecommended: false
+        };
+        
+        // Premium mahsulotlar uchun tekshirish
+        if (item.category === 'premium' && user.premium) {
+            userItem.canAfford = false;
+            userItem.disabledReason = 'Sizda allaqachon premium status mavjud';
+        }
+        
+        itemsByCategory[item.category].push(userItem);
+    });
+    
+    return {
+        user: {
+            coins: user.coins,
+            premium: user.premium,
+            premiumExpiry: user.premiumExpiry,
+            premiumDays: user.premiumDays,
+            dailySuperLikes: user.dailySuperLikes
+        },
+        giftLimits: userGiftLimits,
+        todayLimits: todayLimits,
+        itemsByCategory: itemsByCategory,
+        categories: ['coins', 'gift_limits', 'super_likes', 'premium'],
+        giftTypes: giftTypes
+    };
 }
 
 // ==================== SOCKET.IO HANDLERS ====================
 io.on('connection', (socket) => {
     console.log('✅ Yangi ulanish:', socket.id);
     
+    // AUTHENTICATION
     socket.on('auth', (data) => {
         const userId = data.userId;
         
@@ -465,28 +912,51 @@ io.on('connection', (socket) => {
                 bio: data.bio || '',
                 filter: data.filter || 'not_specified',
                 rating: 1500,
-                coins: 100,
+                coins: data.coins || 100,
                 level: 1,
                 xp: 0,
                 matches: 0,
                 duels: 0,
                 wins: 0,
                 totalLikes: 0,
-                dailySuperLikes: 3,
+                dailySuperLikes: data.dailySuperLikes || 3,
                 socketId: socket.id,
                 connected: true,
                 lastActive: new Date(),
-                lastResetDate: new Date().toDateString()
+                lastResetDate: new Date().toDateString(),
+                // YANGI: Sovg'a maydonlari
+                totalGiftsSent: 0,
+                totalGiftsReceived: 0,
+                premium: data.premium || false,
+                premiumExpiry: data.premiumExpiry || null,
+                premiumDays: data.premiumDays || 0,
+                premiumSince: data.premiumSince || null,
+                // YANGI: Statistika
+                giftStats: {
+                    hearts: 0,
+                    stars: 0,
+                    crown: 0,
+                    fire: 0,
+                    diamond: 0,
+                    rocket: 0,
+                    trophy: 0
+                }
             };
         } else {
             users[userId].socketId = socket.id;
             users[userId].connected = true;
             users[userId].lastActive = new Date();
             
+            // Yangilangan maydonlar
             if (data.gender) users[userId].gender = data.gender;
             if (data.hasSelectedGender !== undefined) users[userId].hasSelectedGender = data.hasSelectedGender;
             if (data.bio !== undefined) users[userId].bio = data.bio;
             if (data.filter !== undefined) users[userId].filter = data.filter;
+            if (data.coins !== undefined) users[userId].coins = data.coins;
+            if (data.dailySuperLikes !== undefined) users[userId].dailySuperLikes = data.dailySuperLikes;
+            if (data.premium !== undefined) users[userId].premium = data.premium;
+            if (data.premiumExpiry !== undefined) users[userId].premiumExpiry = data.premiumExpiry;
+            if (data.premiumDays !== undefined) users[userId].premiumDays = data.premiumDays;
         }
         
         socket.userId = userId;
@@ -502,7 +972,8 @@ io.on('connection', (socket) => {
         socket.emit('auth_ok', {
             ...users[userId],
             winRate: users[userId].duels > 0 ? 
-                Math.round((users[userId].wins / users[userId].duels) * 100) : 0
+                Math.round((users[userId].wins / users[userId].duels) * 100) : 0,
+            giftStats: users[userId].giftStats || {}
         });
         
         // Agar gender tanlangan bo'lsa, navbatga qo'shish
@@ -526,246 +997,317 @@ io.on('connection', (socket) => {
         }
     });
     
-    socket.on('select_gender', (data) => {
+    // YANGI: Sovg'a yuborish
+    socket.on('send_gift', (data) => {
         const userId = socket.userId;
-        const gender = data.gender;
-        
-        if (!userId || !users[userId]) return;
-        
-        users[userId].gender = gender;
-        users[userId].hasSelectedGender = true;
-        
-        socket.emit('gender_selected', {
-            gender: gender,
-            hasSelectedGender: true,
-            message: `Gender tanlandi! ${
-                gender === 'male' ? 'Faqat ayollar bilan duel' :
-                gender === 'female' ? 'Faqat erkaklar bilan duel' :
-                'Hamma bilan duel'
-            }`
-        });
-        
-        if (!queue.includes(userId)) {
-            queue.push(userId);
-        }
-        
-        updateWaitingCount();
-        setTimeout(() => findAndStartDuels(), 500);
-    });
-    
-    socket.on('enter_queue', () => {
-        const userId = socket.userId;
+        const { receiverId, giftType, message } = data;
         
         if (!userId || !users[userId]) {
-            socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
+            socket.emit('error', { message: 'Avval autentifikatsiya qiling', code: 'AUTH_REQUIRED' });
             return;
         }
         
-        if (!users[userId].hasSelectedGender) {
-            socket.emit('show_gender_selection', {
-                mandatory: true,
-                message: 'Navbatga kirish uchun avval gender tanlashingiz kerak!'
+        if (!receiverId || !users[receiverId]) {
+            socket.emit('error', { message: 'Qabul qiluvchi topilmadi', code: 'RECEIVER_NOT_FOUND' });
+            return;
+        }
+        
+        // Do'st ekanligini tekshirish
+        const mutualMatches = getMutualMatches(userId);
+        if (!mutualMatches.includes(receiverId)) {
+            socket.emit('error', { 
+                message: 'Faqat o\'zaro match bo\'lgan do\'stlarga sovg\'a yuborish mumkin', 
+                code: 'NOT_FRIEND' 
             });
             return;
         }
         
-        if (queue.includes(userId)) {
-            socket.emit('queue_joined', {
-                position: queue.indexOf(userId) + 1,
-                total: queue.length
-            });
-            return;
-        }
+        // Sovg'ani yuborish
+        const result = sendGift(userId, receiverId, giftType);
         
-        queue.push(userId);
-        
-        socket.emit('queue_joined', {
-            position: queue.length,
-            total: queue.length
-        });
-        
-        setTimeout(() => findAndStartDuels(), 500);
-    });
-    
-    socket.on('leave_queue', () => {
-        const userId = socket.userId;
-        
-        if (!userId) return;
-        
-        const index = queue.indexOf(userId);
-        if (index > -1) {
-            queue.splice(index, 1);
-            updateWaitingCount();
-        }
-    });
-    
-    socket.on('vote', (data) => {
-        const userId = socket.userId;
-        const { duelId, choice } = data;
-        
-        if (!activeDuels[duelId] || activeDuels[duelId].ended) {
-            socket.emit('error', { message: 'Bu duel tugagan' });
-            return;
-        }
-        
-        const duel = activeDuels[duelId];
-        if (duel.player1 !== userId && duel.player2 !== userId) {
-            socket.emit('error', { message: 'Siz bu duelda emassiz' });
-            return;
-        }
-        
-        duel.votes[userId] = choice;
-        
-        if (choice === 'super_like') {
-            const user = users[userId];
-            if (user.dailySuperLikes <= 0) {
-                socket.emit('error', { message: 'Kunlik SUPER LIKE limitingiz tugadi' });
-                delete duel.votes[userId];
-                return;
+        if (result.success) {
+            // Xabar qo'shish (agar mavjud bo'lsa)
+            if (message && message.trim()) {
+                gifts[result.giftId].message = message.trim();
             }
-            user.dailySuperLikes--;
             
-            socket.emit('super_like_used', {
-                remaining: user.dailySuperLikes
+            // Jo'natuvchiga xabar
+            socket.emit('gift_sent_success', {
+                giftId: result.giftId,
+                transactionId: result.transactionId,
+                receiverName: users[receiverId].firstName,
+                giftInfo: result.giftInfo,
+                coinsSpent: result.giftInfo.price,
+                remainingCoins: result.senderCoins,
+                limits: result.limits
             });
-        }
-        
-        if (duel.votes[duel.player1] && duel.votes[duel.player2]) {
-            processDuelResult(duelId);
+            
+            // Foydalanuvchi ma'lumotlarini yangilash
+            users[userId].coins = result.senderCoins;
+            users[userId].giftStats[giftType] = (users[userId].giftStats[giftType] || 0) + 1;
+            users[userId].totalGiftsSent = (users[userId].totalGiftsSent || 0) + 1;
+            
+            // Qabul qiluvchiga xabar
+            const receiverSocket = io.sockets.sockets.get(users[receiverId].socketId);
+            if (receiverSocket) {
+                receiverSocket.emit('new_gift_notification', {
+                    giftId: result.giftId,
+                    senderId: userId,
+                    senderName: users[userId].firstName,
+                    giftType: giftType,
+                    giftName: giftTypes[giftType].name,
+                    giftIcon: giftType === 'hearts' ? '❤️' : 
+                             giftType === 'stars' ? '⭐' : 
+                             giftType === 'crown' ? '👑' : 
+                             giftType === 'fire' ? '🔥' : 
+                             giftType === 'diamond' ? '💎' : 
+                             giftType === 'rocket' ? '🚀' : '🏆',
+                    message: message,
+                    createdAt: new Date(),
+                    expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+                });
+            }
+            
+            // Do'kon ma'lumotlarini yangilash
+            updateShopDataForUser(userId);
+            updateShopDataForUser(receiverId);
+            
+        } else {
+            socket.emit('gift_error', {
+                message: result.message,
+                code: result.code,
+                details: result
+            });
         }
     });
     
-    // YANGI: O'tkazish (keyingi duelga o'tish)
-    socket.on('skip_to_next', () => {
+    // YANGI: Sovg'ani qabul qilish
+    socket.on('accept_gift', (data) => {
         const userId = socket.userId;
-        
-        console.log(`🔄 Foydalanuvchi ${userId} navbatga qaytmoqda`);
+        const { giftId } = data;
         
         if (!userId || !users[userId]) {
             socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
             return;
         }
         
-        if (!users[userId].hasSelectedGender) {
-            socket.emit('show_gender_selection', {
-                mandatory: true,
-                message: 'Duel qilish uchun avval gender tanlashingiz kerak!'
+        const result = acceptGift(giftId, userId);
+        
+        if (result.success) {
+            socket.emit('gift_accepted_confirmation', result);
+            
+            // Foydalanuvchi ma'lumotlarini yangilash
+            users[userId].totalGiftsReceived = (users[userId].totalGiftsReceived || 0) + 1;
+            
+            // Do'kon ma'lumotlarini yangilash
+            updateShopDataForUser(userId);
+            
+        } else {
+            socket.emit('gift_error', {
+                message: result.message,
+                code: result.code
             });
+        }
+    });
+    
+    // YANGI: Sovg'ani rad etish
+    socket.on('reject_gift', (data) => {
+        const userId = socket.userId;
+        const { giftId } = data;
+        
+        if (!userId || !users[userId]) {
+            socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
             return;
         }
         
-        // Navbatga qo'shish
-        if (!queue.includes(userId)) {
-            queue.push(userId);
-            updateWaitingCount();
-            
-            socket.emit('return_to_queue');
-            
-            // Yangi duel qidirish
-            setTimeout(() => findAndStartDuels(), 500);
-        }
-    });
-    
-    // YANGI: Bosh menyuga qaytish
-    socket.on('return_to_menu', () => {
-        const userId = socket.userId;
-        
-        console.log(`🏠 Foydalanuvchi ${userId} bosh menyuga qaytmoqda`);
-        
-        if (!userId || !users[userId]) return;
-        
-        // Navbatdan chiqarish
-        const index = queue.indexOf(userId);
-        if (index > -1) {
-            queue.splice(index, 1);
-            updateWaitingCount();
+        const gift = gifts[giftId];
+        if (!gift || gift.receiverId !== userId) {
+            socket.emit('error', { message: 'Sovg\'a topilmadi' });
+            return;
         }
         
-        socket.emit('menu_returned');
-    });
-    
-    socket.on('update_profile', (data) => {
-        const userId = socket.userId;
-        if (!userId || !users[userId]) return;
-        
-        const user = users[userId];
-        
-        if (data.bio !== undefined) {
-            user.bio = data.bio;
+        if (gift.status !== 'pending') {
+            socket.emit('error', { message: 'Sovg\'a allaqachon qabul qilingan' });
+            return;
         }
         
-        if (data.gender !== undefined) {
-            const oldGender = user.gender;
-            user.gender = data.gender;
-            
-            const index = queue.indexOf(userId);
-            if (index > -1) queue.splice(index, 1);
-            
-            setTimeout(() => {
-                if (!queue.includes(userId) && user.hasSelectedGender) {
-                    queue.push(userId);
-                    updateWaitingCount();
-                    findAndStartDuels();
-                }
-            }, 500);
+        // Sovg'ani rad etish
+        gift.status = 'rejected';
+        gift.rejectedAt = new Date();
+        
+        // Jo'natuvchiga xabar (agar online bo'lsa)
+        const senderSocket = io.sockets.sockets.get(users[gift.senderId]?.socketId);
+        if (senderSocket) {
+            senderSocket.emit('gift_rejected', {
+                giftId: giftId,
+                receiverName: users[userId].firstName,
+                giftType: gift.giftType
+            });
         }
         
-        if (data.filter !== undefined) {
-            user.filter = data.filter;
-            
-            const index = queue.indexOf(userId);
-            if (index > -1) queue.splice(index, 1);
-            
-            setTimeout(() => {
-                if (!queue.includes(userId) && user.hasSelectedGender) {
-                    queue.push(userId);
-                    updateWaitingCount();
-                    findAndStartDuels();
-                }
-            }, 500);
-        }
-        
-        socket.emit('profile_updated', {
-            bio: user.bio,
-            gender: user.gender,
-            filter: user.filter,
-            hasSelectedGender: user.hasSelectedGender
+        socket.emit('gift_rejected_success', {
+            giftId: giftId,
+            message: 'Sovg\'a rad etildi'
         });
     });
     
-    socket.on('request_rematch', (data) => {
+    // YANGI: Sovg'alar ro'yxatini olish
+    socket.on('get_gifts', () => {
         const userId = socket.userId;
-        const opponentId = data.opponentId;
         
-        if (!userId || !opponentId || !users[userId] || !users[opponentId]) return;
+        if (!userId || !users[userId]) {
+            socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
+            return;
+        }
         
-        const opponentSocket = io.sockets.sockets.get(users[opponentId].socketId);
-        if (opponentSocket) {
-            opponentSocket.emit('rematch_request', {
-                opponentId: userId,
-                opponentName: users[userId].firstName,
-                opponentPhoto: users[userId].photoUrl
+        // Qabul qilingan sovg'alar
+        const receivedGifts = Object.values(gifts)
+            .filter(gift => gift.receiverId === userId)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(gift => ({
+                id: gift.id,
+                senderId: gift.senderId,
+                senderName: users[gift.senderId]?.firstName || 'Anonim',
+                senderPhoto: users[gift.senderId]?.photoUrl,
+                giftType: gift.giftType,
+                giftName: gift.giftName,
+                giftIcon: gift.giftIcon,
+                status: gift.status,
+                message: gift.message,
+                createdAt: gift.createdAt,
+                expiresAt: gift.expiresAt,
+                isExpired: new Date() > gift.expiresAt,
+                canAccept: gift.status === 'pending' && new Date() <= gift.expiresAt
+            }));
+        
+        // Yuborilgan sovg'alar
+        const sentGifts = Object.values(gifts)
+            .filter(gift => gift.senderId === userId)
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map(gift => ({
+                id: gift.id,
+                receiverId: gift.receiverId,
+                receiverName: users[gift.receiverId]?.firstName || 'Anonim',
+                receiverPhoto: users[gift.receiverId]?.photoUrl,
+                giftType: gift.giftType,
+                giftName: gift.giftName,
+                giftIcon: gift.giftIcon,
+                status: gift.status,
+                message: gift.message,
+                createdAt: gift.createdAt,
+                acceptedAt: gift.acceptedAt,
+                rejectedAt: gift.rejectedAt,
+                price: gift.price
+            }));
+        
+        // Kunlik limitlar
+        const today = new Date().toDateString();
+        const userLimits = dailyGiftLimits[userId] || {};
+        const todayLimits = userLimits[today] || {};
+        
+        const dailyLimits = {};
+        Object.keys(giftTypes).forEach(type => {
+            const giftInfo = giftTypes[type];
+            const limits = getUserGiftLimit(userId, type);
+            const sentToday = todayLimits[type] || 0;
+            
+            dailyLimits[type] = {
+                name: giftInfo.name,
+                icon: type === 'hearts' ? '❤️' : 
+                      type === 'stars' ? '⭐' : 
+                      type === 'crown' ? '👑' : 
+                      type === 'fire' ? '🔥' : 
+                      type === 'diamond' ? '💎' : 
+                      type === 'rocket' ? '🚀' : '🏆',
+                color: giftInfo.color,
+                dailyFreeLimit: giftInfo.dailyFreeLimit,
+                purchasedLimit: limits.purchasedLimit,
+                totalLimit: limits.totalLimit,
+                price: giftInfo.price,
+                sent: sentToday,
+                remaining: limits.totalLimit - sentToday,
+                premiumOnly: giftInfo.premiumOnly || false,
+                canSend: limits.totalLimit > sentToday && 
+                        (!giftInfo.premiumOnly || users[userId].premium)
+            };
+        });
+        
+        socket.emit('gifts_data', {
+            received: receivedGifts,
+            sent: sentGifts,
+            dailyLimits: dailyLimits,
+            stats: {
+                totalReceived: receivedGifts.length,
+                totalSent: sentGifts.length,
+                pending: receivedGifts.filter(g => g.status === 'pending').length,
+                accepted: receivedGifts.filter(g => g.status === 'accepted').length
+            },
+            user: {
+                coins: users[userId].coins,
+                premium: users[userId].premium,
+                giftStats: users[userId].giftStats || {}
+            }
+        });
+    });
+    
+    // YANGI: Do'kon ma'lumotlarini olish
+    socket.on('get_shop_data', () => {
+        const userId = socket.userId;
+        
+        if (!userId || !users[userId]) {
+            socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
+            return;
+        }
+        
+        const shopData = getShopDataForUser(userId);
+        if (shopData) {
+            socket.emit('shop_data', shopData);
+        } else {
+            socket.emit('error', { message: 'Do\'kon ma\'lumotlari topilmadi' });
+        }
+    });
+    
+    // YANGI: Do'kon mahsulotini sotib olish
+    socket.on('buy_shop_item', (data) => {
+        const userId = socket.userId;
+        const { itemId } = data;
+        
+        if (!userId || !users[userId]) {
+            socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
+            return;
+        }
+        
+        const result = buyShopItem(userId, itemId);
+        
+        if (result.success) {
+            socket.emit('shop_purchase_success', result);
+            
+            // Mahsulot turiga qarab qo'shimcha amallar
+            if (result.itemType === 'premium') {
+                // Premium status berilganda barcha klientlarga xabar
+                socket.emit('premium_activated', {
+                    days: result.days,
+                    expiry: result.premiumExpiry,
+                    benefits: result.benefits
+                });
+            }
+            
+            // Do'kon ma'lumotlarini yangilash
+            updateShopDataForUser(userId);
+            
+        } else {
+            socket.emit('shop_purchase_error', {
+                message: result.message,
+                code: result.code,
+                details: result
             });
         }
     });
     
-    socket.on('accept_rematch', (data) => {
+    // YANGI: Do'stlarga sovg'a yuborish uchun ro'yxat
+    socket.on('get_friends_for_gifts', () => {
         const userId = socket.userId;
-        const opponentId = data.opponentId;
         
-        if (!userId || !opponentId || !users[userId] || !users[opponentId]) return;
-        
-        const userIndex = queue.indexOf(userId);
-        const opponentIndex = queue.indexOf(opponentId);
-        
-        if (userIndex > -1) queue.splice(userIndex, 1);
-        if (opponentIndex > -1) queue.splice(opponentIndex, 1);
-        
-        startDuel(userId, opponentId);
-    });
-    
-    socket.on('get_friends_list', () => {
-        const userId = socket.userId;
         if (!userId || !users[userId]) return;
         
         const mutualMatchIds = getMutualMatches(userId);
@@ -782,16 +1324,19 @@ io.on('connection', (socket) => {
                 lastActive: friend.lastActive,
                 gender: friend.gender,
                 rating: friend.rating,
-                matches: friend.matches
+                premium: friend.premium,
+                lastGiftSent: getLastGiftSent(userId, friendId)
             };
         }).filter(friend => friend !== null);
         
-        socket.emit('friends_list', {
+        socket.emit('friends_gift_list', {
             friends: friendsList,
             total: friendsList.length,
             online: friendsList.filter(f => f.online).length
         });
     });
+    
+    // ... (avvalgi queue, duel, vote va boshqa handerlarni qo'shing) ...
     
     socket.on('disconnect', () => {
         const userId = socket.userId;
@@ -806,60 +1351,67 @@ io.on('connection', (socket) => {
                 updateWaitingCount();
             }
             
-            for (const duelId in activeDuels) {
-                const duel = activeDuels[duelId];
-                if ((duel.player1 === userId || duel.player2 === userId) && !duel.ended) {
-                    duel.ended = true;
-                    
-                    const opponentId = duel.player1 === userId ? duel.player2 : duel.player1;
-                    const opponentSocket = io.sockets.sockets.get(users[opponentId]?.socketId);
-                    
-                    if (opponentSocket) {
-                        opponentSocket.emit('opponent_left');
-                    }
-                    
-                    delete activeDuels[duelId];
-                    break;
-                }
-            }
+            // ... (avvalgi disconnect logikasi) ...
         }
     });
 });
+
+// YANGI: Do'kon ma'lumotlarini yangilash
+function updateShopDataForUser(userId) {
+    const user = users[userId];
+    if (!user) return;
+    
+    const userSocket = io.sockets.sockets.get(user.socketId);
+    if (!userSocket) return;
+    
+    const shopData = getShopDataForUser(userId);
+    if (shopData) {
+        userSocket.emit('shop_data_updated', shopData);
+    }
+}
+
+// YANGI: Oxirgi sovg'ani olish
+function getLastGiftSent(senderId, receiverId) {
+    const sentGifts = Object.values(gifts).filter(
+        gift => gift.senderId === senderId && gift.receiverId === receiverId
+    );
+    
+    if (sentGifts.length === 0) return null;
+    
+    const lastGift = sentGifts.sort((a, b) => b.createdAt - a.createdAt)[0];
+    return {
+        giftType: lastGift.giftType,
+        giftName: lastGift.giftName,
+        createdAt: lastGift.createdAt,
+        status: lastGift.status
+    };
+}
 
 // ==================== SERVER ISHGA TUSHIRISH ====================
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log('🚀 LIKE DUEL SERVER - YANGILANGAN VERSIYA');
+    console.log('🎁 LIKE DUEL - TO\'LIQ SOVG\'A TIZIMI');
     console.log('='.repeat(70));
     console.log(`📍 Server ishga tushdi: http://0.0.0.0:${PORT}`);
     console.log(`📊 Health check: http://0.0.0.0:${PORT}/api/health`);
-    console.log('🌐 WebSocket URL: wss://like-duel.onrender.com');
+    console.log('🛒 Do\'kon: http://0.0.0.0:${PORT}/api/shop');
     console.log('='.repeat(70));
-    console.log('✅ Vaqt chegarasi bekor qilindi');
-    console.log('✅ Matchdan keyin avtomatik duel boshlanmaydi');
-    console.log('✅ Foydalanuvchi tanlovi asosida duel boshlanadi');
+    console.log('✅ Sovg\'a turlari: ❤️ ⭐ 👑 🔥 💎 🚀 🏆');
+    console.log('✅ Do\'kon mahsulotlari: 15+ turdagi paketlar');
+    console.log('✅ Premium tizimi: 3 darajali premium status');
+    console.log('✅ Monetizatsiya: Limitlar + do\'kon + premium');
     console.log('='.repeat(70));
 });
 
-// Kunlik limitlarni yangilash
-setInterval(() => {
-    const today = new Date().toDateString();
-    Object.values(users).forEach(user => {
-        if (user.lastResetDate !== today) {
-            user.dailySuperLikes = 3;
-            user.lastResetDate = today;
-            
-            const userSocket = io.sockets.sockets.get(user.socketId);
-            if (userSocket) {
-                userSocket.emit('daily_reset', { superLikes: 3 });
-            }
-        }
-    });
-}, 60000);
+// Har soatda kunlik limitlarni yangilash
+setInterval(resetDailyLimits, 60 * 60 * 1000);
 
-// Har 30 soniyada faol duel va navbat holatini log qilish
+// Har 6 soatda eski sovg'alarni tozalash
+setInterval(cleanupOldGifts, 6 * 60 * 60 * 1000);
+
+// Har 30 soniyada stats log
 setInterval(() => {
-    console.log(`📊 Stats: Users: ${Object.keys(users).length}, Queue: ${queue.length}, Active Duels: ${Object.keys(activeDuels).length}`);
+    console.log(`📊 Stats: Users: ${Object.keys(users).length}, Queue: ${queue.length}, Gifts: ${Object.keys(gifts).length}, Active Duels: ${Object.keys(activeDuels).length}`);
 }, 30000);

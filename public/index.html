@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>❤️ Like Duel - Qayta Uchrashuv & Gender Filtr</title>
+    <title>❤️ Like Duel - O'zaro Match va Do'stlar Tizimi</title>
 
     <!-- CDN kutubxonalari -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -62,20 +62,27 @@
                 <p style="opacity: 0.8; margin-bottom: 20px;">Yoqtirganingiz bilan MATCH bo'ling!</p>
 
                 <div class="profile-card" id="profileCard">
-                    <img src="" alt="Siz" class="profile-avatar" id="myAvatar" style="width: 100px; height: 100px; border-radius: 10px;">
-                    <div class="profile-name" id="myName" style="font-size: 1.3rem;">Foydalanuvchi</div>
-                    <div class="profile-username" id="myUsername" style="opacity: 0.8;">@username</div>
+                    <img src="" alt="Siz" class="profile-avatar" id="myAvatar">
+                    <div class="profile-name" id="myName">Foydalanuvchi</div>
+                    <div class="profile-username" id="myUsername">@username</div>
 
                     <div class="stats" style="display: flex; justify-content: space-around; margin: 20px 0;">
                         <div class="stat">
-                            <div class="stat-value" id="myMatches" style="font-size: 1.5rem;">0</div>
+                            <div class="stat-value" id="myMatches">0</div>
                             <div class="stat-label">Matchlar</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value" id="myLikes" style="font-size: 1.5rem;">0</div>
+                            <div class="stat-value" id="mutualMatchesCount">0</div>
+                            <div class="stat-label">O'zaro Match</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="myLikes">0</div>
                             <div class="stat-label">Likelar</div>
                         </div>
                     </div>
+
+                    <!-- Gender Filter -->
+                    <div id="genderFilterContainer"></div>
 
                     <button class="start-btn" id="startBtn">
                         🎮 O'yinni Boshlash
@@ -87,8 +94,8 @@
             <div class="duel-container hidden" id="queueScreen">
                 <div class="loader"></div>
                 <div class="waiting-info" style="font-size: 1.2rem; margin-bottom: 15px;">Navbat kutish...</div>
-                <div class="waiting-count" id="waitingCount" style="font-size: 2.5rem; font-weight: bold; color: #ffd700; margin: 10px 0;">0</div>
-                <div class="position-info" id="positionInfo" style="opacity: 0.8; margin-bottom: 20px;">
+                <div class="waiting-count" id="waitingCount">0</div>
+                <div class="position-info" id="positionInfo">
                     Sizning o'rningiz: <span id="position">-</span>
                 </div>
                 <div class="status-message" id="queueStatus">
@@ -115,7 +122,7 @@
 
             <!-- DUEL SCREEN -->
             <div class="duel-container hidden" id="duelScreen">
-                <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar" style="border-radius: 10px;">
+                <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar">
                 <div class="opponent-info">
                     <div class="opponent-name" id="opponentName">Raqib</div>
                     <div class="opponent-username" id="opponentUsername">@username</div>
@@ -155,7 +162,7 @@
                     </div>
                 </div>
 
-                <div class="status-message" id="duelStatus" style="margin-top: 20px;">
+                <div class="status-message" id="duelStatus">
                     Ovoz bering: ❤️ yoki 💖 yoki ✖
                 </div>
             </div>
@@ -171,15 +178,11 @@
                     <div style="display: flex; justify-content: center; gap: 20px;">
                         <div><i class="fas fa-coins"></i> +<span id="rewardCoins">50</span></div>
                         <div><i class="fas fa-star"></i> +<span id="rewardXP">30</span> XP</div>
-                        <div><i class="fas fa-chart-line"></i> <span id="newRating">1500</span></div>
+                        <div><i class="fas fa-users"></i> <span style="color: #fff;">DO'ST BO'LDINGIZ!</span></div>
                     </div>
                 </div>
 
                 <div class="match-options" id="matchOptions"></div>
-
-                <div style="margin-top: 20px; font-size: 0.9rem; opacity: 0.8;">
-                    5 soniyadan keyin yangi duel boshlanadi...
-                </div>
             </div>
         </div>
 
@@ -187,7 +190,7 @@
         <div class="tab-content" id="profileTab">
             <div class="profile-container">
                 <div class="profile-header">
-                    <img src="" alt="Siz" class="profile-avatar" id="profileAvatar" style="border-radius: 10px;">
+                    <img src="" alt="Siz" class="profile-avatar" id="profileAvatar">
                     <div class="profile-info">
                         <h2 id="profileName">Foydalanuvchi</h2>
                         <p id="profileUsername">@username</p>
@@ -209,12 +212,20 @@
                         <div class="stat-label">Duellar</div>
                     </div>
                     <div class="stat-card">
+                        <div class="stat-value" id="mutualMatchesProfile">0</div>
+                        <div class="stat-label">O'zaro Match</div>
+                    </div>
+                    <div class="stat-card">
                         <div class="stat-value" id="statWinRate">0%</div>
                         <div class="stat-label">G'alaba %</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statFriends">0</div>
+                        <div class="stat-label">Do'stlar</div>
+                    </div>
                 </div>
 
-                <div class="profile-actions" style="margin-top: 20px;">
+                <div class="profile-actions">
                     <button class="match-option-btn" id="editProfileBtn" style="margin-bottom: 10px;">
                         <i class="fas fa-edit"></i> Profilni Tahrirlash
                     </button>
@@ -225,7 +236,7 @@
             </div>
 
             <div class="quests-container">
-                <h3 style="margin-bottom: 15px;"><i class="fas fa-tasks"></i> Kunlik Vazifalar</h3>
+                <h3><i class="fas fa-tasks"></i> Kunlik Vazifalar</h3>
                 <div id="profileQuestsList"></div>
             </div>
         </div>
@@ -236,19 +247,28 @@
                 <div id="friendsStatus">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <div>
-                            <div style="font-weight: bold; font-size: 1.1rem;">Match bo'lganlar</div>
+                            <div style="font-weight: bold; font-size: 1.1rem;">Do'stlar Ro'yxati</div>
                             <div style="font-size: 0.8rem; opacity: 0.8;">
                                 <span id="friendsCount">0</span> ta do'st •
                                 <span id="onlineFriendsCount">0</span> ta onlayn
                             </div>
                         </div>
-                        <div id="mutualLikesBadge" class="mutual-likes-badge hidden">
-                            <i class="fas fa-heart"></i> <span id="mutualLikesCount">0</span> o'zaro like
-                        </div>
+                        <button class="refresh-btn" id="refreshFriendsBtn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
                     </div>
                 </div>
 
-                <div class="friend-list" id="friendsList" style="margin-top: 10px;"></div>
+                <div class="friend-list" id="friendsList"></div>
+                
+                <div class="no-friends hidden" id="noFriends">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">😔</div>
+                    <div style="font-weight: bold; margin-bottom: 10px;">Hali do'stlaringiz yo'q</div>
+                    <div style="opacity: 0.7; margin-bottom: 20px;">O'zaro like bergan foydalanuvchilar bu yerda ko'rinadi</div>
+                    <button class="start-btn" onclick="gameState.currentTab = 'duel'; showScreen('welcome');">
+                        🎮 Duel O'ynash
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -270,17 +290,17 @@
         <!-- LEADERBOARD TAB -->
         <div class="tab-content" id="leaderboardTab">
             <div class="leaderboard-container">
-                <h3 style="margin-bottom: 15px;"><i class="fas fa-trophy"></i> Liderlar Doskasi</h3>
+                <h3><i class="fas fa-trophy"></i> Liderlar Doskasi</h3>
 
                 <div class="leaderboard-tabs">
                     <div class="leaderboard-tab active" data-leaderboard="rating">Reyting</div>
                     <div class="leaderboard-tab" data-leaderboard="matches">Matchlar</div>
-                    <div class="leaderboard-tab" data-leaderboard="coins">Coinlar</div>
+                    <div class="leaderboard-tab" data-leaderboard="friends">Do'stlar</div>
                 </div>
 
                 <div class="leaderboard-list" id="leaderboardList"></div>
 
-                <div style="text-align: center; margin-top: 15px; opacity: 0.7; font-size: 0.8rem;">
+                <div class="leaderboard-updated">
                     Yangilangan: <span id="leaderboardUpdated">hozir</span>
                 </div>
             </div>
@@ -335,33 +355,9 @@
         </div>
     </div>
 
-    <!-- Qayta duel so'rovi -->
-    <div class="rematch-modal" id="rematchModal">
-        <div class="modal-content">
-            <div style="font-size: 3rem; margin-bottom: 15px;">🔄</div>
-            <h2 style="margin-bottom: 10px;">Qayta Duel?</h2>
-            <p style="margin-bottom: 20px; opacity: 0.7;" id="rematchMessage">
-                <span id="rematchOpponentName">Raqib</span> bilan yana duel o'ynashni xohlaysizmi?
-            </p>
-
-            <div style="display: flex; gap: 15px; margin-top: 25px;">
-                <button class="match-option-btn" id="declineRematchBtn" style="background: #ff6b6b; flex: 1;">
-                    <i class="fas fa-times"></i> Yo'q
-                </button>
-                <button class="match-option-btn" id="acceptRematchBtn" style="background: #2ecc71; flex: 1;">
-                    <i class="fas fa-check"></i> Ha
-                </button>
-            </div>
-
-            <div style="margin-top: 20px; font-size: 0.8rem; opacity: 0.5;">
-                Qayta duelda bonus +20 coin va +15 XP olasiz
-            </div>
-        </div>
-    </div>
-
     <!-- Profil tahrirlash -->
     <div class="chat-modal" id="profileEditModal">
-        <div class="chat-box" style="max-width: 350px;">
+        <div class="chat-box">
             <div class="chat-header">
                 <div>Profilni Tahrirlash</div>
                 <button id="closeProfileEditBtn"><i class="fas fa-times"></i></button>
@@ -369,56 +365,51 @@
             <div class="chat-messages" style="height: auto; padding: 20px;">
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Bio</label>
-                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; resize: none;"></textarea>
+                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4"></textarea>
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold;">Jins</label>
-                    <select id="editGender" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                    <select id="editGender">
                         <option value="not_specified">Ko'rsatilmaydi (hamma bilan)</option>
                         <option value="male">Erkak (faqat ayollar bilan)</option>
                         <option value="female">Ayol (faqat erkaklar bilan)</option>
                     </select>
                 </div>
-                <button id="saveProfileBtn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer;">Saqlash</button>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Filter</label>
+                    <select id="editFilter">
+                        <option value="not_specified">Hamma bilan duel</option>
+                        <option value="male">Faqat erkaklar bilan</option>
+                        <option value="female">Faqat ayollar bilan</option>
+                    </select>
+                </div>
+                <button id="saveProfileBtn">Saqlash</button>
             </div>
         </div>
     </div>
 
     <!-- Chat modal -->
     <div class="chat-modal" id="chatModal">
-        <div class="chat-header">
-            <div>Telegram Chat</div>
-            <button id="closeChatBtn"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="chat-content">
-            <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
-            <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
-            <div class="chat-username" id="chatUsername">@username</div>
-            
-            <button class="chat-button" id="chatOpenTelegramBtn">
-                <i class="fab fa-telegram"></i> Telegramda ochish
-            </button>
-            
-            <div class="chat-note">
-                <p><i class="fas fa-info-circle"></i> Telegram chat ochiladi</p>
-                <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.7;">
-                    Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!
-                </p>
+        <div class="chat-box">
+            <div class="chat-header">
+                <div id="chatTitle">Telegram Chat</div>
+                <button id="closeChatBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="chat-content">
+                <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
+                <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
+                <div class="chat-username" id="chatUsername">@username</div>
+                
+                <button class="chat-button" id="chatOpenTelegramBtn">
+                    <i class="fab fa-telegram"></i> Telegramda ochish
+                </button>
+                
+                <div class="chat-note">
+                    <p><i class="fas fa-info-circle"></i> Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!</p>
+                </div>
             </div>
         </div>
     </div>
-    <!-- Duel tugashi ekrani (body ichiga qo'shing) -->
-<div class="duel-container hidden" id="duel_end">
-    <div style="font-size: 3rem; margin-bottom: 20px;">🎮</div>
-    <h2 style="margin-bottom: 10px;">Duel Tugadi</h2>
-    <p style="margin-bottom: 30px; opacity: 0.7; max-width: 300px; text-align: center;" id="duel_end_message">
-        Endi nima qilmoqchisiz?
-    </p>
-    
-    <div class="duel-end-options" id="duel_end_options">
-        <!-- Tugmalar JavaScript orqali qo'shiladi -->
-    </div>
-</div>
 
     <!-- Notification -->
     <div class="notification" id="notification">

@@ -22,7 +22,7 @@ body {
     overflow: hidden;
 }
 
-/* Header - Soddalashtirilgan */
+/* Header */
 .app-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -59,7 +59,7 @@ body {
     border-radius: 15px;
 }
 
-/* Nav Tabs - Soddalashtirilgan */
+/* Nav Tabs */
 .nav-tabs {
     display: flex;
     background: white;
@@ -108,7 +108,7 @@ body {
     display: block;
 }
 
-/* Duel Screens - Markazlashtirilgan */
+/* Duel Screens */
 .duel-container {
     padding: 20px;
     text-align: center;
@@ -116,10 +116,9 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: calc(100vh - 106px);
 }
 
-/* Profile Card - Markazlashtirilgan */
+/* Profile Card */
 .profile-card {
     background: white;
     padding: 30px 25px;
@@ -128,33 +127,65 @@ body {
     width: 100%;
     max-width: 320px;
     margin: 0 auto;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
-/* Avatar - Markazda, KATTA (60% ekran) */
+/* Avatar */
 .profile-avatar {
-    width: 180px;
-    height: 180px;
+    width: 150px;
+    height: 150px;
     border-radius: 20px;
     object-fit: cover;
     border: 5px solid #667eea;
     margin: 0 auto 20px;
     display: block;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
-/* Opponent Avatar - Markazda, KATTA (60% ekran) */
+.profile-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.profile-username {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+/* Opponent Avatar */
 .opponent-avatar {
-    width: 200px;
-    height: 200px;
+    width: 180px;
+    height: 180px;
     border-radius: 20px;
     object-fit: cover;
     border: 5px solid #667eea;
     margin: 0 auto 25px;
     display: block;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-/* Timer - Markazda */
+.opponent-info {
+    margin-bottom: 20px;
+}
+
+.opponent-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.opponent-username {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+/* Timer */
 .timer-container {
     margin: 30px 0;
     display: flex;
@@ -172,6 +203,7 @@ body {
     align-items: center;
     justify-content: center;
     margin: 0 auto;
+    animation: rotate 1s linear infinite;
 }
 
 .timer {
@@ -180,7 +212,7 @@ body {
     color: #667eea;
 }
 
-/* Vote Buttons - Markazda */
+/* Vote Buttons */
 .vote-container {
     margin: 30px 0;
     width: 100%;
@@ -202,17 +234,44 @@ body {
 }
 
 .vote-btn {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     border: none;
-    font-size: 1.8rem;
+    font-size: 2rem;
     cursor: pointer;
     transition: all 0.3s;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.vote-btn:hover:not(:disabled) {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.vote-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.btn-no {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+}
+
+.btn-like {
+    background: linear-gradient(135deg, #ff6b8b 0%, #ff8e53 100%);
+    color: white;
+}
+
+.btn-super-like {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
 }
 
 .vote-label {
@@ -221,7 +280,7 @@ body {
     font-weight: 500;
 }
 
-/* Match Screen - Soddalashtirilgan */
+/* Match Screen */
 .match-screen {
     padding: 30px 20px;
     text-align: center;
@@ -237,6 +296,9 @@ body {
     font-size: 2.5rem;
     margin-bottom: 15px;
     animation: bounce 1s infinite;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .match-text {
@@ -249,11 +311,12 @@ body {
 .rewards {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: white;
-    padding: 15px;
-    border-radius: 15px;
+    padding: 20px;
+    border-radius: 20px;
     margin: 20px 0;
     width: 100%;
     max-width: 320px;
+    box-shadow: 0 8px 25px rgba(79,172,254,0.3);
 }
 
 .match-options {
@@ -269,21 +332,22 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 14px;
+    padding: 16px;
     border-radius: 12px;
     font-size: 1rem;
     cursor: pointer;
     transition: all 0.3s;
     font-weight: 600;
     width: 100%;
+    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
 }
 
 .match-option-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.3);
+    box-shadow: 0 10px 25px rgba(102,126,234,0.4);
 }
 
-/* Profile Container - Soddalashtirilgan */
+/* Profile Container */
 .profile-container {
     padding: 20px;
     text-align: center;
@@ -295,7 +359,7 @@ body {
 
 .profile-stats {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin-bottom: 25px;
 }
@@ -305,10 +369,17 @@ body {
     padding: 15px;
     border-radius: 12px;
     text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
 }
 
 .stat-value {
-    font-size: 1.8rem;
+    font-size: 1.5rem;
     font-weight: bold;
     color: #667eea;
     margin-bottom: 5px;
@@ -417,7 +488,7 @@ body {
     opacity: 1;
 }
 
-/* Modallar - Soddalashtirilgan */
+/* Modallar */
 .gender-modal,
 .rematch-modal {
     position: fixed;
@@ -446,6 +517,7 @@ body {
     width: 100%;
     text-align: center;
     animation: modalAppear 0.3s ease-out;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
 }
 
 /* Chat Modal */
@@ -455,51 +527,64 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: white;
+    background: rgba(0,0,0,0.8);
     display: none;
+    align-items: center;
+    justify-content: center;
     z-index: 1000;
-    flex-direction: column;
+    padding: 20px;
 }
 
 .chat-modal.active {
     display: flex;
 }
 
+.chat-box {
+    background: white;
+    border-radius: 20px;
+    max-width: 350px;
+    width: 100%;
+    overflow: hidden;
+    animation: modalAppear 0.3s ease-out;
+}
+
 .chat-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px;
+    padding: 15px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.chat-header button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
 }
 
 .chat-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     padding: 30px 20px;
     text-align: center;
 }
 
 .chat-avatar {
-    width: 150px;
-    height: 150px;
+    width: 120px;
+    height: 120px;
     border-radius: 20px;
     object-fit: cover;
     border: 5px solid #667eea;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .chat-name {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     font-weight: bold;
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     color: #333;
 }
 
@@ -521,12 +606,12 @@ body {
     transition: all 0.3s;
     margin-bottom: 15px;
     width: 100%;
-    max-width: 280px;
+    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
 }
 
 .chat-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+    box-shadow: 0 10px 25px rgba(102,126,234,0.4);
 }
 
 .chat-note {
@@ -534,50 +619,67 @@ body {
     font-size: 0.9rem;
     line-height: 1.4;
     margin-top: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 10px;
 }
 
-/* Notification - Soddalashtirilgan */
+/* Notification */
 .notification {
     position: fixed;
     top: 20px;
     right: 20px;
     background: white;
-    padding: 12px 16px;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    padding: 15px 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     display: none;
     z-index: 2000;
     animation: slideInRight 0.3s ease-out;
     max-width: 280px;
-    border-left: 4px solid #667eea;
+    border-left: 5px solid #667eea;
+    transform: translateX(100%);
 }
 
 .notification.active {
     display: block;
-    animation: slideInRight 0.3s ease-out;
+    animation: slideInRight 0.3s ease-out, slideOutRight 0.3s ease-out 2.7s;
 }
 
-/* Friends List - Soddalashtirilgan */
+/* Friends List */
+.friend-list {
+    padding: 10px;
+}
+
 .friend-item {
     display: flex;
     align-items: center;
-    padding: 12px 15px;
+    padding: 15px;
     background: #f8f9fa;
-    border-radius: 12px;
-    margin-bottom: 8px;
+    border-radius: 15px;
+    margin-bottom: 10px;
+    border: 2px solid transparent;
     transition: all 0.3s;
+    position: relative;
 }
 
 .friend-item:hover {
+    border-color: #667eea;
     background: #eef2ff;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.friend-item.mutual {
+    border-left: 5px solid #667eea;
 }
 
 .friend-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
     object-fit: cover;
-    margin-right: 12px;
+    margin-right: 15px;
     border: 3px solid #667eea;
 }
 
@@ -590,6 +692,9 @@ body {
     font-weight: bold;
     margin-bottom: 3px;
     font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .friend-username {
@@ -604,13 +709,46 @@ body {
 
 .status-online {
     color: #2ecc71;
+    font-weight: bold;
 }
 
 .status-offline {
     color: #95a5a6;
 }
 
-/* Shop Items - Soddalashtirilgan */
+.mutual-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    margin-left: 5px;
+}
+
+.refresh-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+    transform: rotate(180deg);
+}
+
+.no-friends {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+/* Shop Items */
 .shop-items {
     display: flex;
     flex-direction: column;
@@ -635,9 +773,9 @@ body {
 }
 
 .shop-item-icon {
-    font-size: 1.8rem;
-    width: 50px;
-    height: 50px;
+    font-size: 2rem;
+    width: 60px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -666,16 +804,18 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
     cursor: pointer;
     font-weight: 600;
     font-size: 0.9rem;
     transition: all 0.3s;
+    min-width: 80px;
 }
 
 .shop-item-buy:hover:not(:disabled) {
     transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
 }
 
 .shop-item-buy:disabled {
@@ -683,7 +823,7 @@ body {
     cursor: not-allowed;
 }
 
-/* Leaderboard - Soddalashtirilgan */
+/* Leaderboard */
 .leaderboard-list {
     display: flex;
     flex-direction: column;
@@ -694,28 +834,31 @@ body {
 .leaderboard-item {
     display: flex;
     align-items: center;
-    padding: 12px 15px;
+    padding: 15px;
     background: #f8f9fa;
-    border-radius: 12px;
+    border-radius: 15px;
     transition: all 0.3s;
+    border: 2px solid transparent;
 }
 
 .leaderboard-item:hover {
+    border-color: #667eea;
     background: #eef2ff;
+    transform: translateY(-2px);
 }
 
 .leaderboard-rank {
-    width: 35px;
-    height: 35px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    border-radius: 8px;
+    border-radius: 10px;
     font-weight: bold;
-    margin-right: 12px;
-    font-size: 1rem;
+    margin-right: 15px;
+    font-size: 1.2rem;
 }
 
 .leaderboard-info {
@@ -725,35 +868,82 @@ body {
 
 .leaderboard-name {
     font-weight: bold;
-    margin-bottom: 3px;
+    margin-bottom: 5px;
     font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .leaderboard-stats {
     font-size: 0.85rem;
     color: #666;
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 
 .leaderboard-value {
     font-weight: bold;
     color: #667eea;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
 }
 
-/* Quests - Soddalashtirilgan */
+.leaderboard-tabs {
+    display: flex;
+    gap: 10px;
+    margin: 15px;
+    padding: 5px;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.leaderboard-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.leaderboard-tab.active {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+.leaderboard-updated {
+    text-align: center;
+    margin-top: 15px;
+    padding: 10px;
+    color: #666;
+    font-size: 0.8rem;
+    border-top: 1px solid #eee;
+}
+
+/* Quests */
 .quests-container {
-    padding: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    background: #f8f9fa;
+    border-radius: 20px;
+    margin: 20px;
+}
+
+.quests-container h3 {
+    margin-bottom: 15px;
+    color: #333;
 }
 
 .quest-item {
     display: flex;
     align-items: center;
-    padding: 12px 15px;
-    background: #f8f9fa;
+    padding: 15px;
+    background: white;
     border-radius: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    border: 2px solid #eee;
 }
 
 .quest-info {
@@ -770,7 +960,7 @@ body {
 .quest-progress {
     font-size: 0.85rem;
     color: #666;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
 }
 
 .progress-bar {
@@ -791,14 +981,16 @@ body {
 .quest-reward {
     background: #667eea;
     color: white;
-    padding: 6px 12px;
-    border-radius: 8px;
+    padding: 8px 15px;
+    border-radius: 10px;
     font-weight: 600;
     font-size: 0.9rem;
     margin-left: 15px;
+    min-width: 60px;
+    text-align: center;
 }
 
-/* Gender Badge - Yangi dizayn */
+/* Gender Badge */
 .gender-badge {
     display: inline-block;
     padding: 3px 10px;
@@ -823,42 +1015,38 @@ body {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
-/* Start Button Container */
-.start-btn-container {
-    width: 100%;
-    max-width: 320px;
-    margin: 20px auto;
-}
-
+/* Start Button */
 .start-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 16px;
+    padding: 18px;
     font-size: 1.1rem;
-    border-radius: 12px;
+    border-radius: 15px;
     cursor: pointer;
     transition: all 0.3s;
     font-weight: 600;
     width: 100%;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+    max-width: 320px;
+    box-shadow: 0 8px 25px rgba(102,126,234,0.3);
+    margin-top: 20px;
 }
 
 .start-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 15px 30px rgba(102,126,234,0.4);
 }
 
 .start-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
+    transform: none !important;
 }
 
 /* Animation Classes */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
@@ -881,6 +1069,11 @@ body {
     to { transform: translateX(0); opacity: 1; }
 }
 
+@keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
 @keyframes badgeAppear {
     0% {
         opacity: 0;
@@ -900,6 +1093,142 @@ body {
     50% { opacity: 0.7; }
 }
 
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Loading States */
+.loader {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #667eea;
+    border-radius: 50%;
+    margin: 20px auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status Messages */
+.status-message {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    color: #666;
+    font-size: 0.9rem;
+    margin: 20px auto;
+    max-width: 320px;
+    text-align: center;
+    border: 2px solid #eef2ff;
+}
+
+/* Super Like Indicator */
+.super-like-indicator {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 15px;
+    margin: 15px auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 5px 15px rgba(240,147,251,0.3);
+}
+
+/* Gender Options */
+.gender-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.gender-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1rem;
+    text-align: left;
+    width: 100%;
+    background: #f8f9fa;
+    border: 2px solid transparent;
+}
+
+.gender-option-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-color: #667eea;
+}
+
+.gender-option-btn i {
+    font-size: 1.5rem;
+    width: 40px;
+    text-align: center;
+}
+
+.gender-option-btn.gender-male i {
+    color: #667eea;
+}
+
+.gender-option-btn.gender-female i {
+    color: #f5576c;
+}
+
+.gender-option-btn.gender-all i {
+    color: #4facfe;
+}
+
+/* Waiting Count */
+.waiting-count {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #667eea;
+    margin: 10px 0;
+    text-shadow: 0 5px 15px rgba(102,126,234,0.3);
+}
+
+.position-info {
+    opacity: 0.8;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+/* Opponent Stats */
+.opponent-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    color: #666;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.opponent-stats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 10px;
+}
+
+/* Hidden class */
+.hidden {
+    display: none !important;
+}
+
 /* Responsive Design */
 @media (max-width: 500px) {
     .app-container {
@@ -911,24 +1240,24 @@ body {
     }
     
     .vote-btn {
-        width: 55px;
-        height: 55px;
-        font-size: 1.6rem;
+        width: 65px;
+        height: 65px;
+        font-size: 1.8rem;
     }
     
     .opponent-avatar {
-        width: 180px;
-        height: 180px;
-    }
-    
-    .profile-avatar {
         width: 160px;
         height: 160px;
     }
     
+    .profile-avatar {
+        width: 140px;
+        height: 140px;
+    }
+    
     .chat-avatar {
-        width: 130px;
-        height: 130px;
+        width: 110px;
+        height: 110px;
     }
     
     .timer-circle {
@@ -942,6 +1271,10 @@ body {
     
     .match-title {
         font-size: 2.2rem;
+    }
+    
+    .profile-stats {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -969,110 +1302,24 @@ body {
     }
     
     .vote-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
+        width: 60px;
+        height: 60px;
+        font-size: 1.6rem;
     }
     
     .opponent-avatar {
-        width: 160px;
-        height: 160px;
-    }
-    
-    .profile-avatar {
         width: 140px;
         height: 140px;
     }
-}
-
-/* Hidden class */
-.hidden {
-    display: none !important;
-}
-
-/* Loading States */
-.loader {
-    width: 50px;
-    height: 50px;
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #667eea;
-    border-radius: 50%;
-    margin: 20px auto;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Status Messages */
-.status-message {
-    padding: 12px 15px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    color: #666;
-    font-size: 0.9rem;
-    margin: 20px auto;
-    max-width: 320px;
-    text-align: center;
-}
-
-/* Super Like Indicator */
-.super-like-indicator {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-    padding: 10px 15px;
-    border-radius: 12px;
-    margin: 15px auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    box-shadow: 0 4px 12px rgba(240,147,251,0.3);
-}
-
-/* Gender Options */
-.gender-options {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 20px 0;
-}
-
-.gender-option-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 1rem;
-    text-align: left;
-    width: 100%;
-}
-
-.gender-option-btn i {
-    font-size: 1.3rem;
-}
-
-.gender-option-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-/* Text Elements */
-h1, h2, h3, h4 {
-    color: #333;
-    font-weight: 600;
-}
-
-p {
-    color: #666;
-    line-height: 1.5;
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .profile-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* Scrollbar Styling */
@@ -1094,64 +1341,50 @@ p {
     background: #764ba2;
 }
 
-/* Stats in duel screen */
-.opponent-stats {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    color: #666;
-    margin-top: 10px;
-    font-size: 0.9rem;
+/* Text Elements */
+h1, h2, h3, h4 {
+    color: #333;
+    font-weight: 600;
 }
 
-.opponent-stats span {
+p {
+    color: #666;
+    line-height: 1.5;
+}
+
+/* Form Elements */
+textarea, select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 1rem;
+    resize: none;
+    transition: border-color 0.3s;
+}
+
+textarea:focus, select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Gender Warning */
+.gender-warning {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 15px;
+    margin: 20px 0;
+    max-width: 320px;
+}
+
+.gender-warning-content {
     display: flex;
     align-items: center;
-    gap: 5px;
-}
-
-/* Duel tugashi ekrani uchun stillar */
-.duel-end-options {
-    display: flex;
-    flex-direction: column;
     gap: 15px;
-    margin: 30px 0;
-    width: 100%;
-    max-width: 300px;
+    margin-bottom: 15px;
 }
 
-.duel-end-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    width: 100%;
-    margin: 10px 0;
-}
-
-
-
-        
-
-.duel-end-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.duel-end-btn.secondary {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-}
-
-.duel-end-btn.secondary:hover {
-    box-shadow: 0 8px 20px rgba(149,165,166,0.4);
-}
-
-/* Match ekranida avtomatik timeout-xabarni olib tashlash */
-#matchScreen div[style*="5 soniyadan keyin"] {
-    display: none !important;
+.gender-warning-content i {
+    font-size: 1.5rem;
 }

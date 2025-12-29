@@ -652,7 +652,7 @@ function connectToServer() {
     });
     
     gameState.socket.on('friends_list', (data) => {
-        console.log('👥 Do'stlar ro'yxati:', data);
+        console.log('👥 Dostlar royxati:', data);
         gameState.friendsList = data.friends;
         updateFriendsListUI(data);
     });

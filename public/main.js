@@ -2429,9 +2429,172 @@ function startGame() {
         return;
     }
     
-    connectToServer();
+    // Agar allaqachon ulanilgan bo'lsa
+    if (gameState.socket && gameState.isConnected) {
+        console.log('ℹ️ Serverga allaqachon ulangan');
+        showScreen('queue');
+        if (!gameState.isInQueue) {
+            gameState.isInQueue = true;
+            gameState.socket.emit('enter_queue');
+        }
+    } else {
+        // Yangi ulanamiz
+        connectToServer();
+    }
 }
+// ==================== FILTER QO'SHISH ====================
+function addFilterToWelcomeScreen() {
+    const profileCard = document.getElementById('profileCard');
+    if (!profileCard) return;
+    
+    // Avvalgi filterni olib tashlash
+    const existingFilter = profileCard.querySelector('.gender-filter-container');
+    if (existingFilter) {
+        existingFilter.remove();
+    }
+    
+    // Start tugmasini topish
+    const startBtn = profileCard.querySelector('.start-btn');
+    
+    if (startBtn && startBtn.parentNode) {
+        // Filter elementini yaratish
+        const filterElement = document.createElement('div');
+        filterElement.className = 'gender-filter-container';
+        filterElement.innerHTML = `
+            <div class="gender-filter-title">Kim bilan duel?</div>
+            <div class="gender-filter-options">
+                <div class="gender-filter-option ${gameState.currentFilter === 'male' ? 'active' : ''}" data-filter="male">
+                    <div class="gender-filter-icon male">
+                        <i class="fas fa-mars"></i>
+                    </div>
+                    <div class="gender-filter-info">
+                        <div class="gender-filter-name">Faqat Erkaklar</div>
+                        <div class="gender-filter-description">Erkaklar bilan duel</div>
+                    </div>
+                    <div class="gender-filter-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+                
+                <div class="gender-filter-option ${gameState.currentFilter === 'female' ? 'active' : ''}" data-filter="female">
+                    <div class="gender-filter-icon female">
+                        <i class="fas fa-venus"></i>
+                    </div>
+                    <div class="gender-filter-info">
+                        <div class="gender-filter-name">Faqat Ayollar</div>
+                        <div class="gender-filter-description">Ayollar bilan duel</div>
+                    </div>
+                    <div class="gender-filter-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+                
+                <div class="gender-filter-option ${gameState.currentFilter === 'not_specified' ? 'active' : ''}" data-filter="not_specified">
+                    <div class="gender-filter-icon all">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="gender-filter-info">
+                        <div class="gender-filter-name">Hamma</div>
+                        <div class="gender-filter-description">Barcha genderlar bilan duel</div>
+                    </div>
+                    <div class="gender-filter-check">
+                        <i class="fas fa-check"></i>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Tugmalarga event listener qo'shish
+        const filterOptions = filterElement.querySelectorAll('.gender-filter-option');
+        filterOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const filter = option.dataset.filter;
+                selectFilter(filter);
+            });
+        });
+        
+        // Start tugmasidan oldin qo'shish
+        startBtn.parentNode.insertBefore(filterElement, startBtn);
+    }
+}
+// ==================== EVENT LISTENER QO'SHISH ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
+    
+    initUserProfile();
+    
+    // Sovg'a tabini yaratish
+    createGiftsTab();
+    
+    // Tab navigatsiyasini ishga tushirish
+    initTabNavigation();
+    
+    // Sovg'a stillarini qo'shish
+    addGiftStyles();
+    
+    // Start tugmasi uchun event listener
+    if (elements.startBtn) {
+        elements.startBtn.addEventListener('click', startGame);
+    }
+    
+    // Gender tanlash tugmalari
+    if (elements.selectMaleBtn) {
+        elements.selectMaleBtn.addEventListener('click', () => selectGender('male'));
+    }
+    
+    if (elements.selectFemaleBtn) {
+        elements.selectFemaleBtn.addEventListener('click', () => selectGender('female'));
+    }
+    
+    if (elements.selectAllBtn) {
+        elements.selectAllBtn.addEventListener('click', () => selectGender('not_specified'));
+    }
+    
+    // Duel tugmalari
+    if (elements.noBtn) {
+        elements.noBtn.addEventListener('click', () => handleVote('skip'));
+    }
+    
+    if (elements.likeBtn) {
+        elements.likeBtn.addEventListener('click', () => handleVote('like'));
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.addEventListener('click', () => handleVote('super_like'));
+    }
+    
+    // Navbatdan chiqish
+    if (elements.leaveQueueBtn) {
+        elements.leaveQueueBtn.addEventListener('click', leaveQueue);
+    }
+    
+    // Filterlarni welcome screenga qo'shish
+    setTimeout(() => {
+        addFilterToWelcomeScreen();
+    }, 500);
+    
+    console.log('✅ Barcha funksiyalar aktiv');
+});
 
+// ==================== TEST REJIMI ====================
+// Agar Telegram WebApp bo'lmasa, test rejimini yoqish
+if (!window.Telegram || !Telegram.WebApp) {
+    console.log('ℹ️ Telegram WebApp mavjud emas, test rejimi');
+    
+    // Test ma'lumotlarini o'rnatish
+    setTimeout(() => {
+        if (!userState.hasSelectedGender) {
+            console.log('⚠️ Test rejimi: Gender tanlash modalini ko\'rsatish');
+            showGenderModal(true);
+        }
+        
+        // Test uchun start tugmasini faollashtirish
+        if (elements.startBtn) {
+            elements.startBtn.disabled = false;
+            elements.startBtn.classList.remove('disabled');
+        }
+    }, 1000);
+}
 // ==================== NAVBATDAN CHIQISH ====================
 function leaveQueue() {
     console.log('🚪 Navbatdan chiqish');

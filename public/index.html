@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>❤️ Like Duel - O'zaro Match va Do'stlar Tizimi</title>
+    <title>❤️ Like Duel - Telegram Duel O'yini</title>
 
     <!-- CDN kutubxonalari -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -16,7 +16,7 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- HEADER -->
+        <!-- TELEGRAM HEADER -->
         <div class="app-header">
             <div class="header-title">
                 <i class="fas fa-heart"></i>
@@ -34,22 +34,27 @@
             </div>
         </div>
 
-        <!-- NAVIGATION TABS -->
+        <!-- TELEGRAM NAVIGATION TABS -->
         <div class="nav-tabs">
             <div class="nav-tab active" data-tab="duel">
                 <i class="fas fa-gamepad"></i> Duel
+                <div class="nav-tab-indicator"></div>
             </div>
             <div class="nav-tab" data-tab="profile">
                 <i class="fas fa-user"></i> Profil
+                <div class="nav-tab-indicator"></div>
             </div>
             <div class="nav-tab" data-tab="friends">
                 <i class="fas fa-users"></i> Do'stlar
+                <div class="nav-tab-indicator"></div>
             </div>
             <div class="nav-tab" data-tab="shop">
                 <i class="fas fa-shopping-cart"></i> Do'kon
+                <div class="nav-tab-indicator"></div>
             </div>
             <div class="nav-tab" data-tab="leaderboard">
                 <i class="fas fa-trophy"></i> Liderlar
+                <div class="nav-tab-indicator"></div>
             </div>
         </div>
 
@@ -81,8 +86,7 @@
                         </div>
                     </div>
 
-                    <!-- Gender Filter -->
-                    <div id="genderFilterContainer"></div>
+                    <!-- Gender Filter Container avtomatik to'ldiriladi -->
 
                     <button class="start-btn" id="startBtn">
                         🎮 O'yinni Boshlash
@@ -115,7 +119,7 @@
                     </button>
                 </div>
 
-                <button class="start-btn" id="leaveQueueBtn" style="background: #ff6b6b; margin-top: 20px;">
+                <button class="start-btn" id="leaveQueueBtn" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); margin-top: 20px;">
                     🚪 Navbatdan Chiqish
                 </button>
             </div>
@@ -171,7 +175,7 @@
             <div class="match-screen hidden" id="matchScreen">
                 <div class="match-title">🎉 MATCH!</div>
                 <div class="match-text" id="matchText">
-                    <span id="partnerName">Foydalanuvchi</span> bilan suhbatlashish
+                    <span id="partnerName">Foydalanuvchi</span> bilan match!
                 </div>
 
                 <div class="rewards" id="matchRewards">
@@ -390,9 +394,10 @@
 
     <!-- Chat modal -->
     <div class="chat-modal" id="chatModal">
+        <div class="modal-overlay" onclick="closeChatModal()"></div>
         <div class="chat-box">
             <div class="chat-header">
-                <div id="chatTitle">Telegram Chat</div>
+                <div id="chatTitle">Chat</div>
                 <button id="closeChatBtn"><i class="fas fa-times"></i></button>
             </div>
             <div class="chat-content">
@@ -404,6 +409,10 @@
                     <i class="fab fa-telegram"></i> Telegramda ochish
                 </button>
                 
+                <button class="chat-button secondary" onclick="closeChatModal(); skipToNextDuel();">
+                    <i class="fas fa-play"></i> Duelni davom ettirish
+                </button>
+                
                 <div class="chat-note">
                     <p><i class="fas fa-info-circle"></i> Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!</p>
                 </div>
@@ -413,8 +422,10 @@
 
     <!-- Notification -->
     <div class="notification" id="notification">
-        <div id="notificationTitle" style="font-weight: bold; margin-bottom: 5px;"></div>
-        <div id="notificationMessage"></div>
+        <div class="notification-content">
+            <div id="notificationTitle" style="font-weight: bold; margin-bottom: 5px;"></div>
+            <div id="notificationMessage"></div>
+        </div>
     </div>
 
     <script src="main.js"></script>

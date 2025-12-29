@@ -1,3 +1,4 @@
+/* Reset va Asosiy Stillar */
 * {
     margin: 0;
     padding: 0;
@@ -21,7 +22,7 @@ body {
     overflow: hidden;
 }
 
-/* Header */
+/* Header - Soddalashtirilgan */
 .app-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -58,7 +59,7 @@ body {
     border-radius: 15px;
 }
 
-/* Nav Tabs */
+/* Nav Tabs - Soddalashtirilgan */
 .nav-tabs {
     display: flex;
     background: white;
@@ -107,8 +108,8 @@ body {
     display: block;
 }
 
-/* Screens */
-.duel-container, .match-screen {
+/* Duel Screens - Markazlashtirilgan */
+.duel-container {
     padding: 20px;
     text-align: center;
     display: flex;
@@ -118,11 +119,7 @@ body {
     min-height: calc(100vh - 106px);
 }
 
-.hidden {
-    display: none !important;
-}
-
-/* Profile Card */
+/* Profile Card - Markazlashtirilgan */
 .profile-card {
     background: white;
     padding: 30px 25px;
@@ -133,52 +130,31 @@ body {
     margin: 0 auto;
 }
 
+/* Avatar - Markazda, KATTA (60% ekran) */
 .profile-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 10px;
+    width: 180px;
+    height: 180px;
+    border-radius: 20px;
     object-fit: cover;
-    border: 3px solid #667eea;
-    margin: 0 auto 15px;
+    border: 5px solid #667eea;
+    margin: 0 auto 20px;
+    display: block;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
 }
 
+/* Opponent Avatar - Markazda, KATTA (60% ekran) */
 .opponent-avatar {
-    width: 120px;
-    height: 120px;
-    border-radius: 10px;
+    width: 200px;
+    height: 200px;
+    border-radius: 20px;
     object-fit: cover;
-    border: 3px solid #667eea;
-    margin: 0 auto 15px;
+    border: 5px solid #667eea;
+    margin: 0 auto 25px;
+    display: block;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
 }
 
-/* Start Button */
-.start-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 16px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-weight: 600;
-    width: 100%;
-    margin-top: 20px;
-    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
-}
-
-.start-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
-}
-
-.start-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #95a5a6;
-}
-
-/* Timer */
+/* Timer - Markazda */
 .timer-container {
     margin: 30px 0;
     display: flex;
@@ -187,10 +163,10 @@ body {
 }
 
 .timer-circle {
-    width: 80px;
-    height: 80px;
-    border: 4px solid #e0e0e0;
-    border-top: 4px solid #667eea;
+    width: 100px;
+    height: 100px;
+    border: 6px solid #e0e0e0;
+    border-top: 6px solid #667eea;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -199,12 +175,12 @@ body {
 }
 
 .timer {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     color: #667eea;
 }
 
-/* Vote Buttons */
+/* Vote Buttons - Markazda */
 .vote-container {
     margin: 30px 0;
     width: 100%;
@@ -215,7 +191,7 @@ body {
 .vote-buttons {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 30px;
     padding: 0 20px;
 }
 
@@ -239,34 +215,21 @@ body {
     margin-bottom: 8px;
 }
 
-.vote-btn.btn-no {
-    background: #95a5a6;
-    color: white;
+.vote-label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 500;
 }
 
-.vote-btn.btn-like {
-    background: #ff6b6b;
-    color: white;
-}
-
-.vote-btn.btn-super-like {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
-}
-
-.vote-btn:hover:not(:disabled) {
-    transform: scale(1.1);
-}
-
-.vote-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Match Screen */
+/* Match Screen - Soddalashtirilgan */
 .match-screen {
     padding: 30px 20px;
     text-align: center;
+    min-height: calc(100vh - 106px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     animation: slideUp 0.5s ease-out;
 }
 
@@ -274,6 +237,13 @@ body {
     font-size: 2.5rem;
     margin-bottom: 15px;
     animation: bounce 1s infinite;
+}
+
+.match-text {
+    font-size: 1.2rem;
+    margin-bottom: 25px;
+    color: #333;
+    line-height: 1.4;
 }
 
 .rewards {
@@ -308,10 +278,19 @@ body {
     width: 100%;
 }
 
-/* Profile Container */
+.match-option-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102,126,234,0.3);
+}
+
+/* Profile Container - Soddalashtirilgan */
 .profile-container {
     padding: 20px;
     text-align: center;
+}
+
+.profile-header {
+    margin-bottom: 25px;
 }
 
 .profile-stats {
@@ -341,12 +320,13 @@ body {
     font-weight: 500;
 }
 
-/* Gender Filter */
+/* Gender Filter Container */
 .gender-filter-container {
     background: white;
     padding: 20px;
     border-radius: 15px;
     margin: 20px 0;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     max-width: 320px;
     margin: 20px auto;
 }
@@ -374,6 +354,11 @@ body {
     cursor: pointer;
     transition: all 0.3s;
     border: 2px solid transparent;
+}
+
+.gender-filter-option:hover {
+    background: #eef2ff;
+    transform: translateY(-2px);
 }
 
 .gender-filter-option.active {
@@ -405,8 +390,36 @@ body {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
-/* Modallar */
-.gender-modal, .rematch-modal {
+.gender-filter-info {
+    flex: 1;
+    text-align: left;
+}
+
+.gender-filter-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 1rem;
+}
+
+.gender-filter-description {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.gender-filter-check {
+    color: #667eea;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.gender-filter-option.active .gender-filter-check {
+    opacity: 1;
+}
+
+/* Modallar - Soddalashtirilgan */
+.gender-modal,
+.rematch-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -420,7 +433,8 @@ body {
     padding: 20px;
 }
 
-.gender-modal.active, .rematch-modal.active {
+.gender-modal.active,
+.rematch-modal.active {
     display: flex;
 }
 
@@ -434,44 +448,95 @@ body {
     animation: modalAppear 0.3s ease-out;
 }
 
-/* Gender Options */
-.gender-options {
+/* Chat Modal */
+.chat-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    display: none;
+    z-index: 1000;
+    flex-direction: column;
+}
+
+.chat-modal.active {
+    display: flex;
+}
+
+.chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.chat-content {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin: 20px 0;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    text-align: center;
 }
 
-.gender-option-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 15px;
+.chat-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 20px;
+    object-fit: cover;
+    border: 5px solid #667eea;
+    margin-bottom: 20px;
+}
+
+.chat-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.chat-username {
+    color: #666;
+    margin-bottom: 25px;
+    font-size: 1rem;
+}
+
+.chat-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
     border: none;
+    padding: 16px 40px;
     border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
-    font-size: 1rem;
-    text-align: left;
+    margin-bottom: 15px;
     width: 100%;
+    max-width: 280px;
 }
 
-.gender-option-btn.gender-male {
-    background: #eef2ff;
-    color: #667eea;
+.chat-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
 }
 
-.gender-option-btn.gender-female {
-    background: #fff0f7;
-    color: #f5576c;
+.chat-note {
+    color: #666;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-top: 15px;
 }
 
-.gender-option-btn.gender-all {
-    background: #f0f9ff;
-    color: #4facfe;
-}
-
-/* Notification */
+/* Notification - Soddalashtirilgan */
 .notification {
     position: fixed;
     top: 20px;
@@ -492,7 +557,305 @@ body {
     animation: slideInRight 0.3s ease-out;
 }
 
-/* Animatsiyalar */
+/* Friends List - Soddalashtirilgan */
+.friend-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s;
+}
+
+.friend-item:hover {
+    background: #eef2ff;
+}
+
+.friend-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    object-fit: cover;
+    margin-right: 12px;
+    border: 3px solid #667eea;
+}
+
+.friend-info {
+    flex: 1;
+    text-align: left;
+}
+
+.friend-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 1rem;
+}
+
+.friend-username {
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+}
+
+.friend-status {
+    font-size: 0.8rem;
+}
+
+.status-online {
+    color: #2ecc71;
+}
+
+.status-offline {
+    color: #95a5a6;
+}
+
+/* Shop Items - Soddalashtirilgan */
+.shop-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px;
+}
+
+.shop-item {
+    background: white;
+    border: 2px solid #eee;
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.shop-item:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.shop-item-icon {
+    font-size: 1.8rem;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-right: 15px;
+}
+
+.shop-item-info {
+    flex: 1;
+    text-align: left;
+}
+
+.shop-item-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 1rem;
+}
+
+.shop-item-description {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.shop-item-buy {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.shop-item-buy:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.shop-item-buy:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Leaderboard - Soddalashtirilgan */
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.leaderboard-item:hover {
+    background: #eef2ff;
+}
+
+.leaderboard-rank {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-right: 12px;
+    font-size: 1rem;
+}
+
+.leaderboard-info {
+    flex: 1;
+    text-align: left;
+}
+
+.leaderboard-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 1rem;
+}
+
+.leaderboard-stats {
+    font-size: 0.85rem;
+    color: #666;
+    display: flex;
+    gap: 10px;
+}
+
+.leaderboard-value {
+    font-weight: bold;
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+/* Quests - Soddalashtirilgan */
+.quests-container {
+    padding: 15px;
+}
+
+.quest-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.quest-info {
+    flex: 1;
+    text-align: left;
+}
+
+.quest-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 1rem;
+}
+
+.quest-progress {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.quest-reward {
+    background: #667eea;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-left: 15px;
+}
+
+/* Gender Badge - Yangi dizayn */
+.gender-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.7rem;
+    margin-left: 8px;
+    color: white;
+    font-weight: 600;
+    vertical-align: middle;
+    animation: badgeAppear 0.5s ease-out;
+}
+
+.gender-male-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gender-female-badge {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.gender-all-badge {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+/* Start Button Container */
+.start-btn-container {
+    width: 100%;
+    max-width: 320px;
+    margin: 20px auto;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+    width: 100%;
+    box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+}
+
+.start-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+}
+
+.start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Animation Classes */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -518,6 +881,143 @@ body {
     to { transform: translateX(0); opacity: 1; }
 }
 
+@keyframes badgeAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(-5px);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Responsive Design */
+@media (max-width: 500px) {
+    .app-container {
+        max-width: 100%;
+    }
+    
+    .vote-buttons {
+        gap: 20px;
+    }
+    
+    .vote-btn {
+        width: 55px;
+        height: 55px;
+        font-size: 1.6rem;
+    }
+    
+    .opponent-avatar {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .profile-avatar {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .chat-avatar {
+        width: 130px;
+        height: 130px;
+    }
+    
+    .timer-circle {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .timer {
+        font-size: 2.2rem;
+    }
+    
+    .match-title {
+        font-size: 2.2rem;
+    }
+}
+
+@media (max-width: 350px) {
+    .nav-tab span {
+        display: none;
+    }
+    
+    .nav-tab i {
+        margin-bottom: 0;
+        font-size: 1.3rem;
+    }
+    
+    .nav-tabs {
+        height: 45px;
+    }
+    
+    .nav-tab {
+        padding: 10px 5px;
+        min-height: 45px;
+    }
+    
+    .vote-buttons {
+        gap: 15px;
+    }
+    
+    .vote-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .opponent-avatar {
+        width: 160px;
+        height: 160px;
+    }
+    
+    .profile-avatar {
+        width: 140px;
+        height: 140px;
+    }
+}
+
+/* Hidden class */
+.hidden {
+    display: none !important;
+}
+
+/* Loading States */
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    margin: 20px auto;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Status Messages */
+.status-message {
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    color: #666;
+    font-size: 0.9rem;
+    margin: 20px auto;
+    max-width: 320px;
+    text-align: center;
+}
+
 /* Super Like Indicator */
 .super-like-indicator {
     background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -533,60 +1033,79 @@ body {
     box-shadow: 0 4px 12px rgba(240,147,251,0.3);
 }
 
-/* Duel End Options */
-.duel-end-options {
+/* Gender Options */
+.gender-options {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin: 30px 0;
-    width: 100%;
-    max-width: 300px;
+    gap: 12px;
+    margin: 20px 0;
 }
 
-.duel-end-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+.gender-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
     border: none;
-    padding: 16px;
     border-radius: 12px;
-    font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.3s;
-    font-weight: 600;
-    margin: 10px 0;
+    font-size: 1rem;
+    text-align: left;
+    width: 100%;
 }
 
-.duel-end-btn:hover {
+.gender-option-btn i {
+    font-size: 1.3rem;
+}
+
+.gender-option-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-.duel-end-btn.secondary {
-    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+/* Text Elements */
+h1, h2, h3, h4 {
+    color: #333;
+    font-weight: 600;
 }
 
-/* Responsive */
-@media (max-width: 500px) {
-    .app-container {
-        max-width: 100%;
-    }
-    
-    .vote-buttons {
-        gap: 15px;
-    }
-    
-    .vote-btn {
-        width: 55px;
-        height: 55px;
-        font-size: 1.6rem;
-    }
-    
-    .timer-circle {
-        width: 70px;
-        height: 70px;
-    }
-    
-    .timer {
-        font-size: 1.8rem;
-    }
+p {
+    color: #666;
+    line-height: 1.5;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #667eea;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #764ba2;
+}
+
+/* Stats in duel screen */
+.opponent-stats {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    color: #666;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.opponent-stats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }

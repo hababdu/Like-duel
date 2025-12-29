@@ -37,25 +37,19 @@
         <!-- NAVIGATION TABS -->
         <div class="nav-tabs">
             <div class="nav-tab active" data-tab="duel">
-                <i class="fas fa-gamepad"></i>
-                <span class="nav-tab-text">Duel</span>
+                <i class="fas fa-gamepad"></i> Duel
             </div>
             <div class="nav-tab" data-tab="profile">
-                <i class="fas fa-user"></i>
-                <span class="nav-tab-text">Profil</span>
+                <i class="fas fa-user"></i> Profil
             </div>
             <div class="nav-tab" data-tab="friends">
-                <i class="fas fa-users"></i>
-                <span class="nav-tab-text">Do'stlar</span>
-            </div>
-            <div class="nav-tab" data-tab="gifts">
-                <i class="fas fa-gift"></i>
-                <span class="nav-tab-text">Sovg'alar</span>
-                <span class="nav-tab-badge" id="giftsBadge" style="display: none;">0</span>
+                <i class="fas fa-users"></i> Do'stlar
             </div>
             <div class="nav-tab" data-tab="shop">
-                <i class="fas fa-shopping-cart"></i>
-                <span class="nav-tab-text">Do'kon</span>
+                <i class="fas fa-shopping-cart"></i> Do'kon
+            </div>
+            <div class="nav-tab" data-tab="leaderboard">
+                <i class="fas fa-trophy"></i> Liderlar
             </div>
         </div>
 
@@ -258,11 +252,6 @@
             </div>
         </div>
 
-        <!-- SOVG'ALAR TAB -->
-        <div class="tab-content" id="giftsTab">
-            <!-- Sovg'alar tab contenti JavaScript orqali yaratiladi -->
-        </div>
-
         <!-- SHOP TAB -->
         <div class="tab-content" id="shopTab">
             <div class="shop-container">
@@ -275,6 +264,25 @@
                 </div>
 
                 <div class="shop-items" id="shopItemsList"></div>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD TAB -->
+        <div class="tab-content" id="leaderboardTab">
+            <div class="leaderboard-container">
+                <h3 style="margin-bottom: 15px;"><i class="fas fa-trophy"></i> Liderlar Doskasi</h3>
+
+                <div class="leaderboard-tabs">
+                    <div class="leaderboard-tab active" data-leaderboard="rating">Reyting</div>
+                    <div class="leaderboard-tab" data-leaderboard="matches">Matchlar</div>
+                    <div class="leaderboard-tab" data-leaderboard="coins">Coinlar</div>
+                </div>
+
+                <div class="leaderboard-list" id="leaderboardList"></div>
+
+                <div style="text-align: center; margin-top: 15px; opacity: 0.7; font-size: 0.8rem;">
+                    Yangilangan: <span id="leaderboardUpdated">hozir</span>
+                </div>
             </div>
         </div>
     </div>
@@ -351,16 +359,52 @@
         </div>
     </div>
 
-    <!-- Duel tugashi ekrani (body ichiga qo'shing) -->
-    <div class="duel-container hidden" id="duel_end">
-        <div style="font-size: 3rem; margin-bottom: 20px;">🎮</div>
-        <h2 style="margin-bottom: 10px;">Duel Tugadi</h2>
-        <p style="margin-bottom: 30px; opacity: 0.7; max-width: 300px; text-align: center;" id="duel_end_message">
-            Endi nima qilmoqchisiz?
-        </p>
-        
-        <div class="duel-end-options" id="duel_end_options">
-            <!-- Tugmalar JavaScript orqali qo'shiladi -->
+    <!-- Profil tahrirlash -->
+    <div class="chat-modal" id="profileEditModal">
+        <div class="chat-box" style="max-width: 350px;">
+            <div class="chat-header">
+                <div>Profilni Tahrirlash</div>
+                <button id="closeProfileEditBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="chat-messages" style="height: auto; padding: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Bio</label>
+                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; resize: none;"></textarea>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Jins</label>
+                    <select id="editGender" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                        <option value="not_specified">Ko'rsatilmaydi (hamma bilan)</option>
+                        <option value="male">Erkak (faqat ayollar bilan)</option>
+                        <option value="female">Ayol (faqat erkaklar bilan)</option>
+                    </select>
+                </div>
+                <button id="saveProfileBtn" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer;">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-header">
+            <div>Telegram Chat</div>
+            <button id="closeChatBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chat-content">
+            <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
+            <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
+            <div class="chat-username" id="chatUsername">@username</div>
+            
+            <button class="chat-button" id="chatOpenTelegramBtn">
+                <i class="fab fa-telegram"></i> Telegramda ochish
+            </button>
+            
+            <div class="chat-note">
+                <p><i class="fas fa-info-circle"></i> Telegram chat ochiladi</p>
+                <p style="font-size: 0.85rem; margin-top: 10px; opacity: 0.7;">
+                    Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!
+                </p>
+            </div>
         </div>
     </div>
 

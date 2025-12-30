@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark-theme">
+<html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>❤️ Like Duel - Premium Telegram Duel</title>
+    <title>❤️ Like Duel - Telegram Duel O'yini</title>
     
     <!-- Kutubxonalar -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -11,93 +11,109 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Mahalliy fayllar -->
+    <!-- Asosiy CSS -->
     <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Qo'shimcha inline stillar */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .active {
+            display: block !important;
+        }
+    </style>
 </head>
 <body>
-    <div class="app-wrapper">
-        <!-- Dynamic Background -->
-        <div class="dynamic-bg">
-            <div class="particle" style="top: 10%; left: 5%;"></div>
-            <div class="particle" style="top: 30%; left: 80%;"></div>
-            <div class="particle" style="top: 70%; left: 15%;"></div>
-            <div class="particle" style="top: 85%; left: 70%;"></div>
-        </div>
-        
+    <div class="container">
         <!-- Header -->
         <header class="app-header">
             <div class="header-left">
-                <div class="logo-glow">
-                    <i class="fas fa-heartbeat"></i>
+                <div class="logo">
+                    <i class="fas fa-heart"></i>
                 </div>
                 <h1 class="app-title">LIKE DUEL</h1>
             </div>
             
             <div class="header-stats">
-                <div class="stat-badge coin-stat">
+                <div class="stat-badge">
                     <i class="fas fa-coins"></i>
                     <span id="headerCoins">100</span>
                 </div>
-                <div class="stat-badge level-stat">
+                <div class="stat-badge">
                     <i class="fas fa-crown"></i>
                     <span id="headerLevel">1</span>
                 </div>
             </div>
         </header>
 
-        <!-- Floating Action Menu -->
-        <nav class="floating-nav">
-            <button class="floating-btn active" data-tab="duel">
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="duel">
                 <i class="fas fa-gamepad"></i>
                 <span>Duel</span>
             </button>
-            <button class="floating-btn" data-tab="profile">
+            <button class="nav-tab" data-tab="profile">
                 <i class="fas fa-user"></i>
                 <span>Profil</span>
             </button>
-            <button class="floating-btn" data-tab="friends">
+            <button class="nav-tab" data-tab="friends">
                 <i class="fas fa-users"></i>
                 <span>Do'stlar</span>
             </button>
-            <button class="floating-btn" data-tab="shop">
-                <i class="fas fa-gem"></i>
+            <button class="nav-tab" data-tab="shop">
+                <i class="fas fa-shopping-cart"></i>
                 <span>Shop</span>
             </button>
-            <button class="floating-btn" data-tab="leaderboard">
+            <button class="nav-tab" data-tab="leaderboard">
                 <i class="fas fa-trophy"></i>
                 <span>Top</span>
             </button>
         </nav>
 
-        <!-- Main Content Area -->
+        <!-- Main Content -->
         <main class="main-content">
-            <!-- Duel Tab -->
-            <section class="content-tab active" id="duelTab">
+            <!-- ==================== DUEL TAB ==================== -->
+            <div class="tab-content active" id="duelTab">
                 <!-- Welcome Screen -->
-                <div class="welcome-screen active" id="welcomeScreen">
-                    <div class="profile-glow-card">
+                <div class="screen active" id="welcomeScreen">
+                    <div class="profile-card">
                         <div class="avatar-container">
-                            <img src="" alt="Siz" class="avatar-glow" id="myAvatar">
-                            <div class="glow-effect"></div>
+                            <img src="" alt="Siz" class="avatar" id="myAvatar">
                         </div>
                         
                         <div class="profile-info">
-                            <div class="name-with-badge">
-                                <h2 id="myName">Foydalanuvchi</h2>
-                                <span class="gender-chip" id="myGenderBadge">👥</span>
-                            </div>
+                            <h2 id="myName">Yuklanmoqda...</h2>
                             <p class="username" id="myUsername">@username</p>
                             
-                            <div class="stats-grid">
-                                <div class="stat-item animated">
+                            <div class="stats-row">
+                                <div class="stat-item">
                                     <div class="stat-value" id="myMatches">0</div>
                                     <div class="stat-label">Matchlar</div>
                                 </div>
-                                <div class="stat-item animated">
+                                <div class="stat-item">
                                     <div class="stat-value" id="mutualMatchesCount">0</div>
                                     <div class="stat-label">O'zaro</div>
                                 </div>
-                                <div class="stat-item animated">
+                                <div class="stat-item">
                                     <div class="stat-value" id="myLikes">0</div>
                                     <div class="stat-label">Likelar</div>
                                 </div>
@@ -105,91 +121,69 @@
                         </div>
 
                         <!-- Gender Filter -->
-                        <div class="filter-chips">
-                            <button class="filter-chip active" data-filter="not_specified">
-                                <i class="fas fa-users"></i>
-                                <span>Hamma</span>
-                            </button>
-                            <button class="filter-chip" data-filter="male">
-                                <i class="fas fa-mars"></i>
-                                <span>Erkaklar</span>
-                            </button>
-                            <button class="filter-chip" data-filter="female">
-                                <i class="fas fa-venus"></i>
-                                <span>Ayollar</span>
-                            </button>
+                        <div class="filter-section">
+                            <h3><i class="fas fa-filter"></i> Kim bilan duel?</h3>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active" data-filter="not_specified">
+                                    <i class="fas fa-users"></i>
+                                    <span>Hamma</span>
+                                </button>
+                                <button class="filter-btn" data-filter="male">
+                                    <i class="fas fa-mars"></i>
+                                    <span>Erkaklar</span>
+                                </button>
+                                <button class="filter-btn" data-filter="female">
+                                    <i class="fas fa-venus"></i>
+                                    <span>Ayollar</span>
+                                </button>
+                            </div>
                         </div>
 
-                        <button class="modern-btn start-duel-btn" id="startBtn">
+                        <!-- Start Button -->
+                        <button class="start-btn" id="startBtn">
                             <i class="fas fa-play"></i>
                             <span>Duel Boshlash</span>
-                            <div class="btn-glow"></div>
                         </button>
-                    </div>
-                    
-                    <!-- Daily Spin Wheel -->
-                    <div class="daily-spin-container">
-                        <h3><i class="fas fa-gift"></i> Kunlik Sovg'a</h3>
-                        <div class="spin-wheel" id="spinWheel">
-                            <div class="wheel-pointer"></div>
-                            <div class="wheel-items">
-                                <div class="wheel-item" data-value="50">50🪙</div>
-                                <div class="wheel-item" data-value="100">100🪙</div>
-                                <div class="wheel-item" data-value="super">💖</div>
-                                <div class="wheel-item" data-value="vip">👑</div>
-                                <div class="wheel-item" data-value="20">20🪙</div>
-                                <div class="wheel-item" data-value="75">75🪙</div>
-                            </div>
-                            <button class="spin-btn" id="spinBtn">Aylantirish</button>
-                        </div>
                     </div>
                 </div>
 
                 <!-- Queue Screen -->
-                <div class="queue-screen" id="queueScreen">
-                    <div class="searching-animation">
-                        <div class="search-dots">
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                        </div>
-                        <h3>Raqib qidirilmoqda...</h3>
+                <div class="screen hidden" id="queueScreen">
+                    <div class="queue-container">
+                        <div class="loader"></div>
+                        <h2>Raqib qidirilmoqda...</h2>
+                        
                         <div class="queue-stats">
                             <div class="queue-stat">
                                 <i class="fas fa-users"></i>
-                                <span id="waitingCount">0</span> kishi navbatda
+                                <span>Navbatdagilar: <span id="waitingCount">0</span></span>
                             </div>
                             <div class="queue-stat">
                                 <i class="fas fa-clock"></i>
-                                Sizning o'rningiz: <span id="position">-</span>
+                                <span>O'rningiz: <span id="position">-</span></span>
                             </div>
                         </div>
                         
-                        <div class="countdown-animation">
-                            <div class="countdown-circle">
-                                <svg viewBox="0 0 100 100">
-                                    <circle class="countdown-bg" cx="50" cy="50" r="45"></circle>
-                                    <circle class="countdown-progress" cx="50" cy="50" r="45"></circle>
-                                </svg>
-                                <div class="countdown-text" id="queueTimer">0s</div>
-                            </div>
+                        <div class="queue-status" id="queueStatus">
+                            Serverga ulanmoqda...
                         </div>
                         
-                        <button class="modern-btn cancel-btn" id="leaveQueueBtn">
+                        <button class="cancel-btn" id="leaveQueueBtn">
                             <i class="fas fa-times"></i>
-                            Bekor qilish
+                            Navbatdan chiqish
                         </button>
                     </div>
                 </div>
 
                 <!-- Duel Screen -->
-                <div class="duel-screen" id="duelScreen">
-                    <div class="duel-header">
+                <div class="screen hidden" id="duelScreen">
+                    <div class="duel-container">
+                        <!-- Opponent Info -->
                         <div class="opponent-card">
-                            <div class="opponent-avatar-glow">
+                            <div class="opponent-avatar">
                                 <img src="" alt="Raqib" id="opponentAvatar">
-                                <div class="match-streak" id="matchStreak">🔥0</div>
                             </div>
+                            
                             <div class="opponent-info">
                                 <h3 id="opponentName">Raqib</h3>
                                 <p id="opponentUsername">@username</p>
@@ -206,30 +200,25 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Interactive Timer -->
-                    <div class="timer-container">
-                        <div class="liquid-timer" id="liquidTimer">
-                            <div class="liquid-fill"></div>
-                            <div class="timer-display">20</div>
+                        <!-- Timer -->
+                        <div class="timer-container">
+                            <div class="timer-circle">
+                                <div class="timer" id="timer">20</div>
+                            </div>
+                            <p class="timer-label">Qaror qabul qilish vaqti</p>
                         </div>
-                        <p class="timer-label">Qaror qabul qilish vaqti</p>
-                    </div>
 
-                    <!-- Vote Buttons -->
-                    <div class="vote-container">
+                        <!-- Vote Buttons -->
                         <div class="vote-buttons">
                             <button class="vote-btn skip-btn" id="noBtn">
                                 <div class="btn-icon">✖</div>
                                 <div class="btn-label">O'tkazish</div>
-                                <div class="btn-effect"></div>
                             </button>
                             
                             <button class="vote-btn like-btn" id="likeBtn">
                                 <div class="btn-icon">❤️</div>
                                 <div class="btn-label">Like</div>
-                                <div class="btn-effect"></div>
                             </button>
                             
                             <button class="vote-btn superlike-btn" id="superLikeBtn">
@@ -239,59 +228,40 @@
                                     <i class="fas fa-bolt"></i>
                                     <span id="superLikeCount">3</span>
                                 </div>
-                                <div class="btn-effect"></div>
                             </button>
                         </div>
                         
-                        <div class="status-message" id="duelStatus">
+                        <div class="duel-status" id="duelStatus">
                             ❤️ yoki 💖 yoki ✖ tanlang
                         </div>
                     </div>
                 </div>
 
                 <!-- Match Screen -->
-                <div class="match-screen" id="matchScreen">
-                    <div class="match-celebration">
-                        <div class="confetti-overlay"></div>
+                <div class="screen hidden" id="matchScreen">
+                    <div class="match-container">
                         <div class="match-title">🎉 MATCH!</div>
                         
                         <div class="partner-info">
                             <img src="" alt="Partner" id="partnerAvatar">
                             <h2 id="partnerName">Foydalanuvchi</h2>
-                            <p class="match-type" id="matchType">O'zaro Match!</p>
-                        </div>
-
-                        <!-- Mutual Interests -->
-                        <div class="mutual-interests" id="mutualInterests">
-                            <h4><i class="fas fa-handshake"></i> O'xshashliklar</h4>
-                            <div class="interest-tags">
-                                <span class="interest-tag">Reyting: 1500+</span>
-                                <span class="interest-tag">Duel: 10+</span>
-                                <span class="interest-tag">Match: 5+</span>
-                            </div>
+                            <p class="match-type" id="matchType">Match!</p>
                         </div>
 
                         <!-- Rewards -->
-                        <div class="rewards-container">
-                            <div class="reward-card">
+                        <div class="rewards">
+                            <div class="reward-item">
                                 <i class="fas fa-coins"></i>
                                 <div class="reward-info">
                                     <div class="reward-value">+<span id="rewardCoins">50</span></div>
                                     <div class="reward-label">Coin</div>
                                 </div>
                             </div>
-                            <div class="reward-card">
+                            <div class="reward-item">
                                 <i class="fas fa-star"></i>
                                 <div class="reward-info">
                                     <div class="reward-value">+<span id="rewardXP">30</span></div>
                                     <div class="reward-label">XP</div>
-                                </div>
-                            </div>
-                            <div class="reward-card">
-                                <i class="fas fa-user-friends"></i>
-                                <div class="reward-info">
-                                    <div class="reward-value" id="friendsStatus">Do'st bo'ldingiz!</div>
-                                    <div class="reward-label">Aloqa</div>
                                 </div>
                             </div>
                         </div>
@@ -302,7 +272,7 @@
                                 <i class="fas fa-comment"></i>
                                 Chatga o'tish
                             </button>
-                            <button class="action-btn duel-btn" onclick="skipToNextDuel()">
+                            <button class="action-btn next-btn" onclick="skipToNextDuel()">
                                 <i class="fas fa-redo"></i>
                                 Yangi Duel
                             </button>
@@ -313,70 +283,53 @@
                         </div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Profile Tab -->
-            <section class="content-tab" id="profileTab">
-                <div class="profile-dashboard">
-                    <div class="profile-header-card">
-                        <div class="profile-avatar-large">
-                            <img src="" alt="Siz" id="profileAvatar">
-                            <div class="level-badge" id="levelBadge">1</div>
-                        </div>
-                        
-                        <div class="profile-details">
+            <!-- ==================== PROFILE TAB ==================== -->
+            <div class="tab-content hidden" id="profileTab">
+                <div class="profile-tab">
+                    <div class="profile-header">
+                        <img src="" alt="Siz" class="profile-avatar" id="profileAvatar">
+                        <div class="profile-info">
                             <h2 id="profileName">Foydalanuvchi</h2>
                             <p id="profileUsername">@username</p>
                             <p class="profile-bio" id="profileBio">Bio kiritilmagan</p>
-                            
-                            <button class="edit-profile-btn" id="editProfileBtn">
-                                <i class="fas fa-edit"></i> Tahrirlash
-                            </button>
                         </div>
                     </div>
 
-                    <!-- Stats Cards -->
-                    <div class="stats-dashboard">
-                        <div class="stat-card-lg">
-                            <div class="stat-icon rating-icon">
-                                <i class="fas fa-trophy"></i>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-value" id="statRating">1500</div>
-                                <div class="stat-label">Reyting</div>
-                                <div class="stat-change positive">+15</div>
-                            </div>
+                    <div class="profile-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statRating">1500</div>
+                            <div class="stat-label">Reyting</div>
                         </div>
-                        
-                        <div class="stat-card-lg">
-                            <div class="stat-icon match-icon">
-                                <i class="fas fa-heart"></i>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-value" id="statMatches">0</div>
-                                <div class="stat-label">Matchlar</div>
-                                <div class="stat-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 40%"></div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMatches">0</div>
+                            <div class="stat-label">Matchlar</div>
                         </div>
-                        
-                        <!-- More stats... -->
+                        <div class="stat-card">
+                            <div class="stat-value" id="statDuels">0</div>
+                            <div class="stat-label">Duellar</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statWinRate">0%</div>
+                            <div class="stat-label">G'alaba %</div>
+                        </div>
                     </div>
 
-                    <!-- Quests -->
-                    <div class="quests-section">
-                        <h3><i class="fas fa-tasks"></i> Kunlik Vazifalar</h3>
-                        <div id="profileQuestsList"></div>
+                    <div class="profile-actions">
+                        <button class="profile-btn" id="editProfileBtn">
+                            <i class="fas fa-edit"></i> Profilni Tahrirlash
+                        </button>
+                        <button class="profile-btn" id="viewStatsBtn">
+                            <i class="fas fa-chart-bar"></i> Batafsil Statistika
+                        </button>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Friends Tab -->
-            <section class="content-tab" id="friendsTab">
-                <div class="friends-dashboard">
+            <!-- ==================== FRIENDS TAB ==================== -->
+            <div class="tab-content hidden" id="friendsTab">
+                <div class="friends-tab">
                     <div class="friends-header">
                         <h2><i class="fas fa-users"></i> Do'stlar</h2>
                         <div class="friends-stats">
@@ -386,42 +339,133 @@
                     </div>
                     
                     <div class="friends-list" id="friendsList">
-                        <!-- Friends will be loaded here -->
+                        <div class="no-friends">
+                            <i class="fas fa-user-friends"></i>
+                            <h3>Hali do'stlaringiz yo'q</h3>
+                            <p>O'zaro like bergan foydalanuvchilar bu yerda ko'rinadi</p>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Other tabs (Shop, Leaderboard) similar structure -->
+            <!-- ==================== SHOP TAB ==================== -->
+            <div class="tab-content hidden" id="shopTab">
+                <div class="shop-tab">
+                    <div class="shop-header">
+                        <h2><i class="fas fa-shopping-cart"></i> Do'kon</h2>
+                        <div class="shop-balance">
+                            <i class="fas fa-coins"></i>
+                            <span id="shopCoinsCount">100</span> coin
+                        </div>
+                    </div>
+                    
+                    <div class="shop-items" id="shopItemsList">
+                        <!-- Items will be loaded by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== LEADERBOARD TAB ==================== -->
+            <div class="tab-content hidden" id="leaderboardTab">
+                <div class="leaderboard-tab">
+                    <h2><i class="fas fa-trophy"></i> Liderlar Doskasi</h2>
+                    
+                    <div class="leaderboard-list" id="leaderboardList">
+                        <!-- Leaderboard will be loaded by JavaScript -->
+                    </div>
+                </div>
+            </div>
         </main>
 
-        <!-- Chat Modal -->
-        <div class="chat-modal" id="chatModal">
-            <div class="chat-container">
-                <!-- Chat content -->
+        <!-- ==================== MODALS ==================== -->
+        <!-- Gender Selection Modal -->
+        <div class="modal hidden" id="genderModal">
+            <div class="modal-content">
+                <div class="modal-icon">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h2>Jinsni Tanlang</h2>
+                <p>Duel qilish uchun jinsingizni tanlashingiz kerak</p>
+                
+                <div class="gender-options">
+                    <button class="gender-option male" onclick="selectGender('male')">
+                        <i class="fas fa-mars"></i>
+                        <span>Erkak</span>
+                        <small>Faqat ayollar bilan duel</small>
+                    </button>
+                    
+                    <button class="gender-option female" onclick="selectGender('female')">
+                        <i class="fas fa-venus"></i>
+                        <span>Ayol</span>
+                        <small>Faqat erkaklar bilan duel</small>
+                    </button>
+                    
+                    <button class="gender-option all" onclick="selectGender('not_specified')">
+                        <i class="fas fa-users"></i>
+                        <span>Hammasi</span>
+                        <small>Har qanday jins bilan duel</small>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Notification System -->
-        <div class="notification-center" id="notificationCenter">
-            <!-- Notifications will appear here -->
+        <!-- Chat Modal -->
+        <div class="modal hidden" id="chatModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Chat</h3>
+                    <button class="close-btn" onclick="closeChatModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="chat-content">
+                    <img src="" alt="Partner" class="chat-avatar" id="chatPartnerAvatar">
+                    <h4 id="chatPartnerName">Foydalanuvchi</h4>
+                    <p id="chatUsername">@username</p>
+                    
+                    <button class="chat-action-btn" onclick="openTelegramChat()">
+                        <i class="fab fa-telegram"></i>
+                        Telegramda ochish
+                    </button>
+                    
+                    <button class="chat-action-btn secondary" onclick="closeChatModal(); skipToNextDuel();">
+                        <i class="fas fa-play"></i>
+                        Duelni davom ettirish
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification -->
+        <div class="notification hidden" id="notification">
+            <div class="notification-content">
+                <div class="notification-title" id="notificationTitle"></div>
+                <div class="notification-message" id="notificationMessage"></div>
+            </div>
         </div>
     </div>
-    <!-- Sound Effects (index.html ning <body> oxiriga qo'shing) -->
-<audio id="likeSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
-</audio>
-<audio id="matchSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
-</audio>
-<audio id="clickSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" type="audio/mpeg">
-</audio>
 
-    <!-- Sound Effects (hidden audio elements) -->
-    <audio id="likeSound" src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" preload="auto"></audio>
-    <audio id="matchSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
-    <audio id="clickSound" src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" preload="auto"></audio>
+    <!-- Sound Effects -->
+    <audio id="likeSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="matchSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="clickSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" type="audio/mpeg">
+    </audio>
 
-    <script src="modern-script.js"></script>
+    <!-- JavaScript -->
+    <script src="main.js"></script>
+    
+    <script>
+        // Telegram WebApp ready
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+        }
+    </script>
 </body>
 </html>

@@ -572,11 +572,19 @@ function connectToServer() {
     console.log('🔗 Serverga ulanmoqda...');
     updateQueueStatus('Serverga ulanmoqda...');
     
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname === '';
+    // TO'G'RI URL - LOCAL SERVER
+    const socketUrl = 'http://localhost:3000'; // Server 3000 portda ishlayapti
     
-    let socketUrl;
+    console.log('🔌 Socket URL:', socketUrl);
+    
+    gameState.socket = io(socketUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        timeout: 20000
+    });
+
     
     if (isLocalhost) {
         socketUrl = 'http://localhost:3000';

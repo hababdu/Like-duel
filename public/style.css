@@ -20,12 +20,14 @@
     --radius-md: 16px;
     --radius-sm: 12px;
     --shadow: 0 4px 12px rgba(0,0,0,0.08);
+    --shadow-light: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -35,6 +37,7 @@ body {
     min-height: 100vh;
     font-size: 16px;
     line-height: 1.5;
+    overflow-x: hidden;
 }
 
 .app-container {
@@ -54,8 +57,9 @@ body {
     background: var(--tg-secondary-bg);
     border-top: 1px solid rgba(0,0,0,0.08);
     display: flex;
-    z-index: 100;
+    z-index: 1000;
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 .nav-tab {
@@ -68,6 +72,9 @@ body {
     font-size: 0.75rem;
     color: var(--tg-hint);
     transition: color 0.2s;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
 }
 
 .nav-tab.active {
@@ -76,6 +83,26 @@ body {
 
 .nav-tab i {
     font-size: 1.5rem;
+    transition: transform 0.2s;
+}
+
+.nav-tab:hover i {
+    transform: scale(1.1);
+}
+
+.nav-tab-indicator {
+    position: absolute;
+    top: -2px;
+    width: 24px;
+    height: 3px;
+    background: var(--tg-link);
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.nav-tab.active .nav-tab-indicator {
+    opacity: 1;
 }
 
 /* ==================== TAB CONTENT ==================== */
@@ -83,30 +110,26 @@ body {
     display: none;
     padding: 16px;
     min-height: calc(100vh - 60px);
+    animation: fadeIn 0.3s ease;
 }
 
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.3s ease;
-}
-
-/* ==================== CARD VA CONTAINERLAR ==================== */
-.container {
-    max-width: 400px;
-    margin: 0 auto;
-}
-
-.card {
-    background: var(--tg-secondary-bg);
-    border-radius: var(--radius-md);
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: var(--shadow);
 }
 
 /* ==================== PROFILE CARD (Welcome & Profile) ==================== */
-.profile-card {
+.duel-container {
     text-align: center;
+    padding: 20px 0;
+}
+
+.profile-card {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    margin: 0 auto;
+    max-width: 400px;
+    box-shadow: var(--shadow);
 }
 
 .profile-avatar {
@@ -116,6 +139,7 @@ body {
     object-fit: cover;
     border: 4px solid var(--tg-link);
     margin-bottom: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .profile-name {
@@ -130,11 +154,15 @@ body {
     font-size: 0.95rem;
 }
 
+/* Stats */
 .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin: 24px 0;
+    padding: 16px;
+    background: var(--tg-bg);
+    border-radius: var(--radius-sm);
 }
 
 .stat {
@@ -145,52 +173,129 @@ body {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--tg-link);
+    line-height: 1.2;
 }
 
 .stat-label {
     font-size: 0.85rem;
     color: var(--tg-hint);
+    margin-top: 4px;
 }
 
 /* ==================== BUTTONS ==================== */
-.btn {
+.start-btn {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
     border: none;
     border-radius: var(--radius-sm);
-    padding: 14px 20px;
+    padding: 16px 24px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     width: 100%;
-    margin-top: 8px;
+    max-width: 300px;
+    margin: 20px auto 0;
+    display: block;
+    box-shadow: var(--shadow);
 }
 
-.btn-primary {
-    background: var(--tg-button);
-    color: var(--tg-button-text);
+.start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
-.btn-primary:hover {
-    opacity: 0.9;
+.start-btn:active {
+    transform: translateY(0);
 }
 
-.btn-danger {
-    background: var(--tg-destructive);
-    color: white;
+/* ==================== QUEUE SCREEN ==================== */
+#queueScreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 60px);
 }
 
-.btn-secondary {
-    background: var(--tg-secondary-bg);
+.loader {
+    width: 48px;
+    height: 48px;
+    border: 5px solid var(--tg-hint);
+    border-top: 5px solid var(--tg-link);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 24px;
+}
+
+.waiting-info {
+    font-size: 1.2rem;
+    margin-bottom: 12px;
     color: var(--tg-text);
-    border: 1px solid var(--tg-hint);
+    font-weight: 500;
+}
+
+.waiting-count {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--tg-link);
+    margin: 10px 0;
+    animation: pulse 1.5s infinite;
+}
+
+.position-info {
+    font-size: 0.95rem;
+    color: var(--tg-hint);
+    margin: 8px 0;
+}
+
+.status-message {
+    text-align: center;
+    padding: 12px 16px;
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-sm);
+    color: var(--tg-hint);
+    font-size: 0.95rem;
+    max-width: 300px;
+    margin: 20px auto;
+}
+
+.gender-warning {
+    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin: 20px 0;
+    text-align: left;
+    max-width: 300px;
+    color: #d63031;
+    animation: shake 0.5s ease;
+}
+
+.gender-warning-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.gender-warning i {
+    font-size: 1.5rem;
+}
+
+#selectGenderNowBtn {
+    background: #d63031;
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
 }
 
 /* ==================== DUEL SCREEN ==================== */
-.duel-container {
-    text-align: center;
-    padding: 20px 0;
-}
-
 .opponent-avatar {
     width: 180px;
     height: 180px;
@@ -200,6 +305,12 @@ body {
     margin: 0 auto 24px;
     display: block;
     box-shadow: var(--shadow);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.opponent-info {
+    text-align: center;
+    margin-bottom: 32px;
 }
 
 .opponent-name {
@@ -216,8 +327,8 @@ body {
 .opponent-stats {
     display: flex;
     justify-content: center;
-    gap: 16px;
-    margin-bottom: 32px;
+    gap: 20px;
+    margin-top: 12px;
     flex-wrap: wrap;
 }
 
@@ -227,15 +338,36 @@ body {
     gap: 6px;
     font-size: 0.9rem;
     color: var(--tg-hint);
+    padding: 6px 12px;
+    background: var(--tg-secondary-bg);
+    border-radius: 20px;
 }
 
 .opponent-stats i {
     color: var(--tg-link);
 }
 
+/* Super Like indicator */
+.super-like-indicator {
+    background: linear-gradient(135deg, #ff5a6a 0%, #ff3040 100%);
+    color: white;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin: 20px auto;
+    max-width: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+}
+
 /* Timer */
 .timer-container {
     margin: 32px 0;
+    display: flex;
+    justify-content: center;
 }
 
 .timer-circle {
@@ -244,11 +376,11 @@ body {
     border: 6px solid var(--tg-hint);
     border-top-color: var(--tg-link);
     border-radius: 50%;
-    margin: 0 auto;
-    animation: rotate 20s linear forwards;
     display: flex;
     align-items: center;
     justify-content: center;
+    animation: rotate 20s linear forwards;
+    position: relative;
 }
 
 .timer {
@@ -258,11 +390,22 @@ body {
 }
 
 /* Vote buttons */
+.vote-container {
+    margin: 40px 0;
+}
+
 .vote-buttons {
     display: flex;
     justify-content: center;
     gap: 32px;
-    margin: 40px 0;
+    padding: 20px;
+}
+
+.vote-btn-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 }
 
 .vote-btn {
@@ -275,11 +418,27 @@ body {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow);
-    transition: transform 0.2s;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
 }
 
-.vote-btn:hover {
-    transform: scale(1.1);
+.vote-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.3s;
+}
+
+.vote-btn:active::after {
+    transform: translate(-50%, -50%) scale(1);
 }
 
 .btn-no {
@@ -287,9 +446,19 @@ body {
     color: var(--tg-hint);
 }
 
+.btn-no:hover {
+    background: var(--tg-hint);
+    color: white;
+}
+
 .btn-like {
     background: var(--like);
     color: white;
+}
+
+.btn-like:hover {
+    background: #ff0022;
+    transform: scale(1.1);
 }
 
 .btn-super-like {
@@ -297,11 +466,16 @@ body {
     color: white;
 }
 
+.btn-super-like:hover {
+    background: #ff2a40;
+    transform: scale(1.1);
+}
+
 .vote-label {
     text-align: center;
-    margin-top: 8px;
     font-size: 0.85rem;
     color: var(--tg-hint);
+    font-weight: 500;
 }
 
 /* ==================== MATCH SCREEN ==================== */
@@ -313,22 +487,35 @@ body {
     justify-content: center;
     min-height: calc(100vh - 60px);
     padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: var(--radius-lg);
+    margin: 16px;
 }
 
 .match-title {
     font-size: 3rem;
     font-weight: 800;
-    color: var(--tg-link);
+    color: white;
     margin-bottom: 16px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.match-text {
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 32px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
 
 .rewards {
-    background: var(--tg-secondary-bg);
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
     border-radius: var(--radius-md);
     padding: 20px;
     width: 100%;
     max-width: 360px;
     margin: 24px 0;
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
 .rewards div {
@@ -337,32 +524,425 @@ body {
     gap: 20px;
     flex-wrap: wrap;
     font-size: 1.1rem;
+    color: white;
 }
 
-/* ==================== STATUS & LOADER ==================== */
-.loader {
-    width: 48px;
-    height: 48px;
-    border: 5px solid var(--tg-hint);
-    border-top: 5px solid var(--tg-link);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 40px auto;
+.rewards i {
+    color: gold;
+    margin-right: 8px;
 }
 
-.status-message {
-    text-align: center;
-    padding: 12px;
-    background: var(--tg-secondary-bg);
+.match-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 300px;
+    margin-top: 24px;
+}
+
+.match-option-btn {
+    background: white;
+    color: var(--tg-link);
+    border: none;
     border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: var(--shadow);
+}
+
+.match-option-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+/* ==================== PROFILE TAB ==================== */
+.profile-container {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.profile-info h2 {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.profile-info p {
     color: var(--tg-hint);
     font-size: 0.95rem;
 }
 
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.stat-card {
+    background: var(--tg-bg);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    box-shadow: var(--shadow-light);
+}
+
+.stat-card .stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--tg-link);
+    margin-bottom: 4px;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    color: var(--tg-hint);
+}
+
+.profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Quests */
+.quests-container {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-top: 16px;
+}
+
+.quests-container h3 {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ==================== FRIENDS TAB ==================== */
+.friends-container {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.refresh-btn {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.refresh-btn:hover {
+    transform: rotate(90deg);
+}
+
+.friend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.no-friends {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--tg-hint);
+}
+
+/* ==================== SHOP TAB ==================== */
+.shop-container {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.shop-items {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+}
+
+/* ==================== LEADERBOARD TAB ==================== */
+.leaderboard-container {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.leaderboard-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 20px 0;
+    background: var(--tg-bg);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+}
+
+.leaderboard-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.leaderboard-tab.active {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.leaderboard-updated {
+    text-align: center;
+    color: var(--tg-hint);
+    font-size: 0.85rem;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+/* ==================== MODALS ==================== */
+.gender-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.gender-modal .modal-content {
+    background: var(--tg-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideUp 0.3s ease;
+}
+
+.gender-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 24px 0;
+}
+
+.gender-option-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--tg-secondary-bg);
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+}
+
+.gender-option-btn:hover {
+    background: var(--tg-bg);
+    border-color: var(--tg-hint);
+}
+
+.gender-option-btn i {
+    font-size: 1.5rem;
+}
+
+.gender-male i { color: #3498db; }
+.gender-female i { color: #e84393; }
+.gender-all i { color: #9b59b6; }
+
+.chat-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.chat-box {
+    background: var(--tg-bg);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: modalSlideUp 0.3s ease;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--tg-secondary-bg);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.chat-header button {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--tg-hint);
+    cursor: pointer;
+    padding: 5px;
+}
+
+.chat-content {
+    padding: 24px;
+    text-align: center;
+}
+
+.chat-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 16px;
+    border: 4px solid var(--tg-link);
+}
+
+.chat-name {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.chat-username {
+    color: var(--tg-hint);
+    margin-bottom: 24px;
+}
+
+.chat-button {
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.chat-button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+.chat-button.secondary {
+    background: var(--tg-secondary-bg);
+    color: var(--tg-text);
+}
+
+.chat-note {
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: var(--tg-hint);
+}
+
+/* Profile edit modal */
+textarea, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--tg-hint);
+    border-radius: var(--radius-sm);
+    background: var(--tg-bg);
+    color: var(--tg-text);
+    font-size: 1rem;
+    margin-bottom: 16px;
+    resize: vertical;
+}
+
+/* ==================== NOTIFICATION ==================== */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--tg-secondary-bg);
+    border-radius: var(--radius-sm);
+    padding: 16px 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    z-index: 3000;
+    max-width: 90%;
+    width: 400px;
+    animation: notificationSlideIn 0.3s ease;
+    border-left: 4px solid var(--tg-link);
+}
+
+.notification-content {
+    color: var(--tg-text);
+}
+
 /* ==================== ANIMATIONS ==================== */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes spin {
@@ -374,13 +954,152 @@ body {
     to { transform: rotate(360deg); }
 }
 
-/* ==================== RESPONSIVE ==================== */
-@media (max-width: 480px) {
-    .vote-buttons { gap: 24px; }
-    .vote-btn { width: 64px; height: 64px; font-size: 2rem; }
-    .opponent-avatar { width: 160px; height: 160px; }
-    .timer-circle { width: 100px; height: 100px; }
-    .timer { font-size: 2.2rem; }
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
-.hidden { display: none !important; }
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes notificationSlideIn {
+    from { opacity: 0; transform: translate(-50%, -20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+.hidden {
+    display: none !important;
+}
+
+.mandatory-modal {
+    background: rgba(231, 76, 60, 0.95);
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 480px) {
+    .vote-buttons {
+        gap: 20px;
+        padding: 15px;
+    }
+    
+    .vote-btn {
+        width: 64px;
+        height: 64px;
+        font-size: 1.8rem;
+    }
+    
+    .opponent-avatar {
+        width: 140px;
+        height: 140px;
+    }
+    
+    .timer-circle {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .timer {
+        font-size: 2rem;
+    }
+    
+    .profile-stats,
+    .shop-items {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+    }
+    
+    .match-title {
+        font-size: 2.5rem;
+    }
+    
+    .nav-tab {
+        font-size: 0.7rem;
+    }
+    
+    .nav-tab i {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 320px) {
+    .vote-buttons {
+        gap: 15px;
+    }
+    
+    .vote-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 1.6rem;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .opponent-avatar {
+        width: 120px;
+        height: 120px;
+    }
+}
+
+/* ==================== DARK MODE SUPPORT ==================== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --tg-bg: #121212;
+        --tg-secondary-bg: #1e1e1e;
+        --tg-text: #ffffff;
+        --tg-hint: #aaaaaa;
+        --shadow: 0 4px 12px rgba(0,0,0,0.3);
+        --shadow-light: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .gender-warning {
+        background: linear-gradient(135deg, #c44569 0%, #d63031 100%);
+    }
+    
+    .super-like-indicator {
+        background: linear-gradient(135deg, #ff3040 0%, #d63031 100%);
+    }
+    
+    .match-screen {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    }
+}
+
+/* ==================== SCROLLBAR STYLING ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--tg-secondary-bg);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--tg-hint);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--tg-link);
+}

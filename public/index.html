@@ -3,469 +3,420 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>❤️ Like Duel - Telegram Duel O'yini</title>
-    
-    <!-- Kutubxonalar -->
+    <title>❤️ Like Duel - O'zaro Match va Do'stlar Tizimi</title>
+
+    <!-- CDN kutubxonalari -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Asosiy CSS -->
+
+    <!-- Mahalliy fayllar -->
     <link rel="stylesheet" href="style.css">
-    
-    <style>
-        /* Qo'shimcha inline stillar */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            min-height: 100vh;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-        
-        .active {
-            display: block !important;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-left">
-                <div class="logo">
-                    <i class="fas fa-heart"></i>
-                </div>
-                <h1 class="app-title">LIKE DUEL</h1>
+    <div class="app-container">
+        <!-- HEADER -->
+        <div class="app-header">
+            <div class="header-title">
+                <i class="fas fa-heart"></i>
+                <span>Like Duel</span>
             </div>
-            
             <div class="header-stats">
-                <div class="stat-badge">
+                <div class="stat-item" id="coinsStat">
                     <i class="fas fa-coins"></i>
-                    <span id="headerCoins">100</span>
+                    <span id="coinsCount">100</span>
                 </div>
-                <div class="stat-badge">
-                    <i class="fas fa-crown"></i>
-                    <span id="headerLevel">1</span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Navigation -->
-        <nav class="nav-tabs">
-            <button class="nav-tab active" data-tab="duel">
-                <i class="fas fa-gamepad"></i>
-                <span>Duel</span>
-            </button>
-            <button class="nav-tab" data-tab="profile">
-                <i class="fas fa-user"></i>
-                <span>Profil</span>
-            </button>
-            <button class="nav-tab" data-tab="friends">
-                <i class="fas fa-users"></i>
-                <span>Do'stlar</span>
-            </button>
-            <button class="nav-tab" data-tab="shop">
-                <i class="fas fa-shopping-cart"></i>
-                <span>Shop</span>
-            </button>
-            <button class="nav-tab" data-tab="leaderboard">
-                <i class="fas fa-trophy"></i>
-                <span>Top</span>
-            </button>
-        </nav>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- ==================== DUEL TAB ==================== -->
-            <div class="tab-content active" id="duelTab">
-                <!-- Welcome Screen -->
-                <div class="screen active" id="welcomeScreen">
-                    <div class="profile-card">
-                        <div class="avatar-container">
-                            <img src="" alt="Siz" class="avatar" id="myAvatar">
-                        </div>
-                        
-                        <div class="profile-info">
-                            <h2 id="myName">Yuklanmoqda...</h2>
-                            <p class="username" id="myUsername">@username</p>
-                            
-                            <div class="stats-row">
-                                <div class="stat-item">
-                                    <div class="stat-value" id="myMatches">0</div>
-                                    <div class="stat-label">Matchlar</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-value" id="mutualMatchesCount">0</div>
-                                    <div class="stat-label">O'zaro</div>
-                                </div>
-                                <div class="stat-item">
-                                    <div class="stat-value" id="myLikes">0</div>
-                                    <div class="stat-label">Likelar</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Gender Filter -->
-                        <div class="filter-section">
-                            <h3><i class="fas fa-filter"></i> Kim bilan duel?</h3>
-                            <div class="filter-buttons">
-                                <button class="filter-btn active" data-filter="not_specified">
-                                    <i class="fas fa-users"></i>
-                                    <span>Hamma</span>
-                                </button>
-                                <button class="filter-btn" data-filter="male">
-                                    <i class="fas fa-mars"></i>
-                                    <span>Erkaklar</span>
-                                </button>
-                                <button class="filter-btn" data-filter="female">
-                                    <i class="fas fa-venus"></i>
-                                    <span>Ayollar</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Start Button -->
-                        <button class="start-btn" id="startBtn">
-                            <i class="fas fa-play"></i>
-                            <span>Duel Boshlash</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Queue Screen -->
-                <div class="screen hidden" id="queueScreen">
-                    <div class="queue-container">
-                        <div class="loader"></div>
-                        <h2>Raqib qidirilmoqda...</h2>
-                        
-                        <div class="queue-stats">
-                            <div class="queue-stat">
-                                <i class="fas fa-users"></i>
-                                <span>Navbatdagilar: <span id="waitingCount">0</span></span>
-                            </div>
-                            <div class="queue-stat">
-                                <i class="fas fa-clock"></i>
-                                <span>O'rningiz: <span id="position">-</span></span>
-                            </div>
-                        </div>
-                        
-                        <div class="queue-status" id="queueStatus">
-                            Serverga ulanmoqda...
-                        </div>
-                        
-                        <button class="cancel-btn" id="leaveQueueBtn">
-                            <i class="fas fa-times"></i>
-                            Navbatdan chiqish
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Duel Screen -->
-                <div class="screen hidden" id="duelScreen">
-                    <div class="duel-container">
-                        <!-- Opponent Info -->
-                        <div class="opponent-card">
-                            <div class="opponent-avatar">
-                                <img src="" alt="Raqib" id="opponentAvatar">
-                            </div>
-                            
-                            <div class="opponent-info">
-                                <h3 id="opponentName">Raqib</h3>
-                                <p id="opponentUsername">@username</p>
-                                
-                                <div class="opponent-stats">
-                                    <div class="opponent-stat">
-                                        <i class="fas fa-trophy"></i>
-                                        <span id="opponentRating">1500</span>
-                                    </div>
-                                    <div class="opponent-stat">
-                                        <i class="fas fa-heart"></i>
-                                        <span id="opponentMatches">0</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Timer -->
-                        <div class="timer-container">
-                            <div class="timer-circle">
-                                <div class="timer" id="timer">20</div>
-                            </div>
-                            <p class="timer-label">Qaror qabul qilish vaqti</p>
-                        </div>
-
-                        <!-- Vote Buttons -->
-                        <div class="vote-buttons">
-                            <button class="vote-btn skip-btn" id="noBtn">
-                                <div class="btn-icon">✖</div>
-                                <div class="btn-label">O'tkazish</div>
-                            </button>
-                            
-                            <button class="vote-btn like-btn" id="likeBtn">
-                                <div class="btn-icon">❤️</div>
-                                <div class="btn-label">Like</div>
-                            </button>
-                            
-                            <button class="vote-btn superlike-btn" id="superLikeBtn">
-                                <div class="btn-icon">💖</div>
-                                <div class="btn-label">Super Like</div>
-                                <div class="superlike-count">
-                                    <i class="fas fa-bolt"></i>
-                                    <span id="superLikeCount">3</span>
-                                </div>
-                            </button>
-                        </div>
-                        
-                        <div class="duel-status" id="duelStatus">
-                            ❤️ yoki 💖 yoki ✖ tanlang
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Match Screen -->
-                <div class="screen hidden" id="matchScreen">
-                    <div class="match-container">
-                        <div class="match-title">🎉 MATCH!</div>
-                        
-                        <div class="partner-info">
-                            <img src="" alt="Partner" id="partnerAvatar">
-                            <h2 id="partnerName">Foydalanuvchi</h2>
-                            <p class="match-type" id="matchType">Match!</p>
-                        </div>
-
-                        <!-- Rewards -->
-                        <div class="rewards">
-                            <div class="reward-item">
-                                <i class="fas fa-coins"></i>
-                                <div class="reward-info">
-                                    <div class="reward-value">+<span id="rewardCoins">50</span></div>
-                                    <div class="reward-label">Coin</div>
-                                </div>
-                            </div>
-                            <div class="reward-item">
-                                <i class="fas fa-star"></i>
-                                <div class="reward-info">
-                                    <div class="reward-value">+<span id="rewardXP">30</span></div>
-                                    <div class="reward-label">XP</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="match-actions">
-                            <button class="action-btn chat-btn" onclick="openChat()">
-                                <i class="fas fa-comment"></i>
-                                Chatga o'tish
-                            </button>
-                            <button class="action-btn next-btn" onclick="skipToNextDuel()">
-                                <i class="fas fa-redo"></i>
-                                Yangi Duel
-                            </button>
-                            <button class="action-btn menu-btn" onclick="returnToMenu()">
-                                <i class="fas fa-home"></i>
-                                Menyu
-                            </button>
-                        </div>
-                    </div>
+                <div class="stat-item" id="levelStat">
+                    <i class="fas fa-star"></i>
+                    <span id="levelCount">1</span>
                 </div>
             </div>
+        </div>
 
-            <!-- ==================== PROFILE TAB ==================== -->
-            <div class="tab-content hidden" id="profileTab">
-                <div class="profile-tab">
-                    <div class="profile-header">
-                        <img src="" alt="Siz" class="profile-avatar" id="profileAvatar">
-                        <div class="profile-info">
-                            <h2 id="profileName">Foydalanuvchi</h2>
-                            <p id="profileUsername">@username</p>
-                            <p class="profile-bio" id="profileBio">Bio kiritilmagan</p>
-                        </div>
-                    </div>
+        <!-- NAVIGATION TABS -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="duel">
+                <i class="fas fa-gamepad"></i> Duel
+            </div>
+            <div class="nav-tab" data-tab="profile">
+                <i class="fas fa-user"></i> Profil
+            </div>
+            <div class="nav-tab" data-tab="friends">
+                <i class="fas fa-users"></i> Do'stlar
+            </div>
+            <div class="nav-tab" data-tab="shop">
+                <i class="fas fa-shopping-cart"></i> Do'kon
+            </div>
+            <div class="nav-tab" data-tab="leaderboard">
+                <i class="fas fa-trophy"></i> Liderlar
+            </div>
+        </div>
 
-                    <div class="profile-stats">
-                        <div class="stat-card">
-                            <div class="stat-value" id="statRating">1500</div>
-                            <div class="stat-label">Reyting</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statMatches">0</div>
+        <!-- DUEL TAB -->
+        <div class="tab-content active" id="duelTab">
+            <!-- WELCOME SCREEN -->
+            <div class="duel-container" id="welcomeScreen">
+                <div class="logo" style="font-size: 3rem; margin-bottom: 10px;">❤️</div>
+                <h1 style="font-size: 1.8rem; margin-bottom: 5px;">Like Duel</h1>
+                <p style="opacity: 0.8; margin-bottom: 20px;">Yoqtirganingiz bilan MATCH bo'ling!</p>
+
+                <div class="profile-card" id="profileCard">
+                    <img src="" alt="Siz" class="profile-avatar" id="myAvatar">
+                    <div class="profile-name" id="myName">Foydalanuvchi</div>
+                    <div class="profile-username" id="myUsername">@username</div>
+
+                    <div class="stats" style="display: flex; justify-content: space-around; margin: 20px 0;">
+                        <div class="stat">
+                            <div class="stat-value" id="myMatches">0</div>
                             <div class="stat-label">Matchlar</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statDuels">0</div>
-                            <div class="stat-label">Duellar</div>
+                        <div class="stat">
+                            <div class="stat-value" id="mutualMatchesCount">0</div>
+                            <div class="stat-label">O'zaro Match</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statWinRate">0%</div>
-                            <div class="stat-label">G'alaba %</div>
+                        <div class="stat">
+                            <div class="stat-value" id="myLikes">0</div>
+                            <div class="stat-label">Likelar</div>
                         </div>
                     </div>
 
-                    <div class="profile-actions">
-                        <button class="profile-btn" id="editProfileBtn">
-                            <i class="fas fa-edit"></i> Profilni Tahrirlash
+                    <!-- Gender Filter -->
+                    <div id="genderFilterContainer"></div>
+
+                    <button class="start-btn" id="startBtn">
+                        🎮 O'yinni Boshlash
+                    </button>
+                </div>
+            </div>
+
+            <!-- QUEUE SCREEN -->
+            <div class="duel-container hidden" id="queueScreen">
+                <div class="loader"></div>
+                <div class="waiting-info" style="font-size: 1.2rem; margin-bottom: 15px;">Navbat kutish...</div>
+                <div class="waiting-count" id="waitingCount">0</div>
+                <div class="position-info" id="positionInfo">
+                    Sizning o'rningiz: <span id="position">-</span>
+                </div>
+                <div class="status-message" id="queueStatus">
+                    Serverga ulanmoqda...
+                </div>
+
+                <div class="gender-warning hidden" id="genderWarning">
+                    <div class="gender-warning-content">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <div style="font-weight: bold; font-size: 1.1rem;">Gender tanlanmagan!</div>
+                            <div>Duel qilish uchun gender tanlashingiz kerak</div>
+                        </div>
+                    </div>
+                    <button id="selectGenderNowBtn">
+                        <i class="fas fa-user-edit"></i> Hozir tanlash
+                    </button>
+                </div>
+
+                <button class="start-btn" id="leaveQueueBtn" style="background: #ff6b6b; margin-top: 20px;">
+                    🚪 Navbatdan Chiqish
+                </button>
+            </div>
+
+            <!-- DUEL SCREEN -->
+            <div class="duel-container hidden" id="duelScreen">
+                <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar">
+                <div class="opponent-info">
+                    <div class="opponent-name" id="opponentName">Raqib</div>
+                    <div class="opponent-username" id="opponentUsername">@username</div>
+
+                    <div class="opponent-stats">
+                        <span><i class="fas fa-trophy"></i> <span id="opponentRating">1500</span></span>
+                        <span><i class="fas fa-heart"></i> <span id="opponentMatches">0</span></span>
+                        <span><i class="fas fa-level-up-alt"></i> <span id="opponentLevel">1</span></span>
+                    </div>
+                </div>
+
+                <div class="super-like-indicator" id="superLikeIndicator">
+                    <i class="fas fa-gem"></i>
+                    Kunlik SUPER LIKE: <span id="superLikeCount">3</span> ta qoldi
+                </div>
+
+                <div class="timer-container">
+                    <div class="timer-circle">
+                        <div class="timer" id="timer">20</div>
+                    </div>
+                </div>
+
+                <div class="vote-container">
+                    <div class="vote-buttons" id="voteButtons">
+                        <div class="vote-btn-group">
+                            <button class="vote-btn btn-no" id="noBtn">✖</button>
+                            <div class="vote-label">O'tkazish</div>
+                        </div>
+                        <div class="vote-btn-group">
+                            <button class="vote-btn btn-like" id="likeBtn">❤️</button>
+                            <div class="vote-label">Like</div>
+                        </div>
+                        <div class="vote-btn-group">
+                            <button class="vote-btn btn-super-like" id="superLikeBtn">💖</button>
+                            <div class="vote-label">Super Like</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-message" id="duelStatus">
+                    Ovoz bering: ❤️ yoki 💖 yoki ✖
+                </div>
+            </div>
+
+            <!-- MATCH SCREEN -->
+            <div class="match-screen hidden" id="matchScreen">
+                <div class="match-title">🎉 MATCH!</div>
+                <div class="match-text" id="matchText">
+                    <span id="partnerName">Foydalanuvchi</span> bilan suhbatlashish
+                </div>
+
+                <div class="rewards" id="matchRewards">
+                    <div style="display: flex; justify-content: center; gap: 20px;">
+                        <div><i class="fas fa-coins"></i> +<span id="rewardCoins">50</span></div>
+                        <div><i class="fas fa-star"></i> +<span id="rewardXP">30</span> XP</div>
+                        <div><i class="fas fa-users"></i> <span style="color: #fff;">DO'ST BO'LDINGIZ!</span></div>
+                    </div>
+                </div>
+
+                <div class="match-options" id="matchOptions"></div>
+            </div>
+        </div>
+
+        <!-- PROFILE TAB -->
+        <div class="tab-content" id="profileTab">
+            <div class="profile-container">
+                <div class="profile-header">
+                    <img src="" alt="Siz" class="profile-avatar" id="profileAvatar">
+                    <div class="profile-info">
+                        <h2 id="profileName">Foydalanuvchi</h2>
+                        <p id="profileUsername">@username</p>
+                        <p id="profileBio" style="font-size: 0.9rem; margin-top: 5px;">Bio kiritilmagan</p>
+                    </div>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="statRating">1500</div>
+                        <div class="stat-label">Reyting</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statMatches">0</div>
+                        <div class="stat-label">Matchlar</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statDuels">0</div>
+                        <div class="stat-label">Duellar</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="mutualMatchesProfile">0</div>
+                        <div class="stat-label">O'zaro Match</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statWinRate">0%</div>
+                        <div class="stat-label">G'alaba %</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statFriends">0</div>
+                        <div class="stat-label">Do'stlar</div>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button class="match-option-btn" id="editProfileBtn" style="margin-bottom: 10px;">
+                        <i class="fas fa-edit"></i> Profilni Tahrirlash
+                    </button>
+                    <button class="match-option-btn" id="viewStatsBtn" style="background: #3498db;">
+                        <i class="fas fa-chart-bar"></i> Batafsil Statistika
+                    </button>
+                </div>
+            </div>
+
+            <div class="quests-container">
+                <h3><i class="fas fa-tasks"></i> Kunlik Vazifalar</h3>
+                <div id="profileQuestsList"></div>
+            </div>
+        </div>
+
+        <!-- FRIENDS TAB -->
+        <div class="tab-content" id="friendsTab">
+            <div class="friends-container">
+                <div id="friendsStatus">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-weight: bold; font-size: 1.1rem;">Do'stlar Ro'yxati</div>
+                            <div style="font-size: 0.8rem; opacity: 0.8;">
+                                <span id="friendsCount">0</span> ta do'st •
+                                <span id="onlineFriendsCount">0</span> ta onlayn
+                            </div>
+                        </div>
+                        <button class="refresh-btn" id="refreshFriendsBtn">
+                            <i class="fas fa-sync-alt"></i>
                         </button>
-                        <button class="profile-btn" id="viewStatsBtn">
-                            <i class="fas fa-chart-bar"></i> Batafsil Statistika
-                        </button>
                     </div>
                 </div>
-            </div>
 
-            <!-- ==================== FRIENDS TAB ==================== -->
-            <div class="tab-content hidden" id="friendsTab">
-                <div class="friends-tab">
-                    <div class="friends-header">
-                        <h2><i class="fas fa-users"></i> Do'stlar</h2>
-                        <div class="friends-stats">
-                            <span id="friendsCount">0</span> do'st •
-                            <span id="onlineFriendsCount">0</span> onlayn
-                        </div>
-                    </div>
-                    
-                    <div class="friends-list" id="friendsList">
-                        <div class="no-friends">
-                            <i class="fas fa-user-friends"></i>
-                            <h3>Hali do'stlaringiz yo'q</h3>
-                            <p>O'zaro like bergan foydalanuvchilar bu yerda ko'rinadi</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== SHOP TAB ==================== -->
-            <div class="tab-content hidden" id="shopTab">
-                <div class="shop-tab">
-                    <div class="shop-header">
-                        <h2><i class="fas fa-shopping-cart"></i> Do'kon</h2>
-                        <div class="shop-balance">
-                            <i class="fas fa-coins"></i>
-                            <span id="shopCoinsCount">100</span> coin
-                        </div>
-                    </div>
-                    
-                    <div class="shop-items" id="shopItemsList">
-                        <!-- Items will be loaded by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== LEADERBOARD TAB ==================== -->
-            <div class="tab-content hidden" id="leaderboardTab">
-                <div class="leaderboard-tab">
-                    <h2><i class="fas fa-trophy"></i> Liderlar Doskasi</h2>
-                    
-                    <div class="leaderboard-list" id="leaderboardList">
-                        <!-- Leaderboard will be loaded by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- ==================== MODALS ==================== -->
-        <!-- Gender Selection Modal -->
-        <div class="modal hidden" id="genderModal">
-            <div class="modal-content">
-                <div class="modal-icon">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <h2>Jinsni Tanlang</h2>
-                <p>Duel qilish uchun jinsingizni tanlashingiz kerak</p>
+                <div class="friend-list" id="friendsList"></div>
                 
-                <div class="gender-options">
-                    <button class="gender-option male" onclick="selectGender('male')">
-                        <i class="fas fa-mars"></i>
-                        <span>Erkak</span>
-                        <small>Faqat ayollar bilan duel</small>
-                    </button>
-                    
-                    <button class="gender-option female" onclick="selectGender('female')">
-                        <i class="fas fa-venus"></i>
-                        <span>Ayol</span>
-                        <small>Faqat erkaklar bilan duel</small>
-                    </button>
-                    
-                    <button class="gender-option all" onclick="selectGender('not_specified')">
-                        <i class="fas fa-users"></i>
-                        <span>Hammasi</span>
-                        <small>Har qanday jins bilan duel</small>
+                <div class="no-friends hidden" id="noFriends">
+                    <div style="font-size: 3rem; margin-bottom: 15px;">😔</div>
+                    <div style="font-weight: bold; margin-bottom: 10px;">Hali do'stlaringiz yo'q</div>
+                    <div style="opacity: 0.7; margin-bottom: 20px;">O'zaro like bergan foydalanuvchilar bu yerda ko'rinadi</div>
+                    <button class="start-btn" onclick="gameState.currentTab = 'duel'; showScreen('welcome');">
+                        🎮 Duel O'ynash
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Chat Modal -->
-        <div class="modal hidden" id="chatModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Chat</h3>
-                    <button class="close-btn" onclick="closeChatModal()">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <!-- SHOP TAB -->
+        <div class="tab-content" id="shopTab">
+            <div class="shop-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3><i class="fas fa-shopping-cart"></i> Do'kon</h3>
+                    <div class="stat-item" style="font-size: 1.1rem;">
+                        <i class="fas fa-coins"></i>
+                        <span id="shopCoinsCount">100</span>
+                    </div>
                 </div>
-                
-                <div class="chat-content">
-                    <img src="" alt="Partner" class="chat-avatar" id="chatPartnerAvatar">
-                    <h4 id="chatPartnerName">Foydalanuvchi</h4>
-                    <p id="chatUsername">@username</p>
-                    
-                    <button class="chat-action-btn" onclick="openTelegramChat()">
-                        <i class="fab fa-telegram"></i>
-                        Telegramda ochish
-                    </button>
-                    
-                    <button class="chat-action-btn secondary" onclick="closeChatModal(); skipToNextDuel();">
-                        <i class="fas fa-play"></i>
-                        Duelni davom ettirish
-                    </button>
-                </div>
+
+                <div class="shop-items" id="shopItemsList"></div>
             </div>
         </div>
 
-        <!-- Notification -->
-        <div class="notification hidden" id="notification">
-            <div class="notification-content">
-                <div class="notification-title" id="notificationTitle"></div>
-                <div class="notification-message" id="notificationMessage"></div>
+        <!-- LEADERBOARD TAB -->
+        <div class="tab-content" id="leaderboardTab">
+            <div class="leaderboard-container">
+                <h3><i class="fas fa-trophy"></i> Liderlar Doskasi</h3>
+
+                <div class="leaderboard-tabs">
+                    <div class="leaderboard-tab active" data-leaderboard="rating">Reyting</div>
+                    <div class="leaderboard-tab" data-leaderboard="matches">Matchlar</div>
+                    <div class="leaderboard-tab" data-leaderboard="friends">Do'stlar</div>
+                </div>
+
+                <div class="leaderboard-list" id="leaderboardList"></div>
+
+                <div class="leaderboard-updated">
+                    Yangilangan: <span id="leaderboardUpdated">hozir</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Sound Effects -->
-    <audio id="likeSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
-    </audio>
-    <audio id="matchSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
-    </audio>
-    <audio id="clickSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3" type="audio/mpeg">
-    </audio>
+    <!-- MODALLAR -->
+    <!-- Gender tanlash (majburiy) -->
+    <div class="gender-modal mandatory-modal" id="genderModal">
+        <div class="modal-content">
+            <div style="font-size: 3rem; margin-bottom: 15px;">👤</div>
+            <h2 style="margin-bottom: 10px; color: #e74c3c;">⚠️ MAJBURIY: Jinsni Tanlang</h2>
+            <p style="margin-bottom: 20px; opacity: 0.7; color: #e74c3c; font-weight: bold;">
+                Gender tanlamasangiz duel o'ynay olmaysiz!
+            </p>
+            <p style="margin-bottom: 20px; opacity: 0.7;">
+                Bu sizning duel qilish sozlamangiz. Keyinchalik profil orqali o'zgartirishingiz mumkin.
+            </p>
 
-    <!-- JavaScript -->
+            <div class="gender-options">
+                <button class="gender-option-btn gender-male" id="selectMaleBtn">
+                    <i class="fas fa-mars"></i>
+                    <div style="text-align: left; flex: 1;">
+                        <div style="font-weight: bold;">Erkak</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Faqat ayollar bilan duel</div>
+                    </div>
+                </button>
+
+                <button class="gender-option-btn gender-female" id="selectFemaleBtn">
+                    <i class="fas fa-venus"></i>
+                    <div style="text-align: left; flex: 1;">
+                        <div style="font-weight: bold;">Ayol</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Faqat erkaklar bilan duel</div>
+                    </div>
+                </button>
+
+                <button class="gender-option-btn gender-all" id="selectAllBtn">
+                    <i class="fas fa-users"></i>
+                    <div style="text-align: left; flex: 1;">
+                        <div style="font-weight: bold;">Hammasi</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Har qanday jins bilan duel</div>
+                    </div>
+                </button>
+            </div>
+
+            <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 10px;">
+                <p style="font-size: 0.8rem; opacity: 0.7; margin: 0;">
+                    <i class="fas fa-info-circle"></i> Eslatma: Gender tanlaganingizdan keyin o'zgartirishingiz mumkin,
+                    lekin duel qilish uchun gender tanlash MAJBURIY!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profil tahrirlash -->
+    <div class="chat-modal" id="profileEditModal">
+        <div class="chat-box">
+            <div class="chat-header">
+                <div>Profilni Tahrirlash</div>
+                <button id="closeProfileEditBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="chat-messages" style="height: auto; padding: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Bio</label>
+                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4"></textarea>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Jins</label>
+                    <select id="editGender">
+                        <option value="not_specified">Ko'rsatilmaydi (hamma bilan)</option>
+                        <option value="male">Erkak (faqat ayollar bilan)</option>
+                        <option value="female">Ayol (faqat erkaklar bilan)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Filter</label>
+                    <select id="editFilter">
+                        <option value="not_specified">Hamma bilan duel</option>
+                        <option value="male">Faqat erkaklar bilan</option>
+                        <option value="female">Faqat ayollar bilan</option>
+                    </select>
+                </div>
+                <button id="saveProfileBtn">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-box">
+            <div class="chat-header">
+                <div id="chatTitle">Telegram Chat</div>
+                <button id="closeChatBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="chat-content">
+                <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
+                <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
+                <div class="chat-username" id="chatUsername">@username</div>
+                
+                <button class="chat-button" id="chatOpenTelegramBtn">
+                    <i class="fab fa-telegram"></i> Telegramda ochish
+                </button>
+                
+                <div class="chat-note">
+                    <p><i class="fas fa-info-circle"></i> Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div id="notificationTitle" style="font-weight: bold; margin-bottom: 5px;"></div>
+        <div id="notificationMessage"></div>
+    </div>
+
     <script src="main.js"></script>
-    
-    <script>
-        // Telegram WebApp ready
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-            Telegram.WebApp.ready();
-            Telegram.WebApp.expand();
-        }
-    </script>
 </body>
 </html>

@@ -1,608 +1,1608 @@
-// ==================== IMPROVED GAME STATE ====================
-const modernGameState = {
+// ==================== O'YIN HOLATLARI ====================
+const gameState = {
     socket: null,
     isConnected: false,
-    currentScreen: 'welcome',
-    userData: null,
-    duelTimer: null,
-    animationFrame: null,
-    theme: 'dark',
-    soundEnabled: true,
-    hapticEnabled: true,
-    spinWheelSpinning: false,
-    dailySpinAvailable: true,
-    currentStreak: 0,
-    matchHistory: []
+    isInQueue: false,
+    isInDuel: false,
+    timeLeft: 20,
+    timerInterval: null,
+    playerData: null,
+    currentDuelId: null,
+    currentPartner: null,
+    lastOpponent: null,
+    reconnectAttempts: 0,
+    maxReconnectAttempts: 5,
+    currentTab: 'duel',
+    isChatModalOpen: false,
+    currentFilter: localStorage.getItem('userFilter') || 'not_specified',
+    mutualMatches: [],
+    friendsList: [],
+    waitingForOpponent: false,
+    isVoting: false,
+    matchCompleted: false,  // Yangi: match tugaganligini bildiradi
+    isProcessingMatch: false // Yangi: match qayta ishlanayotganligini bildiradi
 };
 
-// ==================== SOUND MANAGER ====================
-class SoundManager {
-    constructor() {
-        this.sounds = {
-            like: document.getElementById('likeSound'),
-            match: document.getElementById('matchSound'),
-            click: document.getElementById('clickSound'),
-            timer: document.getElementById('timerSound')
-        };
-        this.enabled = modernGameState.soundEnabled;
-    }
+// ==================== USER STATE ====================
+const userState = {
+    currentGender: localStorage.getItem('userGender') || null,
+    hasSelectedGender: localStorage.getItem('hasSelectedGender') === 'true',
+    coins: parseInt(localStorage.getItem('userCoins')) || 100,
+    level: parseInt(localStorage.getItem('userLevel')) || 1,
+    rating: parseInt(localStorage.getItem('userRating')) || 1500,
+    matches: parseInt(localStorage.getItem('userMatches')) || 0,
+    duels: parseInt(localStorage.getItem('userDuels')) || 0,
+    wins: parseInt(localStorage.getItem('userWins')) || 0,
+    totalLikes: parseInt(localStorage.getItem('userTotalLikes')) || 0,
+    dailySuperLikes: parseInt(localStorage.getItem('userDailySuperLikes')) || 3,
+    bio: localStorage.getItem('userBio') || '',
+    filter: localStorage.getItem('userFilter') || 'not_specified',
+    mutualMatchesCount: parseInt(localStorage.getItem('mutualMatchesCount')) || 0,
+    friendsCount: parseInt(localStorage.getItem('friendsCount')) || 0,
+    telegramUsername: null
+};
 
-    play(soundName) {
-        if (!this.enabled) return;
-        
-        const sound = this.sounds[soundName];
-        if (sound) {
-            sound.currentTime = 0;
-            sound.play().catch(e => console.log('Sound play failed:', e));
-        }
-    }
+// ==================== DOM ELEMENTLARI ====================
+const elements = {
+    // Asosiy ekranlar
+    welcomeScreen: document.getElementById('welcomeScreen'),
+    queueScreen: document.getElementById('queueScreen'),
+    duelScreen: document.getElementById('duelScreen'),
+    matchScreen: document.getElementById('matchScreen'),
+    
+    // Profil elementlari
+    myAvatar: document.getElementById('myAvatar'),
+    myName: document.getElementById('myName'),
+    myUsername: document.getElementById('myUsername'),
+    myMatches: document.getElementById('myMatches'),
+    myLikes: document.getElementById('myLikes'),
+    mutualMatchesCount: document.getElementById('mutualMatchesCount'),
+    
+    // Navbat elementlari
+    waitingCount: document.getElementById('waitingCount'),
+    position: document.getElementById('position'),
+    positionInfo: document.getElementById('positionInfo'),
+    queueStatus: document.getElementById('queueStatus'),
+    genderFilterContainer: document.getElementById('genderFilterContainer'),
+    
+    // Duel elementlari
+    opponentAvatar: document.getElementById('opponentAvatar'),
+    opponentName: document.getElementById('opponentName'),
+    opponentUsername: document.getElementById('opponentUsername'),
+    opponentRating: document.getElementById('opponentRating'),
+    opponentMatches: document.getElementById('opponentMatches'),
+    opponentLevel: document.getElementById('opponentLevel'),
+    timer: document.getElementById('timer'),
+    duelStatus: document.getElementById('duelStatus'),
+    superLikeCount: document.getElementById('superLikeCount'),
+    
+    // Tugmalar
+    startBtn: document.getElementById('startBtn'),
+    leaveQueueBtn: document.getElementById('leaveQueueBtn'),
+    noBtn: document.getElementById('noBtn'),
+    likeBtn: document.getElementById('likeBtn'),
+    superLikeBtn: document.getElementById('superLikeBtn'),
+    refreshFriendsBtn: document.getElementById('refreshFriendsBtn'),
+    
+    // Match elementlari
+    partnerName: document.getElementById('partnerName'),
+    matchText: document.getElementById('matchText'),
+    matchRewards: document.getElementById('matchRewards'),
+    rewardCoins: document.getElementById('rewardCoins'),
+    rewardXP: document.getElementById('rewardXP'),
+    matchOptions: document.getElementById('matchOptions'),
+    
+    // Profil tab elementlari
+    profileAvatar: document.getElementById('profileAvatar'),
+    profileName: document.getElementById('profileName'),
+    profileUsername: document.getElementById('profileUsername'),
+    profileBio: document.getElementById('profileBio'),
+    statRating: document.getElementById('statRating'),
+    statMatches: document.getElementById('statMatches'),
+    statDuels: document.getElementById('statDuels'),
+    statWinRate: document.getElementById('statWinRate'),
+    mutualMatchesProfile: document.getElementById('mutualMatchesProfile'),
+    statFriends: document.getElementById('statFriends'),
+    
+    // Statistikalar
+    coinsCount: document.getElementById('coinsCount'),
+    levelCount: document.getElementById('levelCount'),
+    shopCoinsCount: document.getElementById('shopCoinsCount'),
+    
+    // Notifikatsiya
+    notification: document.getElementById('notification'),
+    notificationTitle: document.getElementById('notificationTitle'),
+    notificationMessage: document.getElementById('notificationMessage'),
+    
+    // Modallar
+    genderModal: document.getElementById('genderModal'),
+    genderWarning: document.getElementById('genderWarning'),
+    selectGenderNowBtn: document.getElementById('selectGenderNowBtn'),
+    
+    rematchModal: document.getElementById('rematchModal'),
+    rematchOpponentName: document.getElementById('rematchOpponentName'),
+    acceptRematchBtn: document.getElementById('acceptRematchBtn'),
+    declineRematchBtn: document.getElementById('declineRematchBtn'),
+    
+    profileEditModal: document.getElementById('profileEditModal'),
+    editProfileBtn: document.getElementById('editProfileBtn'),
+    closeProfileEditBtn: document.getElementById('closeProfileEditBtn'),
+    editBio: document.getElementById('editBio'),
+    editGender: document.getElementById('editGender'),
+    editFilter: document.getElementById('editFilter'),
+    saveProfileBtn: document.getElementById('saveProfileBtn'),
+    
+    // Gender tanlash tugmalari
+    selectMaleBtn: document.getElementById('selectMaleBtn'),
+    selectFemaleBtn: document.getElementById('selectFemaleBtn'),
+    selectAllBtn: document.getElementById('selectAllBtn'),
+    
+    // Chat modal elementlari
+    chatModal: document.getElementById('chatModal'),
+    chatPartnerAvatar: document.getElementById('chatPartnerAvatar'),
+    chatPartnerName: document.getElementById('chatPartnerName'),
+    chatUsername: document.getElementById('chatUsername'),
+    chatOpenTelegramBtn: document.getElementById('chatOpenTelegramBtn'),
+    closeChatBtn: document.getElementById('closeChatBtn'),
+    chatTitle: document.getElementById('chatTitle'),
+    
+    // Do'stlar tab elementlari
+    friendsList: document.getElementById('friendsList'),
+    friendsCount: document.getElementById('friendsCount'),
+    onlineFriendsCount: document.getElementById('onlineFriendsCount'),
+    noFriends: document.getElementById('noFriends'),
+    
+    // Do'kon elementlari
+    shopItemsList: document.getElementById('shopItemsList'),
+    
+    // Liderlar tab elementlari
+    leaderboardList: document.getElementById('leaderboardList'),
+    leaderboardUpdated: document.getElementById('leaderboardUpdated'),
+    
+    // Kunlik vazifalar
+    profileQuestsList: document.getElementById('profileQuestsList'),
+    
+    // View stats button
+    viewStatsBtn: document.getElementById('viewStatsBtn')
+};
 
-    toggle() {
-        this.enabled = !this.enabled;
-        modernGameState.soundEnabled = this.enabled;
-        localStorage.setItem('soundEnabled', this.enabled);
-        return this.enabled;
-    }
-}
+// ==================== GLOBAL USER ====================
+let tgUserGlobal = null;
 
-// ==================== HAPTIC FEEDBACK ====================
-class HapticManager {
-    constructor() {
-        this.enabled = modernGameState.hapticEnabled && 'vibrate' in navigator;
-    }
-
-    vibrate(pattern = [50]) {
-        if (!this.enabled) return;
-        
-        try {
-            if (typeof navigator.vibrate === 'function') {
-                navigator.vibrate(pattern);
+// ==================== PROFILNI YUKLASH ====================
+function initUserProfile() {
+    console.log('👤 Profil yuklanmoqda...');
+    
+    let tgUser = {};
+    
+    try {
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe) {
+            tgUser = Telegram.WebApp.initDataUnsafe.user || {};
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            
+            if (tgUser.username) {
+                userState.telegramUsername = tgUser.username;
             }
-        } catch (e) {
-            console.log('Vibration not supported');
+            
+            // Telegram rang mavzusiga moslashish
+            const themeParams = Telegram.WebApp.themeParams;
+            if (themeParams && themeParams.bg_color) {
+                document.documentElement.style.setProperty('--tg-bg-color', themeParams.bg_color);
+                document.documentElement.style.setProperty('--tg-text-color', themeParams.text_color || '#333');
+            }
         }
+    } catch (error) {
+        console.log('ℹ️ Telegram Web App mavjud emas, test rejimida');
     }
-
-    likeVibration() {
-        this.vibrate([30, 50, 30]);
+    
+    if (!tgUser.id) {
+        tgUser = {
+            id: 'test_' + Date.now(),
+            first_name: 'Test Foydalanuvchi',
+            username: 'test_user',
+            photo_url: null
+        };
     }
-
-    matchVibration() {
-        this.vibrate([100, 50, 100, 50, 100]);
-    }
-
-    toggle() {
-        this.enabled = !this.enabled;
-        modernGameState.hapticEnabled = this.enabled;
-        localStorage.setItem('hapticEnabled', this.enabled);
-        return this.enabled;
-    }
-}
-
-// ==================== ANIMATION MANAGER ====================
-class AnimationManager {
-    static createBubble(x, y, text, color) {
-        const bubble = document.createElement('div');
-        bubble.className = 'feedback-bubble';
-        bubble.textContent = text;
-        bubble.style.left = `${x}px`;
-        bubble.style.top = `${y}px`;
-        bubble.style.color = color;
-        
-        document.body.appendChild(bubble);
-        
-        // Animate bubble
-        bubble.animate([
-            { transform: 'translateY(0) scale(0.8)', opacity: 0 },
-            { transform: 'translateY(-30px) scale(1.2)', opacity: 1 },
-            { transform: 'translateY(-60px) scale(1)', opacity: 0 }
-        ], {
-            duration: 1000,
-            easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)'
-        }).onfinish = () => bubble.remove();
-    }
-
-    static animateTimerLiquid(seconds) {
-        const liquidFill = document.querySelector('.liquid-fill');
-        if (!liquidFill) return;
-        
-        const percentage = (20 - seconds) / 20 * 100;
-        liquidFill.style.height = `${percentage}%`;
-        
-        // Change color based on time
-        if (seconds <= 5) {
-            liquidFill.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #c44569 100%)';
-        } else if (seconds <= 10) {
-            liquidFill.style.background = 'linear-gradient(135deg, #ffa726 0%, #ff9800 100%)';
-        } else {
-            liquidFill.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-        }
-    }
-
-    static animateProgressBar(progressBar, percentage, duration = 500) {
-        const fill = progressBar.querySelector('.progress-fill');
-        if (!fill) return;
-        
-        fill.animate([
-            { width: fill.style.width },
-            { width: `${percentage}%` }
-        ], {
-            duration,
-            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-            fill: 'forwards'
-        });
-    }
-}
-
-// ==================== THEME MANAGER ====================
-class ThemeManager {
-    static themes = {
-        dark: {
-            '--dark-bg': '#0f0f23',
-            '--card-bg': 'rgba(255, 255, 255, 0.08)',
-            '--card-border': 'rgba(255, 255, 255, 0.1)',
-            '--text-primary': '#ffffff',
-            '--text-secondary': 'rgba(255, 255, 255, 0.7)'
-        },
-        light: {
-            '--dark-bg': '#f8f9fa',
-            '--card-bg': 'rgba(255, 255, 255, 0.9)',
-            '--card-border': 'rgba(0, 0, 0, 0.1)',
-            '--text-primary': '#333333',
-            '--text-secondary': 'rgba(0, 0, 0, 0.6)'
-        },
-        sunset: {
-            '--dark-bg': '#1a1a2e',
-            '--card-bg': 'rgba(253, 203, 110, 0.1)',
-            '--card-border': 'rgba(253, 203, 110, 0.2)',
-            '--text-primary': '#ffffff',
-            '--text-secondary': 'rgba(255, 255, 255, 0.7)'
-        },
-        love: {
-            '--dark-bg': '#2d1b2e',
-            '--card-bg': 'rgba(245, 87, 108, 0.1)',
-            '--card-border': 'rgba(245, 87, 108, 0.2)',
-            '--text-primary': '#ffffff',
-            '--text-secondary': 'rgba(255, 255, 255, 0.7)'
-        }
-    };
-
-    static applyTheme(themeName) {
-        const theme = this.themes[themeName] || this.themes.dark;
-        Object.entries(theme).forEach(([property, value]) => {
-            document.documentElement.style.setProperty(property, value);
-        });
-        modernGameState.theme = themeName;
-        localStorage.setItem('appTheme', themeName);
-    }
-
-    static cycleTheme() {
-        const themes = Object.keys(this.themes);
-        const currentIndex = themes.indexOf(modernGameState.theme);
-        const nextIndex = (currentIndex + 1) % themes.length;
-        this.applyTheme(themes[nextIndex]);
-        return themes[nextIndex];
-    }
-}
-
-// ==================== SPIN WHEEL ====================
-class SpinWheel {
-    constructor(element) {
-        this.wheel = element;
-        this.items = element.querySelector('.wheel-items');
-        this.spinBtn = element.querySelector('.spin-btn');
-        this.spinning = false;
-        this.rotation = 0;
-        
-        this.init();
-    }
-
-    init() {
-        this.spinBtn.addEventListener('click', () => this.spin());
-        
-        // Check daily spin availability
-        const lastSpin = localStorage.getItem('lastSpinDate');
-        const today = new Date().toDateString();
-        if (lastSpin === today) {
-            this.spinBtn.disabled = true;
-            this.spinBtn.textContent = 'Ertaga kuting';
-        }
-    }
-
-    spin() {
-        if (this.spinning || !modernGameState.dailySpinAvailable) return;
-        
-        this.spinning = true;
-        modernGameState.spinWheelSpinning = true;
-        this.spinBtn.disabled = true;
-        
-        // Calculate random rotation (3-5 full rotations + random item)
-        const fullRotations = 3 + Math.floor(Math.random() * 2);
-        const itemAngle = 60; // 6 items = 60° each
-        const randomItem = Math.floor(Math.random() * 6);
-        const targetRotation = (fullRotations * 360) + (randomItem * itemAngle);
-        
-        // Animate wheel
-        this.rotation = targetRotation;
-        this.items.style.transition = 'transform 4s cubic-bezier(0.2, 0.8, 0.3, 1)';
-        this.items.style.transform = `rotate(${this.rotation}deg)`;
-        
-        // Get reward
+    
+    const userPhoto = tgUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUser.first_name || 'User')}&background=667eea&color=fff`;
+    const userName = tgUser.first_name || 'Foydalanuvchi';
+    const userUsername = tgUser.username ? '@' + tgUser.username : '@foydalanuvchi';
+    
+    if (elements.myAvatar) elements.myAvatar.src = userPhoto;
+    if (elements.myName) elements.myName.textContent = userName;
+    if (elements.myUsername) elements.myUsername.textContent = userUsername;
+    if (elements.profileAvatar) elements.profileAvatar.src = userPhoto;
+    if (elements.profileName) elements.profileName.textContent = userName;
+    if (elements.profileUsername) elements.profileUsername.textContent = userUsername;
+    
+    tgUserGlobal = tgUser;
+    
+    // UI ni yangilash
+    updateUIFromUserState();
+    
+    // Compact filter qo'shish
+    addCompactFilterToWelcomeScreen();
+    
+    // Agar gender tanlanmagan bo'lsa, modalni ko'rsatish
+    if (!userState.hasSelectedGender) {
+        console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
         setTimeout(() => {
-            const rewardItem = this.wheel.querySelector(`.wheel-item:nth-child(${randomItem + 1})`);
-            const reward = rewardItem?.dataset.value || '50';
-            this.handleReward(reward);
-            
-            // Save spin date
-            localStorage.setItem('lastSpinDate', new Date().toDateString());
-            modernGameState.dailySpinAvailable = false;
-            
-            setTimeout(() => {
-                this.spinning = false;
-                this.spinBtn.textContent = 'Ertaga kuting';
-            }, 1000);
-        }, 4000);
+            showGenderModal(true);
+        }, 1000);
     }
+    
+    return tgUser;
+}
 
-    handleReward(reward) {
-        const soundManager = new SoundManager();
-        const hapticManager = new HapticManager();
-        
-        soundManager.play('match');
-        hapticManager.matchVibration();
-        
-        let message = '';
-        switch(reward) {
-            case 'super':
-                message = '🎉 Kunlik Super Like +1!';
-                userState.dailySuperLikes++;
-                break;
-            case 'vip':
-                message = '👑 24 soatlik VIP status!';
-                // Activate VIP status
-                break;
-            default:
-                message = `🪙 ${reward} coin yutib oldingiz!`;
-                userState.coins += parseInt(reward);
+// ==================== UI YANGILASH ====================
+function updateUIFromUserState() {
+    console.log('🎨 UI yangilanmoqda...');
+    
+    // Gender badge qo'shish
+    if (userState.hasSelectedGender && userState.currentGender) {
+        addGenderBadge(elements.myName, userState.currentGender);
+        addGenderBadge(elements.profileName, userState.currentGender);
+    }
+    
+    // Statistika yangilash
+    if (elements.coinsCount) elements.coinsCount.textContent = userState.coins;
+    if (elements.levelCount) elements.levelCount.textContent = userState.level;
+    if (elements.shopCoinsCount) elements.shopCoinsCount.textContent = userState.coins;
+    if (elements.statRating) elements.statRating.textContent = userState.rating;
+    if (elements.statMatches) elements.statMatches.textContent = userState.matches;
+    if (elements.myMatches) elements.myMatches.textContent = userState.matches;
+    if (elements.statDuels) elements.statDuels.textContent = userState.duels;
+    if (elements.mutualMatchesCount) elements.mutualMatchesCount.textContent = userState.mutualMatchesCount;
+    if (elements.mutualMatchesProfile) elements.mutualMatchesProfile.textContent = userState.mutualMatchesCount;
+    if (elements.statFriends) elements.statFriends.textContent = userState.friendsCount;
+    
+    const winRate = userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0;
+    if (elements.statWinRate) elements.statWinRate.textContent = winRate + '%';
+    
+    if (elements.myLikes) elements.myLikes.textContent = userState.totalLikes;
+    if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
+    
+    if (elements.profileBio && userState.bio) {
+        elements.profileBio.textContent = userState.bio;
+    }
+    
+    // Start tugmasini yangilash
+    if (elements.startBtn) {
+        if (userState.hasSelectedGender) {
+            elements.startBtn.disabled = false;
+            elements.startBtn.textContent = '🎮 O\'yinni Boshlash';
+            elements.startBtn.classList.remove('disabled');
+        } else {
+            elements.startBtn.disabled = true;
+            elements.startBtn.textContent = 'Avval gender tanlang';
+            elements.startBtn.classList.add('disabled');
         }
+    }
+    
+    // Filter sozlamasini yangilash
+    gameState.currentFilter = userState.filter;
+    
+    // Compact filterni yangilash
+    updateCompactFilterUI();
+}
+
+function addGenderBadge(element, gender) {
+    if (!element || !gender) return;
+    
+    const oldBadges = element.querySelectorAll('.gender-badge');
+    oldBadges.forEach(badge => badge.remove());
+    
+    const badge = document.createElement('span');
+    badge.className = `gender-badge gender-${gender}-badge`;
+    
+    if (gender === 'male') {
+        badge.innerHTML = '<i class="fas fa-mars"></i> Erkak';
+    } else if (gender === 'female') {
+        badge.innerHTML = '<i class="fas fa-venus"></i> Ayol';
+    } else {
+        badge.innerHTML = '<i class="fas fa-users"></i> Hammasi';
+    }
+    
+    element.appendChild(badge);
+}
+
+function addSmallGenderBadge(element, gender) {
+    if (!element || !gender) return;
+    
+    const oldBadges = element.querySelectorAll('.small-gender-badge');
+    oldBadges.forEach(badge => badge.remove());
+    
+    const badge = document.createElement('span');
+    badge.className = `small-gender-badge gender-${gender}-small`;
+    
+    if (gender === 'male') {
+        badge.innerHTML = '👨';
+    } else if (gender === 'female') {
+        badge.innerHTML = '👩';
+    } else {
+        badge.innerHTML = '👥';
+    }
+    
+    element.appendChild(badge);
+}
+
+// ==================== KOMPAKT FILTER FUNKSIYALARI ====================
+function createCompactFilter() {
+    const filterContainer = document.createElement('div');
+    filterContainer.className = 'gender-filter-container';
+    filterContainer.innerHTML = `
+        <div class="gender-filter-header">
+            <div class="gender-filter-title">
+                <i class="fas fa-filter"></i>
+                Kim bilan duel?
+            </div>
+        </div>
+        <div class="gender-filter-options">
+            <button class="filter-toggle-btn ${gameState.currentFilter === 'male' ? 'active' : ''}" 
+                    data-filter="male" onclick="toggleFilter('male')">
+                <i class="fas fa-mars"></i>
+            </button>
+            <button class="filter-toggle-btn ${gameState.currentFilter === 'female' ? 'active' : ''}" 
+                    data-filter="female" onclick="toggleFilter('female')">
+                <i class="fas fa-venus"></i>
+            </button>
+            <button class="filter-toggle-btn ${gameState.currentFilter === 'not_specified' ? 'active' : ''}" 
+                    data-filter="not_specified" onclick="toggleFilter('not_specified')">
+                <i class="fas fa-users"></i>
+            </button>
+        </div>
+        <div class="filter-description" id="filterDescription">
+            ${getFilterDescription()}
+        </div>
+    `;
+    
+    return filterContainer;
+}
+
+function getFilterDescription() {
+    switch(gameState.currentFilter) {
+        case 'male':
+            return 'Faqat erkaklar bilan duel';
+        case 'female':
+            return 'Faqat ayollar bilan duel';
+        default:
+            return 'Barcha genderlar bilan duel';
+    }
+}
+
+function updateCompactFilterUI() {
+    const filterDescription = document.getElementById('filterDescription');
+    if (filterDescription) {
+        filterDescription.textContent = getFilterDescription();
+    }
+    
+    const filterBtns = document.querySelectorAll('.filter-toggle-btn');
+    filterBtns.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === gameState.currentFilter) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function toggleFilter(filter) {
+    console.log(`🎯 Filter o'zgartirish: ${filter}`);
+    
+    const oldFilter = gameState.currentFilter;
+    gameState.currentFilter = filter;
+    userState.filter = filter;
+    localStorage.setItem('userFilter', filter);
+    
+    // UI yangilash
+    updateCompactFilterUI();
+    
+    // Serverga yangilash
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('update_profile', { filter: filter });
         
-        this.showRewardPopup(message);
+        // Agar navbatda bo'lsa, qayta kiritish
+        if (gameState.isInQueue && oldFilter !== filter) {
+            gameState.socket.emit('leave_queue');
+            setTimeout(() => {
+                gameState.socket.emit('enter_queue');
+            }, 500);
+        }
+    }
+    
+    // Kichik bildirishnoma
+    showNotification('Filter o\'zgartirildi', 
+        filter === 'male' ? 'Faqat erkaklar bilan' : 
+        filter === 'female' ? 'Faqat ayollar bilan' : 
+        'Hamma bilan');
+}
+
+function addCompactFilterToWelcomeScreen() {
+    const profileCard = document.getElementById('profileCard');
+    if (!profileCard) return;
+    
+    const existingFilter = profileCard.querySelector('.gender-filter-container');
+    if (existingFilter) {
+        existingFilter.remove();
+    }
+    
+    const startBtn = profileCard.querySelector('.start-btn');
+    const filterElement = createCompactFilter();
+    
+    if (startBtn && startBtn.parentNode) {
+        startBtn.parentNode.insertBefore(filterElement, startBtn);
+    }
+}
+
+// ==================== GENDER TANLASH ====================
+function selectGender(gender) {
+    console.log(`🎯 Gender tanlash: ${gender}`);
+    
+    userState.currentGender = gender;
+    userState.hasSelectedGender = true;
+    userState.filter = gender === 'not_specified' ? 'not_specified' : gender;
+    
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
+    
+    hideGenderModal();
+    
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('select_gender', { 
+            gender: gender,
+            filter: userState.filter
+        });
+    } else {
+        connectToServer();
+    }
+    
+    showNotification('🎉 Jins tanlandi', 
+        gender === 'male' ? 'Faqat ayollar bilan duel!' : 
+        gender === 'female' ? 'Faqat erkaklar bilan duel!' : 
+        'Hamma bilan duel!');
+}
+
+// ==================== MODAL FUNKSIYALARI ====================
+function showGenderModal(mandatory = true) {
+    console.log(`🎯 Gender modali ko'rsatilmoqda`);
+    
+    if (!elements.genderModal) return;
+    
+    elements.genderModal.classList.add('active');
+    
+    if (mandatory && elements.genderWarning) {
+        elements.genderWarning.classList.remove('hidden');
+    }
+}
+
+function hideGenderModal() {
+    if (elements.genderModal) {
+        elements.genderModal.classList.remove('active');
+    }
+    if (elements.genderWarning) {
+        elements.genderWarning.classList.add('hidden');
+    }
+}
+
+// ==================== SERVERGA ULANISH ====================
+function connectToServer() {
+    if (!tgUserGlobal) {
+        showNotification('Xato', 'Foydalanuvchi ma\'lumotlari topilmadi');
+        return;
+    }
+    
+    if (gameState.socket && gameState.isConnected) {
+        console.log('ℹ️ Allaqachon serverga ulanilgan');
+        return;
+    }
+    
+    console.log('🔗 Serverga ulanmoqda...');
+    updateQueueStatus('Serverga ulanmoqda...');
+    
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname === '';
+    
+    let socketUrl;
+    
+    if (isLocalhost) {
+        socketUrl = 'http://localhost:3000';
+        console.log('📍 Local development rejimi');
+    } else {
+        socketUrl = 'https://like-duel.onrender.com';
+        console.log('📍 Production (Render.com) rejimi');
+    }
+    
+    console.log('🔌 Socket URL:', socketUrl);
+    
+    gameState.socket = io(socketUrl, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        timeout: 20000,
+        forceNew: true
+    });
+    
+    // ==================== SOCKET EVENTLARI ====================
+    gameState.socket.on('connect', () => {
+        console.log('✅ Serverga ulandi');
+        gameState.isConnected = true;
+        gameState.reconnectAttempts = 0;
+        updateQueueStatus('Serverga ulandi...');
+        
+        gameState.socket.emit('auth', {
+            userId: tgUserGlobal.id,
+            firstName: tgUserGlobal.first_name,
+            lastName: tgUserGlobal.last_name || '',
+            username: tgUserGlobal.username,
+            photoUrl: tgUserGlobal.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUserGlobal.first_name || 'User')}&background=667eea&color=fff`,
+            language: tgUserGlobal.language_code || 'uz',
+            gender: userState.currentGender,
+            hasSelectedGender: userState.hasSelectedGender,
+            bio: userState.bio,
+            filter: userState.filter
+        });
+        
+        showNotification('✅ Ulanish', 'Serverga muvaffaqiyatli ulandik');
+    });
+    
+    gameState.socket.on('auth_ok', (data) => {
+        console.log('✅ Autentifikatsiya muvaffaqiyatli:', data);
+        
+        userState.currentGender = data.gender || userState.currentGender;
+        userState.hasSelectedGender = data.hasSelectedGender !== undefined ? data.hasSelectedGender : userState.hasSelectedGender;
+        userState.coins = data.coins || userState.coins;
+        userState.level = data.level || userState.level;
+        userState.rating = data.rating || userState.rating;
+        userState.matches = data.matches || userState.matches;
+        userState.duels = data.duels || userState.duels;
+        userState.wins = data.wins || userState.wins;
+        userState.totalLikes = data.totalLikes || userState.totalLikes;
+        userState.dailySuperLikes = data.dailySuperLikes || userState.dailySuperLikes;
+        userState.bio = data.bio || userState.bio;
+        userState.filter = data.filter || userState.filter;
+        userState.mutualMatchesCount = data.mutualMatchesCount || userState.mutualMatchesCount;
+        userState.friendsCount = data.friendsCount || userState.friendsCount;
+        
         saveUserStateToLocalStorage();
         updateUIFromUserState();
-    }
-
-    showRewardPopup(message) {
-        const popup = document.createElement('div');
-        popup.className = 'reward-popup';
-        popup.innerHTML = `
-            <div class="reward-popup-content">
-                <i class="fas fa-gift"></i>
-                <h3>Tabriklaymiz!</h3>
-                <p>${message}</p>
-                <button onclick="this.parentElement.parentElement.remove()">OK</button>
-            </div>
-        `;
         
-        document.body.appendChild(popup);
+        showScreen('queue');
         
-        // Auto remove after 5 seconds
-        setTimeout(() => popup.remove(), 5000);
-    }
-}
-
-// ==================== ENHANCED MATCH HANDLER ====================
-class EnhancedMatchHandler {
-    static analyzeMutualInterests(user1, user2) {
-        const interests = [];
+        if (userState.hasSelectedGender) {
+            console.log('🚀 Gender tanlangan, navbatga kirilmoqda...');
+            gameState.isInQueue = true;
+            gameState.socket.emit('enter_queue');
+        } else {
+            console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
+            updateQueueStatus('Gender tanlash kerak...');
+            showGenderModal(true);
+        }
+    });
+    
+    gameState.socket.on('show_gender_selection', (data) => {
+        console.log('⚠️ Serverdan gender tanlash so\'rovi:', data);
+        showGenderModal(true);
+        updateQueueStatus('Gender tanlash kerak...');
+    });
+    
+    gameState.socket.on('gender_selected', (data) => {
+        console.log('✅ Gender tanlandi:', data);
         
-        // Compare ratings
-        if (Math.abs(user1.rating - user2.rating) <= 100) {
-            interests.push(`Reyting: ${Math.min(user1.rating, user2.rating)}+`);
+        userState.currentGender = data.gender;
+        userState.hasSelectedGender = true;
+        
+        saveUserStateToLocalStorage();
+        updateUIFromUserState();
+        
+        hideGenderModal();
+        
+        if (gameState.socket && gameState.isConnected) {
+            gameState.isInQueue = true;
+            gameState.socket.emit('enter_queue');
         }
         
-        // Compare match count
-        if (user1.matches >= 5 && user2.matches >= 5) {
-            interests.push('Match: 5+');
-        }
-        
-        // Compare duel count
-        if (user1.duels >= 10 && user2.duels >= 10) {
-            interests.push('Duel: 10+');
-        }
-        
-        // Add random common interests
-        const randomInterests = [
-            'Premium foydalanuvchi',
-            'Faol o\'yinchi',
-            'Do\'stlik izlovchi',
-            'Tajribali duelchi'
-        ];
-        
-        if (interests.length < 3) {
-            const randomInterest = randomInterests[Math.floor(Math.random() * randomInterests.length)];
-            if (!interests.includes(randomInterest)) {
-                interests.push(randomInterest);
+        showNotification('🎉 Jins tanlandi', data.message || 'Endi duel o\'ynashingiz mumkin!');
+    });
+    
+    gameState.socket.on('queue_joined', (data) => {
+        console.log('✅ Navbatga kirdingiz:', data);
+        gameState.isInQueue = true;
+        gameState.isProcessingMatch = false; // Reset match processing flag
+        showScreen('queue');
+        updateQueueStatus(`Navbatdasiz. O'rningiz: ${data.position}/${data.total}`);
+    });
+    
+    gameState.socket.on('waiting_count', (data) => {
+        if (elements.waitingCount) elements.waitingCount.textContent = data.count;
+        if (elements.position) {
+            if (data.position > 0) {
+                elements.position.textContent = data.position;
+                if (elements.positionInfo) elements.positionInfo.style.display = 'block';
+                updateQueueStatus(`Navbatdasiz. O'rningiz: ${data.position}/${data.count}`);
+            } else {
+                if (elements.positionInfo) elements.positionInfo.style.display = 'none';
+                updateQueueStatus('Navbatda...');
             }
         }
+    });
+    
+    gameState.socket.on('duel_started', (data) => {
+        console.log('⚔️ Duel boshlandi:', data);
+        gameState.isInDuel = true;
+        gameState.waitingForOpponent = false;
+        gameState.currentDuelId = data.duelId;
+        gameState.isVoting = false;
+        gameState.matchCompleted = false; // Reset match completed flag
+        gameState.isProcessingMatch = false; // Reset processing flag
         
-        return interests.slice(0, 3); // Max 3 interests
-    }
-
-    static displayMutualInterests(user1, user2) {
-        const interests = this.analyzeMutualInterests(user1, user2);
-        const container = document.getElementById('mutualInterests');
+        showScreen('duel');
         
-        if (!container) return;
+        // Oldingi taymerlarni to'xtatamiz
+        clearInterval(gameState.timerInterval);
         
-        const tagsContainer = container.querySelector('.interest-tags');
-        tagsContainer.innerHTML = interests
-            .map(interest => `<span class="interest-tag">${interest}</span>`)
-            .join('');
-    }
+        if (elements.opponentAvatar) {
+            elements.opponentAvatar.src = data.opponent.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.opponent.name || 'O')}&background=${data.opponent.gender === 'female' ? 'f5576c' : '667eea'}&color=fff`;
+            elements.opponentAvatar.style.borderColor = data.opponent.gender === 'female' ? '#f5576c' : '#667eea';
+        }
+        if (elements.opponentName) {
+            elements.opponentName.innerHTML = data.opponent.name;
+            addSmallGenderBadge(elements.opponentName, data.opponent.gender);
+        }
+        if (elements.opponentUsername) elements.opponentUsername.textContent = data.opponent.username || '';
+        if (elements.opponentRating) elements.opponentRating.textContent = data.opponent.rating || 1500;
+        if (elements.opponentMatches) elements.opponentMatches.textContent = data.opponent.matches || 0;
+        if (elements.opponentLevel) elements.opponentLevel.textContent = data.opponent.level || 1;
+        
+        // 20 soniyalik taymerni boshlaymiz
+        startTimer();
+        updateDuelStatus('Ovoz bering: ❤️ yoki 💖 yoki ✖');
+        
+        // Tugmalarni yoqamiz va reset qilamiz
+        [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
+            if (b) {
+                b.disabled = false;
+                b.style.opacity = '1';
+            }
+        });
+        
+        if (elements.noBtn) {
+            elements.noBtn.textContent = '✖';
+            elements.noBtn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';
+        }
+    });
+    
+    gameState.socket.on('match', (data) => {
+        console.log('🎉 MATCH!', data);
+        
+        // Agar match allaqachon qayta ishlanayotgan bo'lsa, chiqib ketamiz
+        if (gameState.isProcessingMatch) {
+            console.log('⚠️ Match allaqachon qayta ishlanmoqda, chiqib ketish');
+            return;
+        }
+        
+        gameState.isProcessingMatch = true; // Match qayta ishlanayotganini bildiramiz
+        handleMatch(data);
+    });
+    
+    gameState.socket.on('mutual_match', (data) => {
+        console.log('🤝 O\'zaro Match qo\'shildi:', data);
+        
+        userState.mutualMatchesCount = data.mutualMatchesCount;
+        userState.friendsCount = data.friendsCount;
+        saveUserStateToLocalStorage();
+        updateUIFromUserState();
+        
+        showNotification('🎉 DO\'ST BO\'LDINGIZ!', 
+            `${data.partnerName} bilan o'zaro match! Endi siz bir-biringizning do'stlaringiz ro'yxatidasiz.`);
+    });
+    
+    gameState.socket.on('liked_only', (data) => {
+        console.log('❤️ Faqat siz like berdidingiz:', data);
+        
+        // Agar match qayta ishlanayotgan bo'lsa, chiqib ketamiz
+        if (gameState.isProcessingMatch) {
+            console.log('⚠️ Match qayta ishlanmoqda, liked_only e\'tiborsiz qoldirildi');
+            return;
+        }
+        
+        handleLikedOnly(data);
+    });
+    
+    gameState.socket.on('no_match', (data) => {
+        console.log('❌ Match bo\'lmadi');
+        
+        // Agar match qayta ishlanayotgan bo'lsa, chiqib ketamiz
+        if (gameState.isProcessingMatch) {
+            console.log('⚠️ Match qayta ishlanmoqda, no_match e\'tiborsiz qoldirildi');
+            return;
+        }
+        
+        handleNoMatch(data);
+    });
+    
+    gameState.socket.on('timeout', (data) => {
+        console.log('⏰ Vaqt tugadi');
+        
+        // Agar match qayta ishlanayotgan bo'lsa, chiqib ketamiz
+        if (gameState.isProcessingMatch) {
+            console.log('⚠️ Match qayta ishlanmoqda, timeout e\'tiborsiz qoldirildi');
+            return;
+        }
+        
+        handleTimeout(data);
+    });
+    
+    gameState.socket.on('waiting_response', (data) => {
+        console.log('⏳ Raqib javobini kutish:', data);
+        
+        // Agar match qayta ishlanayotgan bo'lsa, chiqib ketamiz
+        if (gameState.isProcessingMatch) {
+            console.log('⚠️ Match qayta ishlanmoqda, waiting_response e\'tiborsiz qoldirildi');
+            return;
+        }
+        
+        handleWaitingResponse(data);
+    });
+    
+    gameState.socket.on('friends_list', (data) => {
+        console.log('👥 Dostlar royxati:', data);
+        gameState.friendsList = data.friends;
+        updateFriendsListUI(data);
+    });
+    
+    gameState.socket.on('profile_updated', (data) => {
+        console.log('📊 Profil yangilandi:', data);
+        updateStats(data);
+    });
+    
+    gameState.socket.on('super_like_used', (data) => {
+        console.log('💖 Super like ishlatildi:', data);
+        if (elements.superLikeCount) elements.superLikeCount.textContent = data.remaining;
+        userState.dailySuperLikes = data.remaining;
+        saveUserStateToLocalStorage();
+    });
+    
+    gameState.socket.on('daily_reset', (data) => {
+        console.log('🔄 Kunlik limitlar yangilandi:', data);
+        if (elements.superLikeCount) elements.superLikeCount.textContent = data.superLikes;
+        userState.dailySuperLikes = data.superLikes;
+        saveUserStateToLocalStorage();
+        showNotification('Kun yangilandi', 'Kunlik SUPER LIKE lar qayta tiklandi!');
+    });
+    
+    gameState.socket.on('opponent_left', () => {
+        console.log('🚪 Raqib chiqib ketdi');
+        
+        // Agar match qayta ishlanayotgan bo'lsa, chiqib ketamiz
+        if (gameState.isProcessingMatch) {
+            console.log('⚠️ Match qayta ishlanmoqda, opponent_left e\'tiborsiz qoldirildi');
+            return;
+        }
+        
+        clearInterval(gameState.timerInterval);
+        updateDuelStatus('Raqib chiqib ketdi. Keyingi duelga tayyormisiz?');
+        
+        setTimeout(() => {
+            skipToNextDuel();
+        }, 2000);
+    });
+    
+    gameState.socket.on('error', (data) => {
+        console.error('❌ Xato:', data);
+        showNotification('Xato', data.message || 'Noma\'lum xato');
+    });
+    
+    gameState.socket.on('connect_error', (error) => {
+        console.error('❌ Ulanish xatosi:', error);
+        gameState.reconnectAttempts++;
+        
+        if (gameState.reconnectAttempts > gameState.maxReconnectAttempts) {
+            showNotification('Ulanish xatosi', 'Serverga ulanib bo\'lmadi. Iltimos, qayta urinib ko\'ring.');
+            gameState.socket.disconnect();
+        } else {
+            updateQueueStatus(`Qayta ulanmoqda... (${gameState.reconnectAttempts}/${gameState.maxReconnectAttempts})`);
+        }
+    });
+    
+    gameState.socket.on('disconnect', (reason) => {
+        console.log('❌ Serverdan uzildi:', reason);
+        gameState.isConnected = false;
+        gameState.isInQueue = false;
+        gameState.isInDuel = false;
+        gameState.isProcessingMatch = false;
+        
+        if (reason === 'io server disconnect') {
+            updateQueueStatus('Server tomonidan uzildi. Qayta ulanmoqda...');
+        } else {
+            updateQueueStatus('Ulanish uzildi. Qayta ulanmoqda...');
+        }
+        
+        setTimeout(() => {
+            if (!gameState.isConnected) {
+                console.log('🔄 Qayta ulanmoqda...');
+                connectToServer();
+            }
+        }, 5000);
+    });
 }
 
-// ==================== ENHANCED TIMER ====================
-class EnhancedTimer {
-    constructor(element, duration, onComplete) {
-        this.element = element;
-        this.duration = duration;
-        this.remaining = duration;
-        this.onComplete = onComplete;
-        this.interval = null;
-        this.running = false;
-    }
+// ==================== USER STATE LOCALSTORAGE GA SAQLASH ====================
+function saveUserStateToLocalStorage() {
+    localStorage.setItem('userGender', userState.currentGender || '');
+    localStorage.setItem('hasSelectedGender', userState.hasSelectedGender.toString());
+    localStorage.setItem('userCoins', userState.coins.toString());
+    localStorage.setItem('userLevel', userState.level.toString());
+    localStorage.setItem('userRating', userState.rating.toString());
+    localStorage.setItem('userMatches', userState.matches.toString());
+    localStorage.setItem('userDuels', userState.duels.toString());
+    localStorage.setItem('userWins', userState.wins.toString());
+    localStorage.setItem('userTotalLikes', userState.totalLikes.toString());
+    localStorage.setItem('userDailySuperLikes', userState.dailySuperLikes.toString());
+    localStorage.setItem('userBio', userState.bio.toString());
+    localStorage.setItem('userFilter', userState.filter.toString());
+    localStorage.setItem('mutualMatchesCount', userState.mutualMatchesCount.toString());
+    localStorage.setItem('friendsCount', userState.friendsCount.toString());
+}
 
-    start() {
-        if (this.running) return;
+// ==================== OVOZ BERISH ====================
+function handleVote(choice) {
+    if (!gameState.socket || !gameState.isInDuel) {
+        showNotification('Xato', 'Siz hozir duelda emassiz');
+        return;
+    }
+    
+    if (gameState.isVoting) {
+        console.log('⚠️ Ovoz berish jarayonida');
+        return;
+    }
+    
+    console.log(`🗳️ Ovoz berish: ${choice}`);
+    
+    gameState.isVoting = true;
+    
+    // Tugmalarni vaqtincha disable qilamiz
+    [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
+        if (b) {
+            b.disabled = true;
+            b.style.opacity = '0.6';
+        }
+    });
+    
+    // Super like limitini tekshirish
+    if (choice === 'super_like' && userState.dailySuperLikes <= 0) {
+        showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
+        [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
+            if (b) {
+                b.disabled = false;
+                b.style.opacity = '1';
+            }
+        });
+        gameState.isVoting = false;
+        return;
+    }
+    
+    // Serverga ovozni yuboramiz
+    gameState.socket.emit('vote', { 
+        duelId: gameState.currentDuelId, 
+        choice: choice 
+    });
+    
+    // Taymerni to'xtatamiz
+    clearInterval(gameState.timerInterval);
+    
+    // UI yangilash
+    if (choice === 'like') {
+        if (elements.timer) elements.timer.textContent = '❤️';
+        updateDuelStatus('LIKE berdingiz. Raqib javobini kutish...');
         
-        this.running = true;
-        this.remaining = this.duration;
-        this.updateDisplay();
+        // Faqat Like bosganda match bo'lishi mumkin
+        // Navbatga avtomatik o'tmaymiz, match event'ini kutamiz
+    } else if (choice === 'super_like') {
+        if (elements.timer) elements.timer.textContent = '💖';
+        updateDuelStatus('SUPER LIKE! Raqib javobini kutish...');
+        userState.dailySuperLikes--;
+        if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
+        saveUserStateToLocalStorage();
         
-        this.interval = setInterval(() => {
-            this.remaining--;
-            this.updateDisplay();
-            
-            // Animate liquid timer
-            AnimationManager.animateTimerLiquid(this.remaining);
-            
-            if (this.remaining <= 0) {
-                this.stop();
-                if (this.onComplete) this.onComplete();
+        // Super Like ham match bo'lishi mumkin
+    } else if (choice === 'skip') {
+        if (elements.timer) elements.timer.textContent = '✖';
+        updateDuelStatus('O\'tkazib yubordingiz...');
+        
+        // O'tkazib yuborilganda match bo'lmaydi, shuning uchun darhol navbatga qaytamiz
+        setTimeout(() => {
+            if (gameState.socket && gameState.isConnected && !gameState.matchCompleted) {
+                gameState.isVoting = false;
+                gameState.socket.emit('enter_queue');
+                showScreen('queue');
+                updateQueueStatus('Yangi raqib qidirilmoqda...');
             }
         }, 1000);
     }
+}
 
-    stop() {
-        this.running = false;
-        if (this.interval) {
-            clearInterval(this.interval);
-            this.interval = null;
-        }
+// ==================== KUTISH HOLATI ====================
+function handleWaitingResponse(data) {
+    console.log('⏳ Raqib javobini kutish...');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.waitingForOpponent = true;
+    gameState.isVoting = false;
+    
+    // 2 daqiqa (120 soniya) kutish taymerini boshlaymiz
+    gameState.timeLeft = 120;
+    
+    if (elements.timer) {
+        elements.timer.textContent = '2:00';
+        elements.timer.style.color = '#ff9500';
+        elements.timer.style.animation = 'pulse 2s infinite';
     }
-
-    updateDisplay() {
-        if (this.element) {
-            this.element.textContent = this.remaining;
+    
+    updateDuelStatus('⏳ Raqib javobini kutish... (2 daqiqa)');
+    
+    // Like/Super Like tugmalarini disable qilamiz
+    if (elements.likeBtn) {
+        elements.likeBtn.disabled = true;
+        elements.likeBtn.style.opacity = '0.5';
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.disabled = true;
+        elements.superLikeBtn.style.opacity = '0.5';
+    }
+    
+    // O'tkazib yuborish tugmasini yoqamiz va matnini o'zgartiramiz
+    if (elements.noBtn) {
+        elements.noBtn.disabled = false;
+        elements.noBtn.style.opacity = '1';
+        elements.noBtn.textContent = '⏭️ Keyingisi';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)';
+    }
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        
+        const minutes = Math.floor(gameState.timeLeft / 60);
+        const seconds = gameState.timeLeft % 60;
+        
+        if (elements.timer) {
+            elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         }
         
-        // Update liquid timer
-        AnimationManager.animateTimerLiquid(this.remaining);
-    }
-
-    addTime(seconds) {
-        this.remaining += seconds;
-        if (this.remaining > this.duration) {
-            this.remaining = this.duration;
+        if (gameState.timeLeft <= 30) {
+            if (elements.timer) {
+                elements.timer.style.color = '#ff4444';
+                elements.timer.style.animation = 'pulse 0.5s infinite';
+            }
         }
-        this.updateDisplay();
+        
+        if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            handleOpponentTimeout();
+        }
+    }, 1000);
+}
+
+function handleOpponentTimeout() {
+    console.log('⏰ Raqib javob bermadi');
+    
+    if (elements.timer) {
+        elements.timer.textContent = '⏰';
+    }
+    
+    updateDuelStatus('Raqib javob bermadi. O\'yinni tugatish?');
+    
+    // Tugmalarni qayta yoqamiz
+    if (elements.noBtn) {
+        elements.noBtn.disabled = false;
+        elements.noBtn.style.opacity = '1';
+        elements.noBtn.textContent = '❌ O\'yinni tugatish';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';
     }
 }
 
-// ==================== ENHANCED VOTE BUTTONS ====================
-function setupEnhancedVoteButtons() {
-    const soundManager = new SoundManager();
-    const hapticManager = new HapticManager();
-    const buttons = {
-        like: document.getElementById('likeBtn'),
-        superLike: document.getElementById('superLikeBtn'),
-        skip: document.getElementById('noBtn')
-    };
+// ==================== MATCH HANDLERS ====================
+function handleMatch(data) {
+    console.log('🎉 MATCH! Qayta ishlanmoqda:', data);
+    
+    // Match tugaganligini belgilaymiz
+    gameState.matchCompleted = true;
+    gameState.isProcessingMatch = true;
+    
+    // Barcha taymerlarni to'xtatamiz
+    clearInterval(gameState.timerInterval);
+    
+    // Duel holatini to'xtatamiz
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.currentPartner = data.partner;
+    gameState.lastOpponent = data.partner.id;
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    
+    // Match screen'ni ko'rsatamiz
+    showScreen('match');
+    
+    if (elements.partnerName) {
+        elements.partnerName.textContent = data.partner.name;
+        addSmallGenderBadge(elements.partnerName, data.partner.gender);
+    }
+    
+    if (data.isMutual) {
+        if (elements.matchText) elements.matchText.innerHTML = `
+            <div style="font-size: 1.5rem; color: #667eea; font-weight: bold; margin-bottom: 10px;">
+                🎉 O'ZARO MATCH!
+            </div>
+            <div style="color: #666; margin-bottom: 5px;">
+                Endi siz do'st bo'ldingiz!
+            </div>
+            <div style="font-size: 0.9rem; opacity: 0.8;">
+                Bir-biringiz bilan chat qilishingiz mumkin
+            </div>
+        `;
+    } else {
+        if (elements.matchText) elements.matchText.innerHTML = `
+            <div style="font-size: 1.5rem; color: #667eea; font-weight: bold; margin-bottom: 10px;">
+                🎉 MATCH!
+            </div>
+            <div style="color: #666; margin-bottom: 5px;">
+                Bir-biringizni yoqtirdingiz!
+            </div>
+            <div style="font-size: 0.9rem; opacity: 0.8;">
+                Chat orqali suhbatlashingiz mumkin
+            </div>
+        `;
+    }
+    
+    if (elements.rewardCoins) elements.rewardCoins.textContent = data.rewards.coins;
+    if (elements.rewardXP) elements.rewardXP.textContent = data.rewards.xp;
+    
+    // Mukofotlarni qo'shamiz
+    userState.coins += data.rewards.coins;
+    userState.rating = data.newRating;
+    userState.matches++;
+    if (data.isMutual) {
+        userState.mutualMatchesCount++;
+        userState.friendsCount++;
+    }
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
+    
+    // Match option tugmalarini ko'rsatish
+    if (elements.matchOptions) {
+        elements.matchOptions.innerHTML = '';
+        
+        // Asosiy chat guruhi
+        const chatGroup = document.createElement('div');
+        chatGroup.className = 'chat-option-group';
+        
+        // Chatga o'tish tugmasi
+        const chatBtn = document.createElement('button');
+        chatBtn.className = 'chat-option-btn primary';
+        chatBtn.innerHTML = '💬 Chatga o\'tish';
+        chatBtn.onclick = () => {
+            console.log('💬 Chatga o\'tish bosildi');
+            openChat(data.partner);
+        };
+        chatGroup.appendChild(chatBtn);
+        
+        // Yangi duel boshlash tugmasi
+        const newDuelBtn = document.createElement('button');
+        newDuelBtn.className = 'chat-option-btn secondary';
+        newDuelBtn.innerHTML = '🎮 Yangi duel';
+        newDuelBtn.onclick = () => {
+            console.log('🎮 Yangi duel bosildi');
+            skipToNextDuel();
+        };
+        chatGroup.appendChild(newDuelBtn);
+        
+        // Ikkinchi guruh
+        const otherGroup = document.createElement('div');
+        otherGroup.className = 'chat-option-group';
+        
+        // Bosh menyu tugmasi
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'chat-option-btn ghost';
+        menuBtn.innerHTML = '🏠 Bosh menyu';
+        menuBtn.onclick = () => {
+            console.log('🏠 Bosh menyu bosildi');
+            returnToMenu();
+        };
+        otherGroup.appendChild(menuBtn);
+        
+        elements.matchOptions.appendChild(chatGroup);
+        elements.matchOptions.appendChild(otherGroup);
+    }
+    
+    // Confetti efekti
+    if (typeof confetti === 'function') {
+        confetti({ 
+            particleCount: 300, 
+            spread: 100, 
+            origin: { y: 0.6 } 
+        });
+        
+        if (data.isMutual) {
+            setTimeout(() => {
+                confetti({ 
+                    particleCount: 200,
+                    angle: 60,
+                    spread: 80,
+                    origin: { x: 0, y: 0.6 }
+                });
+                confetti({ 
+                    particleCount: 200,
+                    angle: 120,
+                    spread: 80,
+                    origin: { x: 1, y: 0.6 }
+                });
+            }, 300);
+        }
+    }
+    
+    // 3 soniyadan keyin match qayta ishlash flag'ini o'chiramiz
+    setTimeout(() => {
+        gameState.isProcessingMatch = false;
+        console.log('✅ Match qayta ishlash tugadi');
+    }, 3000);
+}
 
-    Object.entries(buttons).forEach(([type, button]) => {
-        if (!button) return;
+function handleLikedOnly(data) {
+    console.log('❤️ Faqat siz like berdidingiz:', data);
+    
+    clearInterval(gameState.timerInterval);
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    gameState.matchCompleted = false;
+    gameState.isProcessingMatch = false;
+    
+    if (elements.timer) elements.timer.textContent = '❤️';
+    
+    if (data.reward) {
+        userState.coins += data.reward.coins;
+        userState.totalLikes++;
+        saveUserStateToLocalStorage();
+        updateUIFromUserState();
         
-        button.addEventListener('click', (e) => {
-            if (!modernGameState.socket || !gameState.isInDuel) return;
-            
-            // Play sound
-            soundManager.play('click');
-            
-            // Haptic feedback
-            if (type === 'like') hapticManager.likeVibration();
-            else if (type === 'superLike') hapticManager.matchVibration();
-            else hapticManager.vibrate([30]);
-            
-            // Create feedback bubble
-            const rect = button.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            
-            let message = '';
-            let color = '';
-            
-            switch(type) {
-                case 'like':
-                    message = 'Feeling the Spark!';
-                    color = '#ff6b8b';
-                    break;
-                case 'superLike':
-                    message = 'SUPER LIKE!';
-                    color = '#f5576c';
-                    break;
-                case 'skip':
-                    message = 'Skipped!';
-                    color = '#ff6b6b';
-                    break;
-            }
-            
-            AnimationManager.createBubble(x, y, message, color);
-            
-            // Original vote handling
-            handleVote(type === 'skip' ? 'skip' : type === 'superLike' ? 'super_like' : 'like');
-        });
+        showNotification('Like uchun mukofot', `+${data.reward.coins} coin, +${data.reward.xp} XP`);
+    }
+    
+    setTimeout(() => {
+        skipToNextDuel();
+    }, 2000);
+}
+
+function handleNoMatch(data) {
+    console.log('❌ Match bo\'lmadi');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    gameState.matchCompleted = false;
+    gameState.isProcessingMatch = false;
+    
+    if (elements.timer) elements.timer.textContent = '✖';
+    
+    setTimeout(() => {
+        skipToNextDuel();
+    }, 2000);
+}
+
+function handleTimeout(data) {
+    console.log('⏰ Vaqt tugadi');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    gameState.matchCompleted = false;
+    gameState.isProcessingMatch = false;
+    
+    if (elements.timer) elements.timer.textContent = '⏰';
+    
+    setTimeout(() => {
+        skipToNextDuel();
+    }, 2000);
+}
+
+// ==================== CHAT FUNKSIYALARI ====================
+function openChat(partner) {
+    if (!partner) return;
+    
+    console.log('💬 Chat ochilmoqda:', partner.name);
+    
+    gameState.isChatModalOpen = true;
+    gameState.currentPartner = partner;
+    
+    // UI ni yangilash
+    if (elements.chatPartnerAvatar) {
+        elements.chatPartnerAvatar.src = partner.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=667eea&color=fff`;
+    }
+    if (elements.chatPartnerName) {
+        elements.chatPartnerName.innerHTML = partner.name;
+        addSmallGenderBadge(elements.chatPartnerName, partner.gender);
+    }
+    if (elements.chatUsername && partner.username) {
+        elements.chatUsername.textContent = `@${partner.username}`;
+    } else if (elements.chatUsername) {
+        elements.chatUsername.textContent = '';
+    }
+    
+    if (elements.chatTitle) {
+        elements.chatTitle.textContent = `${partner.name} bilan chat`;
+    }
+    
+    // Match screenni yashirish
+    if (elements.matchScreen) {
+        elements.matchScreen.classList.add('hidden');
+    }
+    
+    // Modalni ko'rsatish
+    if (elements.chatModal) {
+        elements.chatModal.classList.add('active');
+    }
+    
+    // Duel screenni yashirish
+    if (elements.duelScreen) {
+        elements.duelScreen.classList.add('hidden');
+    }
+    
+    // Queue screenni yashirish
+    if (elements.queueScreen) {
+        elements.queueScreen.classList.add('hidden');
+    }
+}
+
+function openTelegramChat() {
+    if (!gameState.currentPartner || !gameState.currentPartner.username) {
+        showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
+        return;
+    }
+    
+    console.log('📱 Telegram chat ochilmoqda:', gameState.currentPartner.username);
+    
+    const telegramUrl = `https://t.me/${gameState.currentPartner.username.replace('@', '')}`;
+    
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+        Telegram.WebApp.openTelegramLink(telegramUrl);
+    } else {
+        window.open(telegramUrl, '_blank');
+    }
+    
+    // Chat modaldan chiqmaymiz, foydalanuvchi o'zi yopsin
+}
+
+function closeChatModal() {
+    console.log('❌ Chat yopilmoqda');
+    
+    gameState.isChatModalOpen = false;
+    gameState.currentPartner = null;
+    
+    if (elements.chatModal) {
+        elements.chatModal.classList.remove('active');
+    }
+    
+    // Match screenni qayta ko'rsatish
+    setTimeout(() => {
+        if (!gameState.isInQueue && !gameState.isInDuel && elements.matchScreen) {
+            elements.matchScreen.classList.remove('hidden');
+        }
+    }, 100);
+}
+
+// ==================== TIMER FUNKSIYASI ====================
+function startTimer() {
+    clearInterval(gameState.timerInterval);
+    gameState.timeLeft = 20;
+    if (elements.timer) {
+        elements.timer.textContent = 20;
+        elements.timer.style.color = '#667eea';
+        elements.timer.style.animation = '';
+    }
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        if (elements.timer) elements.timer.textContent = gameState.timeLeft;
         
-        // Add hover effects
-        button.addEventListener('mouseenter', () => {
-            if (!button.disabled) {
-                button.style.transform = 'translateY(-8px) scale(1.1)';
-            }
-        });
+        if (gameState.timeLeft <= 5 && elements.timer) {
+            elements.timer.style.color = '#ff4444';
+            elements.timer.style.animation = 'pulse 1s infinite';
+        }
         
-        button.addEventListener('mouseleave', () => {
-            if (!button.disabled) {
-                button.style.transform = 'translateY(0) scale(1)';
+        if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            if (gameState.socket && gameState.isInDuel && !gameState.isVoting && !gameState.matchCompleted) {
+                gameState.socket.emit('vote', { 
+                    duelId: gameState.currentDuelId, 
+                    choice: 'skip' 
+                });
+                if (elements.timer) {
+                    elements.timer.textContent = '⏰';
+                }
+                updateDuelStatus('Vaqt tugadi...');
+                gameState.isVoting = true;
             }
-        });
+        }
+    }, 1000);
+}
+
+// ==================== NAVBATGA QAYTISH ====================
+function skipToNextDuel() {
+    console.log('🔄 Keyingi duelga o\'tish');
+    
+    // Match tugaganligini tekshirish
+    if (gameState.matchCompleted) {
+        console.log('✅ Match tugagan, yangi duelga o\'tish ruxsat etildi');
+    }
+    
+    // Agar chat ochiq bo'lsa, uni yopamiz
+    if (gameState.isChatModalOpen) {
+        closeChatModal();
+    }
+    
+    // Barcha taymerlarni to'xtatamiz
+    clearInterval(gameState.timerInterval);
+    
+    // UI elementlarini reset qilamiz
+    if (elements.timer) {
+        elements.timer.textContent = '20';
+        elements.timer.style.color = '#667eea';
+        elements.timer.style.animation = '';
+    }
+    
+    if (elements.noBtn) {
+        elements.noBtn.textContent = '✖';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';
+    }
+    
+    // Tugmalarni yoqamiz
+    [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
+        if (b) {
+            b.disabled = false;
+            b.style.opacity = '1';
+        }
     });
-}
-
-// ==================== STREAK SYSTEM ====================
-class StreakSystem {
-    static incrementStreak(opponentId) {
-        const streaks = JSON.parse(localStorage.getItem('matchStreaks') || '{}');
-        const lastOpponent = localStorage.getItem('lastMatchOpponent');
-        
-        if (lastOpponent === opponentId) {
-            streaks[opponentId] = (streaks[opponentId] || 0) + 1;
+    
+    // Holatlarni reset qilamiz
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    gameState.currentPartner = null;
+    gameState.matchCompleted = false;
+    gameState.isProcessingMatch = false;
+    
+    if (gameState.socket && gameState.isConnected) {
+        if (userState.hasSelectedGender) {
+            gameState.isInQueue = true;
+            gameState.isInDuel = false;
+            gameState.currentDuelId = null;
+            gameState.socket.emit('enter_queue');
+            showScreen('queue');
         } else {
-            streaks[opponentId] = 1;
+            showScreen('welcome');
         }
-        
-        localStorage.setItem('lastMatchOpponent', opponentId);
-        localStorage.setItem('matchStreaks', JSON.stringify(streaks));
-        
-        modernGameState.currentStreak = streaks[opponentId] || 1;
-        return modernGameState.currentStreak;
-    }
-
-    static getStreakBadge(opponentId) {
-        const streaks = JSON.parse(localStorage.getItem('matchStreaks') || '{}');
-        const streak = streaks[opponentId] || 0;
-        
-        if (streak >= 3) return `🔥${streak}`;
-        if (streak >= 2) return `✨${streak}`;
-        return '';
+    } else {
+        showScreen('welcome');
     }
 }
 
-// ==================== ENHANCED INITIALIZATION ====================
-function enhancedInit() {
-    console.log('🚀 Zamonaviy Like Duel yuklanmoqda...');
+function returnToMenu() {
+    console.log('🏠 Bosh menyuga qaytish');
     
-    // Initialize managers
-    const soundManager = new SoundManager();
-    const hapticManager = new HapticManager();
+    // Barcha modallarni yopamiz
+    closeChatModal();
     
-    // Apply saved theme
-    const savedTheme = localStorage.getItem('appTheme') || 'dark';
-    ThemeManager.applyTheme(savedTheme);
+    // Barcha taymerlarni to'xtatamiz
+    clearInterval(gameState.timerInterval);
     
-    // Initialize spin wheel
-    const spinWheel = document.getElementById('spinWheel');
-    if (spinWheel) {
-        new SpinWheel(spinWheel);
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('leave_queue');
     }
     
-    // Setup enhanced vote buttons
-    setupEnhancedVoteButtons();
+    // Holatni reset qilamiz
+    gameState.isInQueue = false;
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    gameState.currentPartner = null;
+    gameState.matchCompleted = false;
+    gameState.isProcessingMatch = false;
     
-    // Initialize tab switching with animations
-    setupEnhancedTabNavigation();
+    // UI ni reset qilamiz
+    if (elements.timer) {
+        elements.timer.textContent = '20';
+        elements.timer.style.color = '#667eea';
+        elements.timer.style.animation = '';
+    }
     
-    // Load saved preferences
-    loadUserPreferences();
+    if (elements.noBtn) {
+        elements.noBtn.textContent = '✖';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';
+    }
     
-    // Initialize user profile
-    initUserProfile();
+    showScreen('welcome');
     
-    // Setup enhanced event listeners
-    setupEnhancedEventListeners();
-    
-    // Check for daily reward
-    checkDailyReward();
-    
-    console.log('✅ Zamonaviy Like Duel yuklandi!');
+    showNotification('Bosh menyuga qaytildi', 'Yana o\'ynash uchun "O\'yinni Boshlash" tugmasini bosing');
 }
 
-function setupEnhancedTabNavigation() {
-    const tabs = document.querySelectorAll('.floating-btn');
-    const contents = document.querySelectorAll('.content-tab');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.tab;
-            
-            // Remove active class from all
-            tabs.forEach(t => t.classList.remove('active'));
-            contents.forEach(c => c.classList.remove('active'));
-            
-            // Add active class to selected
-            tab.classList.add('active');
-            document.getElementById(`${tabName}Tab`).classList.add('active');
-            
-            // Play sound
-            const soundManager = new SoundManager();
-            soundManager.play('click');
-            
-            // Haptic feedback
-            const hapticManager = new HapticManager();
-            hapticManager.vibrate([30]);
-            
-            // Load tab specific content
-            switch(tabName) {
-                case 'profile':
-                    loadEnhancedProfile();
-                    break;
-                case 'friends':
-                    loadEnhancedFriendsList();
-                    break;
-                case 'shop':
-                    loadEnhancedShop();
-                    break;
-                case 'leaderboard':
-                    loadEnhancedLeaderboard();
-                    break;
-            }
+// ==================== DO'STLAR FUNKSIYALARI ====================
+function loadFriendsList() {
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('get_friends_list');
+    } else {
+        // Test ma'lumotlari
+        const testFriends = [
+            { id: 1, name: 'Ali', username: 'ali_jon', online: true, gender: 'male', lastActive: new Date(), rating: 1650, matches: 12, isMutual: true },
+            { id: 2, name: 'Malika', username: 'malika_flower', online: true, gender: 'female', lastActive: new Date(), rating: 1720, matches: 8, isMutual: true },
+            { id: 3, name: 'Sanjar', username: 'sanjarbek', online: false, gender: 'male', lastActive: new Date(Date.now() - 2*24*60*60*1000), rating: 1550, matches: 5, isMutual: false },
+            { id: 4, name: 'Dilnoza', username: 'dilnoza_girl', online: true, gender: 'female', lastActive: new Date(), rating: 1680, matches: 15, isMutual: true }
+        ];
+        
+        updateFriendsListUI({
+            friends: testFriends,
+            total: testFriends.length,
+            online: testFriends.filter(f => f.online).length
         });
-    });
+    }
 }
 
-function loadEnhancedProfile() {
-    // Update profile with animations
-    const stats = document.querySelectorAll('.stat-card-lg');
-    stats.forEach((stat, index) => {
-        setTimeout(() => {
-            stat.style.opacity = '0';
-            stat.style.transform = 'translateY(20px)';
-            
-            stat.animate([
-                { opacity: 0, transform: 'translateY(20px)' },
-                { opacity: 1, transform: 'translateY(0)' }
-            ], {
-                duration: 300,
-                delay: index * 100,
-                fill: 'forwards',
-                easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
-            });
-        }, index * 100);
-    });
+function updateFriendsListUI(data) {
+    const friends = data.friends;
+    const mutualFriends = friends.filter(f => f.isMutual);
     
-    // Load enhanced quests
-    loadEnhancedQuests();
+    if (elements.friendsList) {
+        if (friends.length === 0) {
+            elements.friendsList.innerHTML = '';
+            if (elements.noFriends) elements.noFriends.classList.remove('hidden');
+        } else {
+            if (elements.noFriends) elements.noFriends.classList.add('hidden');
+            
+            elements.friendsList.innerHTML = friends.map(friend => `
+                <div class="friend-item ${friend.isMutual ? 'mutual' : ''}">
+                    <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=${friend.gender === 'male' ? '667eea' : 'f5576c'}&color=fff" 
+                         alt="${friend.name}" class="friend-avatar">
+                    <div class="friend-info">
+                        <div class="friend-name">
+                            ${friend.name}
+                            ${friend.isMutual ? '<span class="mutual-badge">❤️ Do\'st</span>' : ''}
+                        </div>
+                        <div class="friend-username">@${friend.username}</div>
+                        <div class="friend-stats">
+                            <span><i class="fas fa-trophy"></i> ${friend.rating}</span>
+                            <span><i class="fas fa-heart"></i> ${friend.matches}</span>
+                        </div>
+                        <div class="friend-status ${friend.online ? 'status-online' : 'status-offline'}">
+                            ${friend.online ? 'Onlayn' : 'Oxirgi faol: ' + formatDate(friend.lastActive)}
+                        </div>
+                    </div>
+                    ${friend.isMutual ? 
+                        `<button class="match-option-btn" style="padding: 8px 12px; min-width: 80px;" 
+                                onclick="openChat(${JSON.stringify(friend).replace(/"/g, '&quot;')})">
+                            💬 Chat
+                        </button>` : 
+                        `<button class="match-option-btn" style="padding: 8px 12px; min-width: 80px; background: #95a5a6;" 
+                                onclick="showNotification('Xabar', 'Match bo\\'lmaganingiz uchun chat ochib bo\\'lmaydi')">
+                            ⏳
+                        </button>`
+                    }
+                </div>
+            `).join('');
+        }
+    }
+    
+    if (elements.friendsCount) elements.friendsCount.textContent = mutualFriends.length;
+    if (elements.onlineFriendsCount) {
+        const onlineCount = mutualFriends.filter(f => f.online).length;
+        elements.onlineFriendsCount.textContent = onlineCount;
+    }
 }
 
-function loadEnhancedQuests() {
+function formatDate(date) {
+    if (!date) return 'noma\'lum';
+    const d = new Date(date);
+    const now = new Date();
+    const diff = now - d;
+    
+    if (diff < 60000) return 'hozir';
+    if (diff < 3600000) return Math.floor(diff / 60000) + ' daqiqa oldin';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + ' soat oldin';
+    if (diff < 604800000) return Math.floor(diff / 86400000) + ' kun oldin';
+    return d.toLocaleDateString('uz-UZ');
+}
+
+// ==================== DO'KON FUNKSIYALARI ====================
+function loadShopItems() {
+    const items = [
+        { id: 1, name: '10 Super Like', price: 100, icon: '💖', description: '10 ta kunlik SUPER LIKE' },
+        { id: 2, name: '50 Super Like', price: 450, icon: '💎', description: '50 ta kunlik SUPER LIKE' },
+        { id: 3, name: '100 Super Like', price: 800, icon: '👑', description: '100 ta kunlik SUPER LIKE' },
+        { id: 4, name: 'Premium Profil', price: 300, icon: '⭐', description: '30 kunlik premium status' }
+    ];
+    
+    if (elements.shopItemsList) {
+        elements.shopItemsList.innerHTML = items.map(item => `
+            <div class="shop-item">
+                <div class="shop-item-icon">${item.icon}</div>
+                <div class="shop-item-info">
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-description">${item.description}</div>
+                </div>
+                <button class="shop-item-buy" onclick="buyItem(${item.id})" 
+                        ${userState.coins < item.price ? 'disabled' : ''}>
+                    <i class="fas fa-coins"></i> ${item.price}
+                </button>
+            </div>
+        `).join('');
+    }
+}
+
+window.buyItem = function(itemId) {
+    const items = [
+        { id: 1, price: 100 },
+        { id: 2, price: 450 },
+        { id: 3, price: 800 },
+        { id: 4, price: 300 }
+    ];
+    
+    const item = items.find(i => i.id === itemId);
+    if (!item) return;
+    
+    if (userState.coins >= item.price) {
+        userState.coins -= item.price;
+        saveUserStateToLocalStorage();
+        updateUIFromUserState();
+        showNotification('✅ Xarid qilindi', 'Mahsulot muvaffaqiyatli sotib olindi!');
+    } else {
+        showNotification('⚠️ Yetarli emas', 'Coinlaringiz yetarli emas!');
+    }
+};
+
+// ==================== LIDERLAR FUNKSIYALARI ====================
+function loadLeaderboard() {
+    const leaders = [
+        { rank: 1, name: 'Ali', rating: 1850, matches: 45, friends: 12, gender: 'male' },
+        { rank: 2, name: 'Malika', rating: 1790, matches: 38, friends: 8, gender: 'female' },
+        { rank: 3, name: 'Sanjar', rating: 1720, matches: 32, friends: 5, gender: 'male' },
+        { rank: 4, name: 'Dilnoza', rating: 1680, matches: 29, friends: 15, gender: 'female' },
+        { rank: 5, name: 'Sardor', rating: 1620, matches: 25, friends: 7, gender: 'male' }
+    ];
+    
+    if (elements.leaderboardList) {
+        elements.leaderboardList.innerHTML = leaders.map(leader => `
+            <div class="leaderboard-item">
+                <div class="leaderboard-rank">${leader.rank}</div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name">
+                        ${leader.name}
+                        <span class="small-gender-badge gender-${leader.gender}-small">
+                            ${leader.gender === 'male' ? '👨' : '👩'}
+                        </span>
+                    </div>
+                    <div class="leaderboard-stats">
+                        <span><i class="fas fa-trophy"></i> ${leader.rating}</span>
+                        <span><i class="fas fa-heart"></i> ${leader.matches}</span>
+                        <span><i class="fas fa-users"></i> ${leader.friends}</span>
+                    </div>
+                </div>
+                <div class="leaderboard-value">${leader.rating}</div>
+            </div>
+        `).join('');
+    }
+    
+    if (elements.leaderboardUpdated) {
+        elements.leaderboardUpdated.textContent = 'hozir';
+    }
+}
+
+// ==================== KUNLIK VAZIFALAR ====================
+function loadProfileQuests() {
     const quests = [
         { id: 1, title: '3 ta duel o\'ynash', progress: Math.min(userState.duels, 3), total: 3, reward: 50 },
         { id: 2, title: '5 ta like berish', progress: Math.min(userState.totalLikes, 5), total: 5, reward: 30 },
@@ -610,424 +1610,343 @@ function loadEnhancedQuests() {
         { id: 4, title: '1 ta do\'st orttirish', progress: Math.min(userState.mutualMatchesCount, 1), total: 1, reward: 200 }
     ];
     
-    const container = document.getElementById('profileQuestsList');
-    if (!container) return;
-    
-    container.innerHTML = quests.map(quest => `
-        <div class="quest-item enhanced" data-quest-id="${quest.id}">
-            <div class="quest-info">
-                <div class="quest-title">${quest.title}</div>
-                <div class="quest-progress">${quest.progress}/${quest.total}</div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${(quest.progress / quest.total) * 100}%"></div>
+    if (elements.profileQuestsList) {
+        elements.profileQuestsList.innerHTML = quests.map(quest => `
+            <div class="quest-item">
+                <div class="quest-info">
+                    <div class="quest-title">${quest.title}</div>
+                    <div class="quest-progress">${quest.progress}/${quest.total}</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(quest.progress / quest.total) * 100}%"></div>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <i class="fas fa-coins"></i> ${quest.reward}
                 </div>
             </div>
-            <div class="quest-reward ${quest.progress >= quest.total ? 'completed' : ''}">
-                <i class="fas fa-coins"></i> ${quest.reward}
-            </div>
-        </div>
-    `).join('');
-}
-
-function setupEnhancedEventListeners() {
-    // Theme toggle
-    const themeBtn = document.getElementById('themeToggleBtn');
-    if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-            const newTheme = ThemeManager.cycleTheme();
-            showNotification('🎨 Mavzu', `${newTheme} mavzusi aktiv`);
-        });
-    }
-    
-    // Sound toggle
-    const soundBtn = document.getElementById('soundToggleBtn');
-    if (soundBtn) {
-        const soundManager = new SoundManager();
-        soundBtn.addEventListener('click', () => {
-            const enabled = soundManager.toggle();
-            soundBtn.innerHTML = enabled ? 
-                '<i class="fas fa-volume-up"></i>' : 
-                '<i class="fas fa-volume-mute"></i>';
-            showNotification('🔊 Ovoz', enabled ? 'Yoqildi' : 'O\'chirildi');
-        });
-    }
-    
-    // Haptic toggle
-    const hapticBtn = document.getElementById('hapticToggleBtn');
-    if (hapticBtn) {
-        const hapticManager = new HapticManager();
-        hapticBtn.addEventListener('click', () => {
-            const enabled = hapticManager.toggle();
-            hapticBtn.innerHTML = enabled ? 
-                '<i class="fas fa-vibrate"></i>' : 
-                '<i class="fas fa-ban"></i>';
-            showNotification('📳 Vibratsiya', enabled ? 'Yoqildi' : 'O\'chirildi');
-        });
+        `).join('');
     }
 }
 
-function checkDailyReward() {
-    const lastReward = localStorage.getItem('lastDailyReward');
-    const today = new Date().toDateString();
-    
-    if (lastReward !== today) {
-        // Show daily reward popup
-        setTimeout(() => {
-            showDailyRewardPopup();
-        }, 2000);
+// ==================== STATUS YANGILASH ====================
+function updateQueueStatus(msg) {
+    if (elements.queueStatus) {
+        elements.queueStatus.textContent = msg;
     }
 }
 
-function showDailyRewardPopup() {
-    const popup = document.createElement('div');
-    popup.className = 'daily-reward-popup';
-    popup.innerHTML = `
-        <div class="reward-content">
-            <div class="reward-icon">
-                <i class="fas fa-calendar-day"></i>
-            </div>
-            <h3>Kunlik Sovg'a!</h3>
-            <p>Bugunlik 50 bepul coin oling!</p>
-            <button class="claim-reward-btn">
-                <i class="fas fa-gift"></i> Olib olish
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(popup);
-    
-    const claimBtn = popup.querySelector('.claim-reward-btn');
-    claimBtn.addEventListener('click', () => {
-        userState.coins += 50;
-        saveUserStateToLocalStorage();
-        updateUIFromUserState();
-        
-        localStorage.setItem('lastDailyReward', new Date().toDateString());
-        
-        popup.animate([
-            { transform: 'scale(1)', opacity: 1 },
-            { transform: 'scale(0.5)', opacity: 0 }
-        ], {
-            duration: 300,
-            easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-            fill: 'forwards'
-        }).onfinish = () => popup.remove();
-        
-        showNotification('🎁 Sovg\'a', '50 coin olib olindi!');
-    });
+function updateDuelStatus(msg) {
+    if (elements.duelStatus) {
+        elements.duelStatus.textContent = msg;
+    }
 }
 
-// ==================== ENHANCED MATCH HANDLING ====================
-function enhancedHandleMatch(data) {
-    const soundManager = new SoundManager();
-    const hapticManager = new HapticManager();
+function updateStats(data) {
+    if (data.gender) userState.currentGender = data.gender;
+    if (data.hasSelectedGender !== undefined) userState.hasSelectedGender = data.hasSelectedGender;
+    if (data.coins !== undefined) userState.coins = data.coins;
+    if (data.level !== undefined) userState.level = data.level;
+    if (data.rating !== undefined) userState.rating = data.rating;
+    if (data.matches !== undefined) userState.matches = data.matches;
+    if (data.duels !== undefined) userState.duels = data.duels;
+    if (data.wins !== undefined) userState.wins = data.wins;
+    if (data.totalLikes !== undefined) userState.totalLikes = data.totalLikes;
+    if (data.dailySuperLikes !== undefined) userState.dailySuperLikes = data.dailySuperLikes;
+    if (data.bio !== undefined) userState.bio = data.bio;
+    if (data.filter !== undefined) userState.filter = data.filter;
+    if (data.mutualMatchesCount !== undefined) userState.mutualMatchesCount = data.mutualMatchesCount;
+    if (data.friendsCount !== undefined) userState.friendsCount = data.friendsCount;
     
-    // Play celebration sounds
-    soundManager.play('match');
-    hapticManager.matchVibration();
-    
-    // Update streak
-    const streak = StreakSystem.incrementStreak(data.partner.id);
-    if (streak > 1) {
-        data.partner.streak = streak;
-    }
-    
-    // Show mutual interests
-    EnhancedMatchHandler.displayMutualInterests(userState, data.partner);
-    
-    // Enhanced confetti
-    if (typeof confetti === 'function') {
-        for (let i = 0; i < 3; i++) {
-            setTimeout(() => {
-                confetti({
-                    particleCount: 150,
-                    angle: 60 + (i * 60),
-                    spread: 70,
-                    origin: { x: 0.5, y: 0.5 },
-                    colors: ['#667eea', '#f5576c', '#f6d365', '#4facfe']
-                });
-            }, i * 300);
-        }
-    }
-    
-    // Add to match history
-    modernGameState.matchHistory.unshift({
-        partner: data.partner.name,
-        time: new Date(),
-        mutual: data.isMutual,
-        streak: streak
-    });
-    
-    // Keep only last 10 matches
-    modernGameState.matchHistory = modernGameState.matchHistory.slice(0, 10);
-    
-    // Call original handleMatch
-    handleMatch(data);
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
 }
 
-// ==================== ENHANCED NOTIFICATION ====================
-function showEnhancedNotification(title, message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `enhanced-notification ${type}`;
+// ==================== NOTIFIKATSIYA ====================
+function showNotification(title, message) {
+    if (!elements.notification) return;
     
-    const icons = {
-        info: 'fas fa-info-circle',
-        success: 'fas fa-check-circle',
-        warning: 'fas fa-exclamation-triangle',
-        error: 'fas fa-times-circle'
-    };
+    elements.notificationTitle.textContent = title;
+    elements.notificationMessage.textContent = message;
+    elements.notification.classList.add('active');
     
-    notification.innerHTML = `
-        <div class="notification-icon">
-            <i class="${icons[type] || icons.info}"></i>
-        </div>
-        <div class="notification-content">
-            <div class="notification-title">${title}</div>
-            <div class="notification-message">${message}</div>
-        </div>
-        <button class="notification-close">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    const container = document.getElementById('notificationCenter') || createNotificationContainer();
-    container.appendChild(notification);
-    
-    // Animate in
-    notification.animate([
-        { transform: 'translateX(100%)', opacity: 0 },
-        { transform: 'translateX(0)', opacity: 1 }
-    ], {
-        duration: 300,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        fill: 'forwards'
-    });
-    
-    // Auto remove after 5 seconds
     setTimeout(() => {
-        closeNotification(notification);
-    }, 5000);
+        elements.notification.classList.remove('active');
+    }, 3000);
+}
+
+// ==================== O'YINNI BOSHLASH ====================
+function startGame() {
+    console.log('🎮 O\'yinni boshlash');
     
-    // Close button
-    const closeBtn = notification.querySelector('.notification-close');
-    closeBtn.addEventListener('click', () => closeNotification(notification));
+    if (!userState.hasSelectedGender) {
+        showGenderModal(true);
+        showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+        return;
+    }
     
-    return notification;
+    connectToServer();
 }
 
-function createNotificationContainer() {
-    const container = document.createElement('div');
-    container.id = 'notificationCenter';
-    container.className = 'notification-center';
-    document.body.appendChild(container);
-    return container;
+// ==================== NAVBATDAN CHIQISH ====================
+function leaveQueue() {
+    console.log('🚪 Navbatdan chiqish');
+    
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('leave_queue');
+    }
+    
+    gameState.isInQueue = false;
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.isVoting = false;
+    gameState.matchCompleted = false;
+    gameState.isProcessingMatch = false;
+    clearInterval(gameState.timerInterval);
+    
+    showScreen('welcome');
+    
+    showNotification('Navbatdan chiqdingiz', 'Yana o\'ynash uchun "O\'yinni Boshlash" tugmasini bosing');
 }
 
-function closeNotification(notification) {
-    notification.animate([
-        { transform: 'translateX(0)', opacity: 1 },
-        { transform: 'translateX(100%)', opacity: 0 }
-    ], {
-        duration: 300,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        fill: 'forwards'
-    }).onfinish = () => notification.remove();
+// ==================== EKRANLARNI ALMASHTIRISH ====================
+function showScreen(screen) {
+    console.log(`📱 Ekran o'zgartirildi: ${screen}`);
+    
+    // Barcha asosiy ekranlarni yashirish
+    [elements.welcomeScreen, elements.queueScreen, elements.duelScreen, elements.matchScreen]
+        .forEach(s => {
+            if (s) s.classList.add('hidden');
+        });
+    
+    // Faqat tanlangan ekranni ko'rsatish
+    if (screen === 'welcome' && elements.welcomeScreen) {
+        elements.welcomeScreen.classList.remove('hidden');
+    } else if (screen === 'queue' && elements.queueScreen) {
+        elements.queueScreen.classList.remove('hidden');
+    } else if (screen === 'duel' && elements.duelScreen) {
+        elements.duelScreen.classList.remove('hidden');
+    } else if (screen === 'match' && elements.matchScreen) {
+        elements.matchScreen.classList.remove('hidden');
+    }
 }
 
-// ==================== INITIALIZE ====================
+// ==================== TAB NAVIGATSIYASI ====================
+function initTabNavigation() {
+    const tabs = document.querySelectorAll('.nav-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.dataset.tab;
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                if (content.id === tabName + 'Tab') {
+                    content.classList.add('active');
+                }
+            });
+            
+            gameState.currentTab = tabName;
+            
+            switch(tabName) {
+                case 'friends':
+                    loadFriendsList();
+                    break;
+                case 'shop':
+                    loadShopItems();
+                    break;
+                case 'leaderboard':
+                    loadLeaderboard();
+                    break;
+                case 'profile':
+                    loadProfileQuests();
+                    break;
+            }
+        });
+    });
+}
+
+// ==================== DOM YUKLANGANDA ====================
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize modern features
-    enhancedInit();
+    console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
     
-    // Also initialize original functionality
+    // Profilni yuklash
     initUserProfile();
     
-    // Override original functions with enhanced versions
-    const originalHandleMatch = handleMatch;
-    window.handleMatch = function(data) {
-        enhancedHandleMatch(data);
-    };
+    // Tab navigatsiyasini ishga tushirish
+    initTabNavigation();
     
-    // Add CSS for new elements
-    addEnhancedStyles();
+    // Gender tugmalarini ishga tushirish
+    if (elements.selectMaleBtn) {
+        elements.selectMaleBtn.onclick = () => {
+            selectGender('male');
+            hideGenderModal();
+        };
+    }
+    
+    if (elements.selectFemaleBtn) {
+        elements.selectFemaleBtn.onclick = () => {
+            selectGender('female');
+            hideGenderModal();
+        };
+    }
+    
+    if (elements.selectAllBtn) {
+        elements.selectAllBtn.onclick = () => {
+            selectGender('not_specified');
+            hideGenderModal();
+        };
+    }
+    
+    // Event listener'lar
+    if (elements.startBtn) {
+        elements.startBtn.addEventListener('click', startGame);
+    }
+    
+    if (elements.leaveQueueBtn) {
+        elements.leaveQueueBtn.addEventListener('click', leaveQueue);
+    }
+    
+    if (elements.noBtn) {
+        elements.noBtn.addEventListener('click', () => {
+            if (gameState.waitingForOpponent) {
+                // Kutish rejimida - keyingi duelga o'tish
+                console.log('⏭️ Kutish rejimida keyingi duelga o\'tish');
+                skipToNextDuel();
+            } else {
+                // Oddiy duel rejimida - o'tkazib yuborish
+                console.log('✖ Oddiy duel rejimida o\'tkazib yuborish');
+                handleVote('skip');
+            }
+        });
+    }
+    
+    if (elements.likeBtn) {
+        elements.likeBtn.addEventListener('click', () => {
+            console.log('❤️ Like bosildi');
+            handleVote('like');
+        });
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.addEventListener('click', () => {
+            console.log('💖 Super Like bosildi');
+            handleVote('super_like');
+        });
+    }
+    
+    if (elements.selectGenderNowBtn) {
+        elements.selectGenderNowBtn.addEventListener('click', () => showGenderModal(true));
+    }
+    
+    if (elements.editProfileBtn) {
+        elements.editProfileBtn.addEventListener('click', () => {
+            if (elements.editBio) elements.editBio.value = userState.bio || '';
+            if (elements.editGender) elements.editGender.value = userState.currentGender || 'not_specified';
+            if (elements.editFilter) elements.editFilter.value = userState.filter || 'not_specified';
+            if (elements.profileEditModal) {
+                elements.profileEditModal.classList.add('active');
+            }
+        });
+    }
+    
+    if (elements.closeProfileEditBtn) {
+        elements.closeProfileEditBtn.addEventListener('click', () => {
+            if (elements.profileEditModal) {
+                elements.profileEditModal.classList.remove('active');
+            }
+        });
+    }
+    
+    if (elements.saveProfileBtn) {
+        elements.saveProfileBtn.addEventListener('click', () => {
+            const bio = elements.editBio?.value.trim() || '';
+            const gender = elements.editGender?.value || 'not_specified';
+            const filter = elements.editFilter?.value || 'not_specified';
+            
+            if (gameState.socket) {
+                gameState.socket.emit('update_profile', { bio, gender, filter });
+                
+                userState.bio = bio;
+                if (gender !== userState.currentGender) {
+                    userState.currentGender = gender;
+                    userState.hasSelectedGender = true;
+                }
+                userState.filter = filter;
+                
+                saveUserStateToLocalStorage();
+                updateUIFromUserState();
+                
+                if (bio && elements.profileBio) {
+                    elements.profileBio.textContent = bio;
+                }
+            }
+            
+            if (elements.profileEditModal) {
+                elements.profileEditModal.classList.remove('active');
+            }
+            showNotification('✅ Profil yangilandi', 'O\'zgarishlar saqlandi');
+        });
+    }
+    
+    // Chat modal event listener'lar
+    if (elements.closeChatBtn) {
+        elements.closeChatBtn.addEventListener('click', () => {
+            closeChatModal();
+        });
+    }
+    
+    // Telegram chatga o'tish tugmasi
+    if (elements.chatOpenTelegramBtn) {
+        elements.chatOpenTelegramBtn.addEventListener('click', openTelegramChat);
+    }
+    
+    // View stats button
+    if (elements.viewStatsBtn) {
+        elements.viewStatsBtn.addEventListener('click', () => {
+            const stats = `
+                Reyting: ${userState.rating}
+                Matchlar: ${userState.matches}
+                Duellar: ${userState.duels}
+                G'alabalar: ${userState.wins}
+                G'alaba %: ${userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0}%
+                Total Like: ${userState.totalLikes}
+                O'zaro Match: ${userState.mutualMatchesCount}
+                Do'stlar: ${userState.friendsCount}
+                Coin: ${userState.coins}
+                Level: ${userState.level}
+                Kunlik Super Like: ${userState.dailySuperLikes}/3
+                Filter: ${userState.filter === 'male' ? 'Faqat erkaklar' : userState.filter === 'female' ? 'Faqat ayollar' : 'Hamma'}
+            `;
+            alert('Batafsil statistika:\n\n' + stats);
+        });
+    }
+    
+    // Refresh friends button
+    if (elements.refreshFriendsBtn) {
+        elements.refreshFriendsBtn.addEventListener('click', loadFriendsList);
+    }
+    
+    // Kunlik vazifalarni ko'rsatish
+    loadProfileQuests();
+    loadShopItems();
+    loadLeaderboard();
+    loadFriendsList();
+    
+    console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
 });
 
-function addEnhancedStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-        /* Enhanced notification styles */
-        .notification-center {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 350px;
-        }
-        
-        .enhanced-notification {
-            background: rgba(15, 15, 35, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 15px;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .enhanced-notification.success {
-            border-color: rgba(46, 204, 113, 0.3);
-        }
-        
-        .enhanced-notification.warning {
-            border-color: rgba(241, 196, 15, 0.3);
-        }
-        
-        .enhanced-notification.error {
-            border-color: rgba(231, 76, 60, 0.3);
-        }
-        
-        .notification-icon {
-            font-size: 1.5rem;
-        }
-        
-        .notification-icon .fa-info-circle { color: #667eea; }
-        .notification-icon .fa-check-circle { color: #2ecc71; }
-        .notification-icon .fa-exclamation-triangle { color: #f1c40f; }
-        .notification-icon .fa-times-circle { color: #e74c3c; }
-        
-        .notification-content {
-            flex: 1;
-        }
-        
-        .notification-title {
-            font-weight: 700;
-            margin-bottom: 5px;
-            font-size: 0.95rem;
-        }
-        
-        .notification-message {
-            font-size: 0.85rem;
-            opacity: 0.9;
-            line-height: 1.4;
-        }
-        
-        .notification-close {
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            padding: 5px;
-            font-size: 0.9rem;
-            transition: color 0.3s;
-        }
-        
-        .notification-close:hover {
-            color: white;
-        }
-        
-        /* Feedback bubbles */
-        .feedback-bubble {
-            position: fixed;
-            z-index: 9998;
-            font-weight: 700;
-            font-size: 0.9rem;
-            pointer-events: none;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            white-space: nowrap;
-        }
-        
-        /* Daily reward popup */
-        .daily-reward-popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            padding: 20px;
-        }
-        
-        .reward-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 40px 30px;
-            border-radius: 25px;
-            text-align: center;
-            max-width: 300px;
-            width: 100%;
-            box-shadow: 0 20px 50px rgba(102, 126, 234, 0.5);
-            animation: popupAppear 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        @keyframes popupAppear {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        
-        .reward-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            animation: bounce 2s infinite;
-        }
-        
-        .reward-content h3 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: white;
-        }
-        
-        .reward-content p {
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 30px;
-            font-size: 1.1rem;
-        }
-        
-        .claim-reward-btn {
-            background: white;
-            color: #667eea;
-            border: none;
-            padding: 18px 40px;
-            border-radius: 20px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-        }
-        
-        .claim-reward-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.3);
-        }
-        
-        /* Enhanced quest items */
-        .quest-item.enhanced {
-            transition: all 0.3s;
-            border: 2px solid transparent;
-        }
-        
-        .quest-item.enhanced:hover {
-            transform: translateY(-3px);
-            border-color: rgba(102, 126, 234, 0.3);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        .quest-reward.completed {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            animation: pulse 2s infinite;
-        }
-    `;
-    document.head.appendChild(style);
-}
+// ==================== GLOBAL FUNKSIYALAR ====================
+window.selectGender = selectGender;
+window.hideGenderModal = hideGenderModal;
+window.openTelegramChat = openTelegramChat;
+window.toggleFilter = toggleFilter;
+window.skipToNextDuel = skipToNextDuel;
+window.returnToMenu = returnToMenu;
+window.buyItem = buyItem;
+window.openChat = openChat;
+window.closeChatModal = closeChatModal;

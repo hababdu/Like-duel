@@ -299,27 +299,23 @@ function createFilterOptions() {
     const filterContainer = document.createElement('div');
     filterContainer.className = 'gender-filter-container';
     filterContainer.innerHTML = `
-        <div class="gender-filter-title">Kim bilan duel qilmoqchisiz?</div>
         <div class="gender-filter-options">
             <div class="gender-filter-option ${gameState.currentFilter === 'male' ? 'active' : ''}" data-filter="male">
                 <div class="gender-filter-icon male">
                     <i class="fas fa-mars"></i>
                 </div>
-               
             </div>
             
             <div class="gender-filter-option ${gameState.currentFilter === 'female' ? 'active' : ''}" data-filter="female">
                 <div class="gender-filter-icon female">
                     <i class="fas fa-venus"></i>
                 </div>
-               
             </div>
             
             <div class="gender-filter-option ${gameState.currentFilter === 'not_specified' ? 'active' : ''}" data-filter="not_specified">
                 <div class="gender-filter-icon all">
                     <i class="fas fa-users"></i>
                 </div>
-                
             </div>
         </div>
     `;

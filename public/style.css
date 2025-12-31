@@ -192,8 +192,7 @@ body {
     background: linear-gradient(135deg, rgba(30, 30, 50, 0.8) 0%, rgba(40, 40, 60, 0.8) 100%);
     backdrop-filter: blur(20px);
     border-radius: 25px;
-    padding: 25px;
-    margin: 25px 0;
+    
     border: 2px solid rgba(255, 255, 255, 0.1);
     text-align: center;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -272,8 +271,8 @@ body {
 .gender-filter-container {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
-    padding: 20px;
-    margin: 25px 0;
+    padding: 10px;
+    margin: 15px 0;
     border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -289,6 +288,8 @@ body {
 .gender-filter-options {
     display: flex;
     flex-direction: row;
+    gap: 16px;
+    justify-content: center;
 }
 
 .gender-filter-option {
@@ -321,7 +322,6 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 1.3rem;
-    margin-right: 16px;
     flex-shrink: 0;
 }
 

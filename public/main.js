@@ -19,8 +19,7 @@ const gameState = {
     friendsList: [],
     waitingForOpponent: false,
     matchCompleted: false,
-    lastMatchData: null,
-    inMatchScreen: false
+    skipToNextRequested: false // Yangi flag
 };
 
 // ==================== USER STATE ====================
@@ -43,11 +42,13 @@ const userState = {
 
 // ==================== DOM ELEMENTLARI ====================
 const elements = {
+    // Asosiy ekranlar
     welcomeScreen: document.getElementById('welcomeScreen'),
     queueScreen: document.getElementById('queueScreen'),
     duelScreen: document.getElementById('duelScreen'),
     matchScreen: document.getElementById('matchScreen'),
     
+    // Profil elementlari
     myAvatar: document.getElementById('myAvatar'),
     myName: document.getElementById('myName'),
     myUsername: document.getElementById('myUsername'),
@@ -55,12 +56,14 @@ const elements = {
     myLikes: document.getElementById('myLikes'),
     mutualMatchesCount: document.getElementById('mutualMatchesCount'),
     
+    // Navbat elementlari
     waitingCount: document.getElementById('waitingCount'),
     position: document.getElementById('position'),
     positionInfo: document.getElementById('positionInfo'),
     queueStatus: document.getElementById('queueStatus'),
     genderFilterContainer: document.getElementById('genderFilterContainer'),
     
+    // Duel elementlari
     opponentAvatar: document.getElementById('opponentAvatar'),
     opponentName: document.getElementById('opponentName'),
     opponentUsername: document.getElementById('opponentUsername'),
@@ -71,6 +74,7 @@ const elements = {
     duelStatus: document.getElementById('duelStatus'),
     superLikeCount: document.getElementById('superLikeCount'),
     
+    // Tugmalar
     startBtn: document.getElementById('startBtn'),
     leaveQueueBtn: document.getElementById('leaveQueueBtn'),
     noBtn: document.getElementById('noBtn'),
@@ -78,6 +82,7 @@ const elements = {
     superLikeBtn: document.getElementById('superLikeBtn'),
     refreshFriendsBtn: document.getElementById('refreshFriendsBtn'),
     
+    // Match elementlari
     partnerName: document.getElementById('partnerName'),
     matchText: document.getElementById('matchText'),
     matchRewards: document.getElementById('matchRewards'),
@@ -85,6 +90,7 @@ const elements = {
     rewardXP: document.getElementById('rewardXP'),
     matchOptions: document.getElementById('matchOptions'),
     
+    // Profil tab elementlari
     profileAvatar: document.getElementById('profileAvatar'),
     profileName: document.getElementById('profileName'),
     profileUsername: document.getElementById('profileUsername'),
@@ -96,14 +102,17 @@ const elements = {
     mutualMatchesProfile: document.getElementById('mutualMatchesProfile'),
     statFriends: document.getElementById('statFriends'),
     
+    // Statistikalar
     coinsCount: document.getElementById('coinsCount'),
     levelCount: document.getElementById('levelCount'),
     shopCoinsCount: document.getElementById('shopCoinsCount'),
     
+    // Notifikatsiya
     notification: document.getElementById('notification'),
     notificationTitle: document.getElementById('notificationTitle'),
     notificationMessage: document.getElementById('notificationMessage'),
     
+    // Modallar
     genderModal: document.getElementById('genderModal'),
     genderWarning: document.getElementById('genderWarning'),
     selectGenderNowBtn: document.getElementById('selectGenderNowBtn'),
@@ -121,10 +130,12 @@ const elements = {
     editFilter: document.getElementById('editFilter'),
     saveProfileBtn: document.getElementById('saveProfileBtn'),
     
+    // Gender tanlash tugmalari
     selectMaleBtn: document.getElementById('selectMaleBtn'),
     selectFemaleBtn: document.getElementById('selectFemaleBtn'),
     selectAllBtn: document.getElementById('selectAllBtn'),
     
+    // Chat modal elementlari
     chatModal: document.getElementById('chatModal'),
     chatPartnerAvatar: document.getElementById('chatPartnerAvatar'),
     chatPartnerName: document.getElementById('chatPartnerName'),
@@ -133,18 +144,23 @@ const elements = {
     closeChatBtn: document.getElementById('closeChatBtn'),
     chatTitle: document.getElementById('chatTitle'),
     
+    // Do'stlar tab elementlari
     friendsList: document.getElementById('friendsList'),
     friendsCount: document.getElementById('friendsCount'),
     onlineFriendsCount: document.getElementById('onlineFriendsCount'),
     noFriends: document.getElementById('noFriends'),
     
+    // Do'kon elementlari
     shopItemsList: document.getElementById('shopItemsList'),
     
+    // Liderlar tab elementlari
     leaderboardList: document.getElementById('leaderboardList'),
     leaderboardUpdated: document.getElementById('leaderboardUpdated'),
     
+    // Kunlik vazifalar
     profileQuestsList: document.getElementById('profileQuestsList'),
     
+    // View stats button
     viewStatsBtn: document.getElementById('viewStatsBtn')
 };
 
@@ -193,9 +209,13 @@ function initUserProfile() {
     
     tgUserGlobal = tgUser;
     
+    // UI ni yangilash
     updateUIFromUserState();
+    
+    // Gender filter qo'shish
     addFilterToWelcomeScreen();
     
+    // Agar gender tanlanmagan bo'lsa, modalni ko'rsatish
     if (!userState.hasSelectedGender) {
         console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
         setTimeout(() => {
@@ -210,11 +230,13 @@ function initUserProfile() {
 function updateUIFromUserState() {
     console.log('🎨 UI yangilanmoqda...');
     
+    // Gender badge qo'shish
     if (userState.hasSelectedGender && userState.currentGender) {
         addGenderBadge(elements.myName, userState.currentGender);
         addGenderBadge(elements.profileName, userState.currentGender);
     }
     
+    // Statistika yangilash
     if (elements.coinsCount) elements.coinsCount.textContent = userState.coins;
     if (elements.levelCount) elements.levelCount.textContent = userState.level;
     if (elements.shopCoinsCount) elements.shopCoinsCount.textContent = userState.coins;
@@ -236,6 +258,7 @@ function updateUIFromUserState() {
         elements.profileBio.textContent = userState.bio;
     }
     
+    // Start tugmasini yangilash
     if (elements.startBtn) {
         if (userState.hasSelectedGender) {
             elements.startBtn.disabled = false;
@@ -248,6 +271,7 @@ function updateUIFromUserState() {
         }
     }
     
+    // Filter sozlamasini yangilash
     gameState.currentFilter = userState.filter;
 }
 
@@ -551,11 +575,13 @@ function connectToServer() {
         gameState.isInDuel = true;
         gameState.waitingForOpponent = false;
         gameState.matchCompleted = false;
-        gameState.inMatchScreen = false;
         gameState.currentDuelId = data.duelId;
         showScreen('duel');
         
+        // Oldingi taymerlarni to'xtatamiz
         clearInterval(gameState.timerInterval);
+        
+        // Tugmalarni reset qilamiz
         resetVoteButtons();
         
         if (elements.opponentAvatar) {
@@ -571,6 +597,7 @@ function connectToServer() {
         if (elements.opponentMatches) elements.opponentMatches.textContent = data.opponent.matches || 0;
         if (elements.opponentLevel) elements.opponentLevel.textContent = data.opponent.level || 1;
         
+        // 20 soniyalik taymerni boshlaymiz
         startTimer();
         updateDuelStatus('Ovoz bering: ❤️ yoki 💖 yoki ✖');
     });
@@ -578,24 +605,25 @@ function connectToServer() {
     gameState.socket.on('match', (data) => {
         console.log('🎉 MATCH!', data);
         gameState.matchCompleted = true;
-        gameState.lastMatchData = data;
         handleMatch(data);
     });
     
     gameState.socket.on('mutual_match', (data) => {
-        console.log('🤝 O\'ZARO SUPER LIKE Match qo\'shildi:', data);
+        console.log('🤝 O\'zaro Match qo\'shildi:', data);
         
         userState.mutualMatchesCount = data.mutualMatchesCount;
         userState.friendsCount = data.friendsCount;
         saveUserStateToLocalStorage();
         updateUIFromUserState();
         
-        if (gameState.currentTab === 'friends') {
-            loadFriendsList();
-        }
-        
         showNotification('🎉 DO\'ST BO\'LDINGIZ!', 
-            `${data.partnerName} bilan o'zaro SUPER LIKE! Endi siz do'st bo'ldingiz.`);
+            `${data.partnerName} bilan o'zaro match! Endi siz bir-biringizning do'stlaringiz ro'yxatidasiz.`);
+    });
+    
+    gameState.socket.on('liked_only', (data) => {
+        console.log('❤️ Faqat siz like berdidingiz:', data);
+        gameState.matchCompleted = true;
+        handleLikedOnly(data);
     });
     
     gameState.socket.on('no_match', (data) => {
@@ -742,6 +770,7 @@ function handleVote(choice) {
     
     console.log(`🗳️ Ovoz berish: ${choice}`);
     
+    // Tugmalarni vaqtincha disable qilamiz
     [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
         if (b) {
             b.disabled = true;
@@ -750,19 +779,23 @@ function handleVote(choice) {
         }
     });
     
+    // Super like limitini tekshirish
     if (choice === 'super_like' && userState.dailySuperLikes <= 0) {
         showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
         resetVoteButtons();
         return;
     }
     
+    // Serverga ovozni yuboramiz
     gameState.socket.emit('vote', { 
         duelId: gameState.currentDuelId, 
         choice: choice 
     });
     
+    // Taymerni to'xtatamiz
     clearInterval(gameState.timerInterval);
     
+    // UI yangilash
     if (choice === 'like') {
         if (elements.timer) elements.timer.textContent = '❤️';
         updateDuelStatus('LIKE berdingiz. Raqib javobini kutish...');
@@ -777,9 +810,182 @@ function handleVote(choice) {
         updateDuelStatus('O\'tkazib yubordingiz...');
         gameState.matchCompleted = true;
         
+        // O'tkazib yuborilganda, 2 soniyadan keyin keyingi duel yoki bosh menyu tanlash imkoniyati
         setTimeout(() => {
             showNoMatchOptions();
         }, 2000);
+    }
+}
+
+// ==================== KUTISH HOLATI ====================
+function handleWaitingResponse(data) {
+    console.log('⏳ Raqib javobini kutish...');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.waitingForOpponent = true;
+    
+    // 2 daqiqa (120 soniya) kutish taymerini boshlaymiz
+    gameState.timeLeft = 120;
+    
+    if (elements.timer) {
+        elements.timer.textContent = '2:00';
+        elements.timer.style.color = '#ff9500';
+        elements.timer.style.animation = 'pulse 2s infinite';
+    }
+    
+    updateDuelStatus('⏳ Raqib javobini kutish... (2 daqiqa)');
+    
+    // Like/Super Like tugmalarini disable qilamiz
+    if (elements.likeBtn) {
+        elements.likeBtn.disabled = true;
+        elements.likeBtn.style.opacity = '0.5';
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.disabled = true;
+        elements.superLikeBtn.style.opacity = '0.5';
+    }
+    
+    // O'tkazib yuborish tugmasini yoqamiz va matnini o'zgartiramiz
+    if (elements.noBtn) {
+        elements.noBtn.disabled = false;
+        elements.noBtn.style.opacity = '1';
+        elements.noBtn.textContent = '⏭️ Keyingisi';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)';
+    }
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        
+        const minutes = Math.floor(gameState.timeLeft / 60);
+        const seconds = gameState.timeLeft % 60;
+        
+        if (elements.timer) {
+            elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        if (gameState.timeLeft <= 30) {
+            if (elements.timer) {
+                elements.timer.style.color = '#ff4444';
+                elements.timer.style.animation = 'pulse 0.5s infinite';
+            }
+        }
+        
+        if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            handleOpponentTimeout();
+        }
+    }, 1000);
+}
+
+function handleOpponentTimeout() {
+    console.log('⏰ Raqib javob bermadi');
+    
+    if (elements.timer) {
+        elements.timer.textContent = '⏰';
+    }
+    
+    updateDuelStatus('Raqib javob bermadi. O\'yinni tugatish?');
+    
+    // O'yinni tugatish modalini ko'rsatish
+    showOpponentTimeoutModal();
+}
+
+function showOpponentTimeoutModal() {
+    const modalHTML = `
+        <div class="modal active" id="timeoutModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="color: #fff;">⏰ Raqib javob bermadi</h3>
+                </div>
+                <div class="modal-body">
+                    <p style="color: #ccc;">Raqibingiz 2 daqiqa ichida javob bermadi. O'yinni tugatishni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn cancel-btn" onclick="skipToNextDuel()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">➡️ Keyingi duel</button>
+                    <button class="modal-btn confirm-btn" onclick="returnToMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🏠 Bosh menyu</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.getElementById('modalContainer') || (() => {
+        const container = document.createElement('div');
+        container.id = 'modalContainer';
+        document.body.appendChild(container);
+        return container;
+    })();
+    
+    modalContainer.innerHTML = modalHTML;
+}
+
+function showOpponentLeftModal() {
+    const modalHTML = `
+        <div class="modal active" id="opponentLeftModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="color: #fff;">🚪 Raqib chiqib ketdi</h3>
+                </div>
+                <div class="modal-body">
+                    <p style="color: #ccc;">Raqibingiz duel davomida chiqib ketdi. Keyingi duelga o'tishni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn cancel-btn" onclick="skipToNextDuel()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">➡️ Keyingi duel</button>
+                    <button class="modal-btn confirm-btn" onclick="returnToMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🏠 Bosh menyu</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.getElementById('modalContainer') || (() => {
+        const container = document.createElement('div');
+        container.id = 'modalContainer';
+        document.body.appendChild(container);
+        return container;
+    })();
+    
+    modalContainer.innerHTML = modalHTML;
+}
+
+function showNoMatchOptions() {
+    const modalHTML = `
+        <div class="modal active" id="noMatchModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="color: #fff;">❌ Match bo'lmadi</h3>
+                </div>
+                <div class="modal-body">
+                    <p style="color: #ccc;">Sizning ovozingiz: ✖</p>
+                    <p style="color: #ccc;">Keyingi duelga o'tishni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn cancel-btn" onclick="skipToNextDuel()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">➡️ Keyingi duel</button>
+                    <button class="modal-btn confirm-btn" onclick="returnToMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🏠 Bosh menyu</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.getElementById('modalContainer') || (() => {
+        const container = document.createElement('div');
+        container.id = 'modalContainer';
+        document.body.appendChild(container);
+        return container;
+    })();
+    
+    modalContainer.innerHTML = modalHTML;
+}
+
+function hideAllModals() {
+    const modals = ['timeoutModal', 'opponentLeftModal', 'noMatchModal', 'likedOnlyModal', 'matchModal'];
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.remove();
+    });
+    
+    const modalContainer = document.getElementById('modalContainer');
+    if (modalContainer && modalContainer.children.length === 0) {
+        modalContainer.remove();
     }
 }
 
@@ -794,34 +1000,26 @@ function handleMatch(data) {
     gameState.currentPartner = data.partner;
     gameState.lastOpponent = data.partner.id;
     gameState.waitingForOpponent = false;
-    gameState.inMatchScreen = true;
     
+    // Tugmalarni reset qilish
     resetVoteButtons();
     
     showScreen('match');
     
     if (elements.partnerName) elements.partnerName.textContent = data.partner.name;
     
-    if (data.isMutual && data.isSuperLike) {
-        if (elements.matchText) elements.matchText.innerHTML = `
-            <div style="font-size: 1.5rem; color: #9b59b6; font-weight: bold;">💖 O'ZARO SUPER LIKE!</div>
-            <div style="margin-top: 10px; color: #fff;">${data.partner.name} bilan SUPER LIKE bo'ldingiz!</div>
-            <div style="margin-top: 5px; color: #2ecc71; font-size: 0.9rem;">
-                <i class="fas fa-check-circle"></i> Endi siz do'stlaringiz ro'yxatidasiz!
-            </div>
-        `;
-    } else if (data.isMutual) {
+    if (data.isMutual) {
         if (elements.matchText) elements.matchText.innerHTML = `
             <div style="font-size: 1.5rem; color: #f1c40f; font-weight: bold;">🎉 O'ZARO MATCH!</div>
-            <div style="margin-top: 10px; color: #fff;">${data.partner.name} bilan bir-biringizni yoqtirdingiz!</div>
+            <div style="margin-top: 10px; color: #fff;">${data.partner.name} bilan do'st bo'ldingiz!</div>
+            <div style="margin-top: 5px; color: #ccc; font-size: 0.9rem;">
+                Endi siz bir-biringizning do'stlaringiz ro'yxatidasiz!
+            </div>
         `;
     } else {
         if (elements.matchText) elements.matchText.innerHTML = `
-            <div style="font-size: 1.5rem; color: #e74c3c; font-weight: bold;">❤️ Bir tomonli Like</div>
-            <div style="margin-top: 10px; color: #fff;">Siz ${data.partner.name} ni yoqtirdingiz</div>
-            <div style="margin-top: 5px; color: #ccc; font-size: 0.9rem;">
-                <i class="fas fa-info-circle"></i> O'zaro match bo'lmadi
-            </div>
+            <div style="font-size: 1.5rem; color: #f1c40f; font-weight: bold;">🎉 MATCH!</div>
+            <div style="margin-top: 10px; color: #fff;">${data.partner.name} bilan bir-biringizni yoqtirdingiz!</div>
         `;
     }
     
@@ -834,31 +1032,15 @@ function handleMatch(data) {
     saveUserStateToLocalStorage();
     updateUIFromUserState();
     
+    // Match option tugmalarini ko'rsatish
     if (elements.matchOptions) {
         elements.matchOptions.innerHTML = '';
         
-        const options = [];
-        
-        if (data.isMutual && data.isSuperLike) {
-            options.push({
-                action: 'open_chat', 
-                label: '💬 Chatga o\'tish', 
-                style: 'background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);'
-            });
-        }
-        
-        options.push(
-            {
-                action: 'continue_match_screen', 
-                label: '➡️ Yangi duel', 
-                style: 'background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);'
-            },
-            {
-                action: 'return_to_menu', 
-                label: '🏠 Bosh menyu', 
-                style: 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);'
-            }
-        );
+        const options = [
+            {action: 'open_chat', label: '💬 Chatga o\'tish', style: 'background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);'},
+            {action: 'show_next_duel_confirm', label: '➡️ Yangi duel', style: 'background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);'},
+            {action: 'return_to_menu', label: '🏠 Bosh menyu', style: 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);'}
+        ];
         
         options.forEach(opt => {
             const btn = document.createElement('button');
@@ -870,12 +1052,30 @@ function handleMatch(data) {
         });
     }
     
+    // Confetti efekti
     if (typeof confetti === 'function') {
         confetti({ 
             particleCount: 300, 
             spread: 100, 
             origin: { y: 0.6 } 
         });
+        
+        if (data.isMutual) {
+            setTimeout(() => {
+                confetti({ 
+                    particleCount: 200,
+                    angle: 60,
+                    spread: 80,
+                    origin: { x: 0, y: 0.6 }
+                });
+                confetti({ 
+                    particleCount: 200,
+                    angle: 120,
+                    spread: 80,
+                    origin: { x: 1, y: 0.6 }
+                });
+            }, 300);
+        }
     }
 }
 
@@ -885,9 +1085,10 @@ function handleMatchOption(action, partner) {
     switch(action) {
         case 'open_chat':
             openChat(partner);
+            // Chat ochilganda, avtomatik navbatga o'tmaslik
             return;
-        case 'continue_match_screen':
-            showNextDuelConfirmModal();
+        case 'show_next_duel_confirm':
+            showNextDuelConfirmModal(partner);
             break;
         case 'return_to_menu':
             returnToMenu();
@@ -897,101 +1098,7 @@ function handleMatchOption(action, partner) {
     }
 }
 
-function handleNoMatch(data) {
-    console.log('❌ Match bo\'lmadi');
-    
-    clearInterval(gameState.timerInterval);
-    gameState.isInDuel = false;
-    gameState.currentDuelId = null;
-    gameState.waitingForOpponent = false;
-    gameState.inMatchScreen = false;
-    
-    resetVoteButtons();
-    
-    if (elements.timer) elements.timer.textContent = '✖';
-    
-    setTimeout(() => {
-        showNoMatchModal();
-    }, 1500);
-}
-
-function handleTimeout(data) {
-    console.log('⏰ Vaqt tugadi');
-    
-    clearInterval(gameState.timerInterval);
-    gameState.isInDuel = false;
-    gameState.currentDuelId = null;
-    gameState.waitingForOpponent = false;
-    gameState.inMatchScreen = false;
-    
-    resetVoteButtons();
-    
-    if (elements.timer) elements.timer.textContent = '⏰';
-    
-    setTimeout(() => {
-        showTimeoutOptions();
-    }, 1500);
-}
-
-// ==================== CHAT FUNKSIYALARI ====================
-function openChat(partner) {
-    if (!partner) return;
-    
-    gameState.isChatModalOpen = true;
-    
-    if (elements.chatPartnerAvatar) {
-        elements.chatPartnerAvatar.src = partner.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=3498db&color=fff`;
-    }
-    if (elements.chatPartnerName) {
-        elements.chatPartnerName.textContent = partner.name;
-    }
-    if (elements.chatUsername && partner.username) {
-        elements.chatUsername.textContent = `@${partner.username}`;
-    } else if (elements.chatUsername) {
-        elements.chatUsername.textContent = '';
-    }
-    
-    if (elements.chatTitle) {
-        elements.chatTitle.textContent = `${partner.name} bilan chat`;
-    }
-    
-    if (elements.chatModal) {
-        elements.chatModal.classList.add('active');
-    }
-}
-
-function openTelegramChat(username) {
-    if (!username) {
-        showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
-        return;
-    }
-    
-    const telegramUrl = `https://t.me/${username.replace('@', '')}`;
-    
-    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-        Telegram.WebApp.openTelegramLink(telegramUrl);
-    } else {
-        window.open(telegramUrl, '_blank');
-    }
-}
-
-function closeChatModal() {
-    console.log('💬 Chat modali yopilmoqda');
-    
-    gameState.isChatModalOpen = false;
-    if (elements.chatModal) {
-        elements.chatModal.classList.remove('active');
-    }
-    
-    if (gameState.inMatchScreen) {
-        showScreen('match');
-    } else {
-        returnToMenu();
-    }
-}
-
-// ==================== YANGI DUEL BOSHLASH ====================
-function showNextDuelConfirmModal() {
+function showNextDuelConfirmModal(partner) {
     const modalHTML = `
         <div class="modal active" id="nextDuelConfirmModal">
             <div class="modal-content">
@@ -1007,7 +1114,7 @@ function showNextDuelConfirmModal() {
                         <ul style="color: #ccc; font-size: 0.85rem; padding-left: 20px; margin: 0;">
                             <li>Yangi duel boshlaganingizda, navbatga qo'shilasiz</li>
                             <li>Yangi sherik topilgach, duel boshlanadi</li>
-                            <li>Chat, profil va boshqa funksiyalar faol bo'lib qoladi</li>
+                            <li>Hozirgi match ma'lumotlari saqlanib qoladi</li>
                         </ul>
                     </div>
                 </div>
@@ -1041,52 +1148,99 @@ function hideNextDuelConfirmModal() {
 function startNewDuelFromMatch() {
     console.log('🔄 Matchdan yangi duelga o\'tish');
     
+    // Modalni yopish
     hideNextDuelConfirmModal();
-    skipToNextDuel();
+    
+    // Match ekranini yopish
+    showScreen('queue');
+    
+    // Serverga navbatga kirish so'rovini yuborish
+    if (gameState.socket && gameState.isConnected) {
+        gameState.isInQueue = true;
+        gameState.socket.emit('enter_queue');
+        showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
+    }
 }
 
-// ==================== MODAL FUNKSIYALARI ====================
-function showNoMatchOptions() {
+function handleLikedOnly(data) {
+    console.log('❤️ Faqat siz like berdidingiz:', data);
+    
+    clearInterval(gameState.timerInterval);
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    
+    // Tugmalarni reset qilish
+    resetVoteButtons();
+    
+    if (elements.timer) elements.timer.textContent = '❤️';
+    
+    if (data.reward) {
+        userState.coins += data.reward.coins;
+        userState.totalLikes++;
+        saveUserStateToLocalStorage();
+        updateUIFromUserState();
+        
+        showNotification('Like uchun mukofot', `+${data.reward.coins} coin, +${data.reward.xp} XP`);
+    }
+    
+    // Keyingi duel yoki bosh menyu tanlash imkoniyati
+    setTimeout(() => {
+        showLikedOnlyOptions(data.opponentName);
+    }, 1500);
+}
+
+function handleNoMatch(data) {
+    console.log('❌ Match bo\'lmadi');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    
+    // Tugmalarni reset qilish
+    resetVoteButtons();
+    
+    if (elements.timer) elements.timer.textContent = '✖';
+    
+    // Keyingi duel yoki bosh menyu tanlash imkoniyati
+    setTimeout(() => {
+        showNoMatchModal();
+    }, 1500);
+}
+
+function handleTimeout(data) {
+    console.log('⏰ Vaqt tugadi');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    
+    // Tugmalarni reset qilish
+    resetVoteButtons();
+    
+    if (elements.timer) elements.timer.textContent = '⏰';
+    
+    // Keyingi duel yoki bosh menyu tanlash imkoniyati
+    setTimeout(() => {
+        showTimeoutOptions();
+    }, 1500);
+}
+
+function showLikedOnlyOptions(opponentName) {
     const modalHTML = `
-        <div class="modal active" id="noMatchModal">
+        <div class="modal active" id="likedOnlyModal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 style="color: #fff;">❌ Match bo'lmadi</h3>
+                    <h3 style="color: #fff;">❤️ Faqat siz like berdidingiz</h3>
                 </div>
                 <div class="modal-body">
-                    <p style="color: #ccc;">Sizning ovozingiz: ✖</p>
-                    <p style="color: #ccc;">Keyingi duelga o'tishni xohlaysizmi?</p>
+                    <p style="color: #ccc;">${opponentName} sizga like bermadi</p>
+                    <p style="color: #ccc;">Yangi duel o'ynashni xohlaysizmi?</p>
                 </div>
                 <div class="modal-footer">
                     <button class="modal-btn cancel-btn" onclick="skipToNextDuel()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">➡️ Yangi duel</button>
-                    <button class="modal-btn confirm-btn" onclick="returnToMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🏠 Bosh menyu</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const modalContainer = document.getElementById('modalContainer') || (() => {
-        const container = document.createElement('div');
-        container.id = 'modalContainer';
-        document.body.appendChild(container);
-        return container;
-    })();
-    
-    modalContainer.innerHTML = modalHTML;
-}
-
-function showOpponentLeftModal() {
-    const modalHTML = `
-        <div class="modal active" id="opponentLeftModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 style="color: #fff;">🚪 Raqib chiqib ketdi</h3>
-                </div>
-                <div class="modal-body">
-                    <p style="color: #ccc;">Raqibingiz duel davomida chiqib ketdi. Keyingi duelga o'tishni xohlaysizmi?</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="modal-btn cancel-btn" onclick="skipToNextDuel()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">➡️ Keyingi duel</button>
                     <button class="modal-btn confirm-btn" onclick="returnToMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🏠 Bosh menyu</button>
                 </div>
             </div>
@@ -1159,103 +1313,62 @@ function showTimeoutOptions() {
     modalContainer.innerHTML = modalHTML;
 }
 
-function hideAllModals() {
-    const modals = ['timeoutModal', 'opponentLeftModal', 'noMatchModal', 'nextDuelConfirmModal'];
-    modals.forEach(modalId => {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.remove();
-    });
+// ==================== CHAT FUNKSIYALARI ====================
+function openChat(partner) {
+    if (!partner) return;
     
-    const modalContainer = document.getElementById('modalContainer');
-    if (modalContainer && modalContainer.children.length === 0) {
-        modalContainer.remove();
+    gameState.isChatModalOpen = true;
+    
+    if (elements.chatPartnerAvatar) {
+        elements.chatPartnerAvatar.src = partner.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=3498db&color=fff`;
+    }
+    if (elements.chatPartnerName) {
+        elements.chatPartnerName.textContent = partner.name;
+    }
+    if (elements.chatUsername && partner.username) {
+        elements.chatUsername.textContent = `@${partner.username}`;
+    } else if (elements.chatUsername) {
+        elements.chatUsername.textContent = '';
+    }
+    
+    if (elements.chatTitle) {
+        elements.chatTitle.textContent = `${partner.name} bilan chat`;
+    }
+    
+    if (elements.chatModal) {
+        elements.chatModal.classList.add('active');
     }
 }
 
-// ==================== KUTISH HOLATI ====================
-function handleWaitingResponse(data) {
-    console.log('⏳ Raqib javobini kutish...');
-    
-    clearInterval(gameState.timerInterval);
-    gameState.waitingForOpponent = true;
-    
-    gameState.timeLeft = 120;
-    
-    if (elements.timer) {
-        elements.timer.textContent = '2:00';
-        elements.timer.style.color = '#ff9500';
-        elements.timer.style.animation = 'pulse 2s infinite';
+function openTelegramChat(username) {
+    if (!username) {
+        showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
+        return;
     }
     
-    updateDuelStatus('⏳ Raqib javobini kutish... (2 daqiqa)');
+    const telegramUrl = `https://t.me/${username.replace('@', '')}`;
     
-    if (elements.likeBtn) {
-        elements.likeBtn.disabled = true;
-        elements.likeBtn.style.opacity = '0.5';
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+        Telegram.WebApp.openTelegramLink(telegramUrl);
+    } else {
+        window.open(telegramUrl, '_blank');
     }
-    
-    if (elements.superLikeBtn) {
-        elements.superLikeBtn.disabled = true;
-        elements.superLikeBtn.style.opacity = '0.5';
-    }
-    
-    if (elements.noBtn) {
-        elements.noBtn.disabled = false;
-        elements.noBtn.style.opacity = '1';
-        elements.noBtn.textContent = '⏭️ Keyingisi';
-        elements.noBtn.style.background = 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)';
-    }
-    
-    gameState.timerInterval = setInterval(() => {
-        gameState.timeLeft--;
-        
-        const minutes = Math.floor(gameState.timeLeft / 60);
-        const seconds = gameState.timeLeft % 60;
-        
-        if (elements.timer) {
-            elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-        
-        if (gameState.timeLeft <= 30) {
-            if (elements.timer) {
-                elements.timer.style.color = '#ff4444';
-                elements.timer.style.animation = 'pulse 0.5s infinite';
-            }
-        }
-        
-        if (gameState.timeLeft <= 0) {
-            clearInterval(gameState.timerInterval);
-            showOpponentTimeoutModal();
-        }
-    }, 1000);
 }
 
-function showOpponentTimeoutModal() {
-    const modalHTML = `
-        <div class="modal active" id="timeoutModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 style="color: #fff;">⏰ Raqib javob bermadi</h3>
-                </div>
-                <div class="modal-body">
-                    <p style="color: #ccc;">Raqibingiz 2 daqiqa ichida javob bermadi. O'yinni tugatishni xohlaysizmi?</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="modal-btn cancel-btn" onclick="skipToNextDuel()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">➡️ Keyingi duel</button>
-                    <button class="modal-btn confirm-btn" onclick="returnToMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">🏠 Bosh menyu</button>
-                </div>
-            </div>
-        </div>
-    `;
+function closeChatModal() {
+    console.log('💬 Chat modali yopilmoqda');
     
-    const modalContainer = document.getElementById('modalContainer') || (() => {
-        const container = document.createElement('div');
-        container.id = 'modalContainer';
-        document.body.appendChild(container);
-        return container;
-    })();
+    gameState.isChatModalOpen = false;
+    if (elements.chatModal) {
+        elements.chatModal.classList.remove('active');
+    }
     
-    modalContainer.innerHTML = modalHTML;
+    // Chat yopilganda, match ekraniga qaytamiz
+    if (gameState.currentPartner) {
+        showScreen('match');
+    } else {
+        returnToMenu();
+    }
 }
 
 // ==================== TIMER FUNKSIYASI ====================
@@ -1297,23 +1410,28 @@ function startTimer() {
 function skipToNextDuel() {
     console.log('🔄 Keyingi duelga o\'tish');
     
+    // Barcha modallarni yopamiz
     hideAllModals();
     closeChatModal();
     
+    // Barcha taymerlarni to'xtatamiz
     clearInterval(gameState.timerInterval);
     
+    // UI elementlarini reset qilamiz
     if (elements.timer) {
         elements.timer.textContent = '20';
         elements.timer.style.color = '#fff';
         elements.timer.style.animation = '';
     }
     
+    // Tugmalarni reset qilamiz
     resetVoteButtons();
     
     gameState.waitingForOpponent = false;
     gameState.matchCompleted = false;
-    gameState.inMatchScreen = false;
+    gameState.skipToNextRequested = true;
     
+    // Match ekranini yopamiz
     showScreen('queue');
     
     if (gameState.socket && gameState.isConnected) {
@@ -1322,6 +1440,7 @@ function skipToNextDuel() {
             gameState.isInDuel = false;
             gameState.currentDuelId = null;
             
+            // Serverga navbatga kirish so'rovini yuboramiz
             gameState.socket.emit('enter_queue');
             showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
         } else {
@@ -1335,28 +1454,34 @@ function skipToNextDuel() {
 function returnToMenu() {
     console.log('🏠 Bosh menyuga qaytish');
     
+    // Barcha modallarni yopamiz
     hideAllModals();
     closeChatModal();
     
+    // Barcha taymerlarni to'xtatamiz
     clearInterval(gameState.timerInterval);
     
+    // Serverdan navbatdan chiqish
     if (gameState.socket && gameState.isConnected) {
         gameState.socket.emit('leave_queue');
     }
     
+    // Holatni reset qilamiz
     gameState.isInQueue = false;
     gameState.isInDuel = false;
     gameState.currentDuelId = null;
     gameState.waitingForOpponent = false;
     gameState.matchCompleted = false;
-    gameState.inMatchScreen = false;
+    gameState.skipToNextRequested = false;
     
+    // UI ni reset qilamiz
     if (elements.timer) {
         elements.timer.textContent = '20';
         elements.timer.style.color = '#fff';
         elements.timer.style.animation = '';
     }
     
+    // Tugmalarni reset qilamiz
     resetVoteButtons();
     
     showScreen('welcome');
@@ -1369,6 +1494,7 @@ function loadFriendsList() {
     if (gameState.socket && gameState.isConnected) {
         gameState.socket.emit('get_friends_list');
     } else {
+        // Test ma'lumotlari
         const testFriends = [
             {
                 id: 'test_1',
@@ -1410,7 +1536,7 @@ function updateFriendsListUI(data) {
                     <div class="friend-info">
                         <div class="friend-name">
                             ${friend.name}
-                            ${friend.isMutual ? '<span class="mutual-badge">💖 Do\'st</span>' : ''}
+                            ${friend.isMutual ? '<span class="mutual-badge">❤️ Do\'st</span>' : ''}
                         </div>
                         <div class="friend-username">@${friend.username}</div>
                         <div class="friend-stats">
@@ -1423,11 +1549,11 @@ function updateFriendsListUI(data) {
                     </div>
                     ${friend.isMutual ? 
                         `<button class="match-option-btn" style="padding: 8px 12px; min-width: 80px;" 
-                                onclick="openChat(${JSON.stringify(friend).replace(/"/g, '&quot;')})">
+                                onclick="openChatFromFriend(${JSON.stringify(friend).replace(/"/g, '&quot;')})">
                             💬 Chat
                         </button>` : 
                         `<button class="match-option-btn" style="padding: 8px 12px; min-width: 80px; background: #95a5a6;" 
-                                onclick="showNotification('Xabar', 'SUPER LIKE bo\'lmaganingiz uchun chat ochib bo\'lmaydi')">
+                                onclick="showNotification('Xabar', 'Match bo\'lmaganingiz uchun chat ochib bo\'lmaydi')">
                             ⏳
                         </button>`
                     }
@@ -1441,6 +1567,10 @@ function updateFriendsListUI(data) {
         const onlineCount = mutualFriends.filter(f => f.online).length;
         elements.onlineFriendsCount.textContent = onlineCount;
     }
+}
+
+function openChatFromFriend(friend) {
+    openChat(friend);
 }
 
 function formatDate(date) {
@@ -1506,11 +1636,7 @@ window.buyItem = function(itemId) {
 // ==================== LIDERLAR FUNKSIYALARI ====================
 function loadLeaderboard() {
     const leaders = [
-        { rank: 1, name: 'Ali', rating: 1850, matches: 45, friends: 12, gender: 'male' },
-        { rank: 2, name: 'Malika', rating: 1790, matches: 38, friends: 8, gender: 'female' },
-        { rank: 3, name: 'Sanjar', rating: 1720, matches: 32, friends: 5, gender: 'male' },
-        { rank: 4, name: 'Dilnoza', rating: 1680, matches: 29, friends: 15, gender: 'female' },
-        { rank: 5, name: 'Sardor', rating: 1620, matches: 25, friends: 7, gender: 'male' }
+      
     ];
     
     if (elements.leaderboardList) {
@@ -1712,9 +1838,13 @@ function initTabNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
     
+    // Profilni yuklash
     initUserProfile();
+    
+    // Tab navigatsiyasini ishga tushirish
     initTabNavigation();
     
+    // Gender tugmalarini ishga tushirish
     if (elements.selectMaleBtn) {
         elements.selectMaleBtn.onclick = () => {
             selectGender('male');
@@ -1736,6 +1866,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     
+    // Event listener'lar
     if (elements.startBtn) {
         elements.startBtn.addEventListener('click', startGame);
     }
@@ -1810,12 +1941,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Chat modal event listener'lar
     if (elements.closeChatBtn) {
         elements.closeChatBtn.addEventListener('click', () => {
             closeChatModal();
         });
     }
     
+    // Telegram chatga o'tish tugmasi
     if (elements.chatOpenTelegramBtn) {
         elements.chatOpenTelegramBtn.addEventListener('click', () => {
             if (gameState.currentPartner && gameState.currentPartner.username) {
@@ -1827,6 +1960,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // View stats button
     if (elements.viewStatsBtn) {
         elements.viewStatsBtn.addEventListener('click', () => {
             const stats = `
@@ -1836,7 +1970,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 G'alabalar: ${userState.wins}
                 G'alaba %: ${userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0}%
                 Total Like: ${userState.totalLikes}
-                O'zaro SUPER LIKE: ${userState.mutualMatchesCount}
+                O'zaro Match: ${userState.mutualMatchesCount}
                 Do'stlar: ${userState.friendsCount}
                 Coin: ${userState.coins}
                 Level: ${userState.level}
@@ -1847,10 +1981,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Refresh friends button
     if (elements.refreshFriendsBtn) {
         elements.refreshFriendsBtn.addEventListener('click', loadFriendsList);
     }
     
+    // Kunlik vazifalarni ko'rsatish
     loadProfileQuests();
     loadShopItems();
     loadLeaderboard();
@@ -1869,5 +2005,6 @@ window.returnToMenu = returnToMenu;
 window.buyItem = buyItem;
 window.hideAllModals = hideAllModals;
 window.closeChatModal = closeChatModal;
+window.openChatFromFriend = openChatFromFriend;
 window.startNewDuelFromMatch = startNewDuelFromMatch;
 window.hideNextDuelConfirmModal = hideNextDuelConfirmModal;

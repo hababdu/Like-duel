@@ -305,39 +305,21 @@ function createFilterOptions() {
                 <div class="gender-filter-icon male">
                     <i class="fas fa-mars"></i>
                 </div>
-                <div class="gender-filter-info">
-                    <div class="gender-filter-name">Faqat Erkaklar</div>
-                    <div class="gender-filter-description">Erkaklar bilan duel</div>
-                </div>
-                <div class="gender-filter-check">
-                    <i class="fas fa-check"></i>
-                </div>
+               
             </div>
             
             <div class="gender-filter-option ${gameState.currentFilter === 'female' ? 'active' : ''}" data-filter="female">
                 <div class="gender-filter-icon female">
                     <i class="fas fa-venus"></i>
                 </div>
-                <div class="gender-filter-info">
-                    <div class="gender-filter-name">Faqat Ayollar</div>
-                    <div class="gender-filter-description">Ayollar bilan duel</div>
-                </div>
-                <div class="gender-filter-check">
-                    <i class="fas fa-check"></i>
-                </div>
+               
             </div>
             
             <div class="gender-filter-option ${gameState.currentFilter === 'not_specified' ? 'active' : ''}" data-filter="not_specified">
                 <div class="gender-filter-icon all">
                     <i class="fas fa-users"></i>
                 </div>
-                <div class="gender-filter-info">
-                    <div class="gender-filter-name">Hamma</div>
-                    <div class="gender-filter-description">Barcha genderlar bilan duel</div>
-                </div>
-                <div class="gender-filter-check">
-                    <i class="fas fa-check"></i>
-                </div>
+                
             </div>
         </div>
     `;

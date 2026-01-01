@@ -64,8 +64,6 @@
             <div class="tab-content active" id="duelTab">
                 <!-- WELCOME SCREEN -->
                 <div class="duel-container" id="welcomeScreen">
-                   
-
                     <div class="profile-card" id="profileCard">
                         <img src="" alt="Siz" class="profile-avatar" id="myAvatar">
                         <div class="profile-name" id="myName">Foydalanuvchi</div>
@@ -89,9 +87,28 @@
                         <!-- Gender Filter -->
                         <div id="genderFilterContainer"></div>
 
-                        <button class="start-btn" id="startBtn">
-                            🎮 O'yinni Boshlash
-                        </button>
+                        <!-- YANGI: IKKITA ASOSIY TUGMA -->
+                        <div class="action-buttons">
+                            <button id="startBtn" class="start-btn">
+                                🔗 Serverga Ulanish
+                            </button>
+                            <button id="enterQueueBtn" class="start-btn" disabled>
+                                Navbatga kirish
+                            </button>
+                        </div>
+
+                        <!-- YANGI: QO'SHIMCHA TUGMALAR -->
+                        <div class="additional-actions">
+                            <button class="secondary-btn" onclick="showGenderModal(true)">
+                                <i class="fas fa-venus-mars"></i> 
+                            </button>
+                            <button class="secondary-btn" id="editProfileBtn">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="secondary-btn" id="viewStatsBtn">
+                                <i class="fas fa-chart-bar"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

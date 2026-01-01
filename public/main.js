@@ -38,7 +38,8 @@ const userState = {
     bio: localStorage.getItem('userBio') || '',
     filter: localStorage.getItem('userFilter') || 'not_specified',
     mutualMatchesCount: parseInt(localStorage.getItem('mutualMatchesCount')) || 0,
-    friendsCount: parseInt(localStorage.getItem('friendsCount')) || 0
+    friendsCount: parseInt(localStorage.getItem('friendsCount')) || 0,
+    telegramUsername: null
 };
 
 // ==================== DOM ELEMENTLARI ====================
@@ -72,6 +73,8 @@ const elements = {
     superLikeCount: document.getElementById('superLikeCount'),
     
     startBtn: document.getElementById('startBtn'),
+    connectBtn: document.getElementById('connectBtn'),
+    enterQueueBtn: document.getElementById('enterQueueBtn'),
     leaveQueueBtn: document.getElementById('leaveQueueBtn'),
     noBtn: document.getElementById('noBtn'),
     likeBtn: document.getElementById('likeBtn'),
@@ -195,6 +198,7 @@ function initUserProfile() {
     
     updateUIFromUserState();
     addFilterToWelcomeScreen();
+    updateQueueButton();
     
     if (!userState.hasSelectedGender) {
         console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
@@ -236,19 +240,42 @@ function updateUIFromUserState() {
         elements.profileBio.textContent = userState.bio;
     }
     
-    if (elements.startBtn) {
-        if (userState.hasSelectedGender) {
-            elements.startBtn.disabled = false;
-            elements.startBtn.textContent = '🎮 O\'yinni Boshlash';
-            elements.startBtn.classList.remove('disabled');
+    updateQueueButton();
+}
+
+function updateQueueButton() {
+    console.log('🔄 Navbat tugmasi yangilanmoqda...');
+    
+    if (elements.enterQueueBtn) {
+        if (gameState.isConnected && userState.hasSelectedGender) {
+            elements.enterQueueBtn.disabled = false;
+            elements.enterQueueBtn.classList.remove('disabled');
+            
+            if (gameState.isInQueue) {
+                elements.enterQueueBtn.textContent = '✅ Navbatdasiz';
+                elements.enterQueueBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+            } else {
+                elements.enterQueueBtn.textContent = '🎮 Navbatga Kirish';
+                elements.enterQueueBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+            }
         } else {
-            elements.startBtn.disabled = true;
-            elements.startBtn.textContent = 'Avval gender tanlang';
-            elements.startBtn.classList.add('disabled');
+            elements.enterQueueBtn.disabled = true;
+            elements.enterQueueBtn.classList.add('disabled');
+            elements.enterQueueBtn.textContent = 'Navbatga kirish';
+            elements.enterQueueBtn.style.background = 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)';
         }
     }
     
-    gameState.currentFilter = userState.filter;
+    if (elements.startBtn) {
+        elements.startBtn.disabled = !gameState.isConnected;
+        if (gameState.isConnected) {
+            elements.startBtn.textContent = '✅ Ulandi';
+            elements.startBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+        } else {
+            elements.startBtn.textContent = '🔗 Serverga Ulanish';
+            elements.startBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        }
+    }
 }
 
 function addGenderBadge(element, gender) {
@@ -334,7 +361,7 @@ function selectFilter(filter) {
         if (gameState.isInQueue) {
             gameState.socket.emit('leave_queue');
             setTimeout(() => {
-                gameState.socket.emit('enter_queue');
+                enterQueue();
             }, 500);
         }
     }
@@ -412,11 +439,13 @@ function connectToServer() {
     
     if (gameState.socket && gameState.isConnected) {
         console.log('ℹ️ Allaqachon serverga ulanilgan');
+        showNotification('Diqqat', 'Allaqachon serverga ulangansiz');
         return;
     }
     
     console.log('🔗 Serverga ulanmoqda...');
     updateQueueStatus('Serverga ulanmoqda...');
+    showNotification('Ulanish', 'Serverga ulanmoqda...');
     
     const isLocalhost = window.location.hostname === 'localhost' || 
                        window.location.hostname === '127.0.0.1' ||
@@ -434,7 +463,6 @@ function connectToServer() {
     
     console.log('🔌 Socket URL:', socketUrl);
     
-    // Oldingi socketni yopish
     if (gameState.socket) {
         gameState.socket.disconnect();
         gameState.socket = null;
@@ -469,6 +497,7 @@ function connectToServer() {
             filter: userState.filter
         });
         
+        updateQueueButton();
         showNotification('✅ Ulanish', 'Serverga muvaffaqiyatli ulandik');
     });
     
@@ -497,13 +526,13 @@ function connectToServer() {
         
         saveUserStateToLocalStorage();
         updateUIFromUserState();
+        updateQueueButton();
         
-        showScreen('queue');
+        showScreen('welcome');
         
         if (userState.hasSelectedGender) {
-            console.log('🚀 Gender tanlangan, navbatga kirilmoqda...');
-            gameState.isInQueue = true;
-            gameState.socket.emit('enter_queue');
+            console.log('✅ Gender tanlangan, navbatga kirish mumkin');
+            updateQueueStatus('Gender tanlangan. "Navbatga Kirish" tugmasini bosing');
         } else {
             console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
             updateQueueStatus('Gender tanlash kerak...');
@@ -525,15 +554,12 @@ function connectToServer() {
         
         saveUserStateToLocalStorage();
         updateUIFromUserState();
+        updateQueueButton();
         
         hideGenderModal();
         
-        if (gameState.socket && gameState.isConnected) {
-            gameState.isInQueue = true;
-            gameState.socket.emit('enter_queue');
-        }
-        
         showNotification('🎉 Jins tanlandi', data.message || 'Endi duel o\'ynashingiz mumkin!');
+        updateQueueStatus('Gender tanlandi. "Navbatga Kirish" tugmasini bosing');
     });
     
     gameState.socket.on('queue_joined', (data) => {
@@ -541,6 +567,7 @@ function connectToServer() {
         gameState.isInQueue = true;
         showScreen('queue');
         updateQueueStatus(`Navbatdasiz. O'rningiz: ${data.position}/${data.total}`);
+        updateQueueButton();
         
         if (elements.waitingCount) elements.waitingCount.textContent = data.total;
         if (elements.position) {
@@ -570,12 +597,14 @@ function connectToServer() {
         });
         
         gameState.isInDuel = true;
+        gameState.isInQueue = false;
         gameState.waitingForOpponent = false;
         gameState.matchCompleted = false;
         gameState.inMatchScreen = false;
         gameState.currentDuelId = data.duelId;
         showScreen('duel');
         
+        updateQueueButton();
         clearInterval(gameState.timerInterval);
         resetVoteButtons();
         
@@ -679,7 +708,6 @@ function connectToServer() {
         console.error('❌ Server xatosi:', data);
         showNotification('Xato', data.message || 'Noma\'lum xato');
         
-        // Agar "Server xatosi" bo'lsa, qayta ulanishni urinish
         if (data.message === 'Server xatosi') {
             console.log('🔄 Server xatosi, qayta ulanish urinilmoqda...');
             setTimeout(() => {
@@ -708,6 +736,7 @@ function connectToServer() {
         gameState.isConnected = false;
         gameState.isInQueue = false;
         gameState.isInDuel = false;
+        updateQueueButton();
         
         if (reason === 'io server disconnect') {
             updateQueueStatus('Server tomonidan uzildi. Qayta ulanmoqda...');
@@ -722,6 +751,46 @@ function connectToServer() {
             }
         }, 3000);
     });
+}
+
+// ==================== NAVBATGA KIRISH ====================
+function enterQueue() {
+    console.log('🎮 Navbatga kirish funksiyasi');
+    
+    if (!tgUserGlobal) {
+        showNotification('Xato', 'Foydalanuvchi ma\'lumotlari topilmadi');
+        return;
+    }
+    
+    if (!gameState.socket || !gameState.isConnected) {
+        showNotification('Xato', 'Avval serverga ulanishingiz kerak');
+        connectToServer();
+        return;
+    }
+    
+    if (!userState.hasSelectedGender) {
+        showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+        showGenderModal(true);
+        return;
+    }
+    
+    if (gameState.isInQueue) {
+        showNotification('Diqqat', 'Siz allaqachon navbatdasiz');
+        return;
+    }
+    
+    console.log('🔄 Navbatga kirish...');
+    gameState.isInQueue = true;
+    updateQueueButton();
+    gameState.socket.emit('enter_queue');
+    showScreen('queue');
+    showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
+}
+
+// ==================== O'YINNI BOSHLASH ====================
+function startGame() {
+    console.log('🎮 O\'yinni boshlash');
+    connectToServer();
 }
 
 // ==================== USER STATE LOCALSTORAGE GA SAQLASH ====================
@@ -1351,22 +1420,27 @@ function skipToNextDuel() {
     gameState.matchCompleted = false;
     gameState.inMatchScreen = false;
     
-    showScreen('queue');
+    enterQueue();
+}
+
+// ==================== NAVBATDAN CHIQISH ====================
+function leaveQueue() {
+    console.log('🚪 Navbatdan chiqish');
     
     if (gameState.socket && gameState.isConnected) {
-        if (userState.hasSelectedGender) {
-            gameState.isInQueue = true;
-            gameState.isInDuel = false;
-            gameState.currentDuelId = null;
-            
-            gameState.socket.emit('enter_queue');
-            showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
-        } else {
-            showScreen('welcome');
-        }
-    } else {
-        showScreen('welcome');
+        gameState.socket.emit('leave_queue');
     }
+    
+    gameState.isInQueue = false;
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    clearInterval(gameState.timerInterval);
+    
+    updateQueueButton();
+    showScreen('welcome');
+    
+    showNotification('Navbatdan chiqdingiz', 'Yana o\'ynash uchun "Navbatga Kirish" tugmasini bosing');
 }
 
 function returnToMenu() {
@@ -1395,10 +1469,11 @@ function returnToMenu() {
     }
     
     resetVoteButtons();
+    updateQueueButton();
     
     showScreen('welcome');
     
-    showNotification('Bosh menyuga qaytildi', 'Yana o\'ynash uchun "O\'yinni Boshlash" tugmasini bosing');
+    showNotification('Bosh menyuga qaytildi', 'Yana o\'ynash uchun "Navbatga Kirish" tugmasini bosing');
 }
 
 // ==================== DO'STLAR FUNKSIYALARI ====================
@@ -1651,38 +1726,6 @@ function showNotification(title, message) {
     }, 3000);
 }
 
-// ==================== O'YINNI BOSHLASH ====================
-function startGame() {
-    console.log('🎮 O\'yinni boshlash');
-    
-    if (!userState.hasSelectedGender) {
-        showGenderModal(true);
-        showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
-        return;
-    }
-    
-    connectToServer();
-}
-
-// ==================== NAVBATDAN CHIQISH ====================
-function leaveQueue() {
-    console.log('🚪 Navbatdan chiqish');
-    
-    if (gameState.socket && gameState.isConnected) {
-        gameState.socket.emit('leave_queue');
-    }
-    
-    gameState.isInQueue = false;
-    gameState.isInDuel = false;
-    gameState.currentDuelId = null;
-    gameState.waitingForOpponent = false;
-    clearInterval(gameState.timerInterval);
-    
-    showScreen('welcome');
-    
-    showNotification('Navbatdan chiqdingiz', 'Yana o\'ynash uchun "O\'yinni Boshlash" tugmasini bosing');
-}
-
 // ==================== EKRANLARNI ALMASHTIRISH ====================
 function showScreen(screen) {
     console.log(`📱 Ekran o'zgartirildi: ${screen}`);
@@ -1749,7 +1792,6 @@ function initTabNavigation() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
     
-    // Telegram WebApp ni faollashtirish
     try {
         if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
             Telegram.WebApp.ready();
@@ -1786,6 +1828,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (elements.startBtn) {
         elements.startBtn.addEventListener('click', startGame);
+    }
+    
+    if (elements.enterQueueBtn) {
+        elements.enterQueueBtn.addEventListener('click', enterQueue);
     }
     
     if (elements.leaveQueueBtn) {
@@ -1919,9 +1965,10 @@ window.hideAllModals = hideAllModals;
 window.closeChatModal = closeChatModal;
 window.startNewDuelFromMatch = startNewDuelFromMatch;
 window.hideNextDuelConfirmModal = hideNextDuelConfirmModal;
+window.enterQueue = enterQueue;
+window.leaveQueue = leaveQueue;
 
 // ==================== TEST FOYDALANUVCHI ====================
-// Agar Telegram WebApp bo'lmasa, test foydalanuvchi yaratish
 if (!tgUserGlobal) {
     tgUserGlobal = {
         id: 'test_' + Date.now(),
@@ -1932,4 +1979,4 @@ if (!tgUserGlobal) {
     console.log('🔄 Test foydalanuvchi yaratildi:', tgUserGlobal.id);
 }
 
-console.log('🎮 LIKE DUEL - Render.com uchun tayyor!');
+console.log('🎮 LIKE DUEL - TUZATILGAN VERSIYA!');

@@ -79,7 +79,7 @@ const mutualMatchSchema = new mongoose.Schema({
     user1Id: { type: String, required: true },
     user2Id: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
-    isSuperLike: { type: Boolean, default: true } // FAQAT SUPER LIKE uchun
+    isSuperLike: { type: Boolean, default: true }
 });
 
 const MutualMatch = mongoose.model('MutualMatch', mutualMatchSchema);
@@ -273,7 +273,6 @@ function updateWaitingCount() {
 // ==================== MUTUAL SUPER LIKE FUNKSIYALARI ====================
 async function addMutualMatch(userId1, userId2) {
     try {
-        // Tekshirish: allaqachon do'st bo'lishganmi?
         const existingMatch = await MutualMatch.findOne({
             $or: [
                 { user1Id: userId1, user2Id: userId2 },
@@ -286,7 +285,6 @@ async function addMutualMatch(userId1, userId2) {
             return;
         }
         
-        // Yangi mutual match yaratish
         const mutualMatch = new MutualMatch({
             user1Id: userId1,
             user2Id: userId2,
@@ -294,7 +292,6 @@ async function addMutualMatch(userId1, userId2) {
         });
         await mutualMatch.save();
         
-        // Foydalanuvchilarni yangilash
         await User.updateOne(
             { userId: userId1 },
             { 
@@ -319,7 +316,6 @@ async function addMutualMatch(userId1, userId2) {
         
         console.log(`💖 O'ZARO SUPER LIKE: ${userId1} <-> ${userId2} do'st bo'lishdi`);
         
-        // Notification yuborish
         notifyMutualMatchAdded(userId1, userId2);
         notifyMutualMatchAdded(userId2, userId1);
         
@@ -338,7 +334,9 @@ async function notifyMutualMatchAdded(userId, friendId) {
             if (socket) {
                 socket.emit('mutual_match', {
                     partnerName: friend.firstName,
-                    message: `${friend.firstName} bilan o'zaro SUPER LIKE! Endi siz do'st bo'ldingiz.`
+                    message: `${friend.firstName} bilan o'zaro SUPER LIKE! Endi siz do'st bo'ldingiz.`,
+                    mutualMatchesCount: friend.mutualMatchesCount,
+                    friendsCount: friend.friendsCount
                 });
             }
         }
@@ -382,7 +380,6 @@ async function startDuel(player1Id, player2Id) {
         
         const duelId = generateDuelId();
         
-        // Duelni MongoDB ga saqlash
         const duel = new Duel({
             duelId,
             player1Id,
@@ -391,7 +388,6 @@ async function startDuel(player1Id, player2Id) {
         });
         await duel.save();
         
-        // Active duels ga qo'shish
         activeDuels.set(duelId, {
             id: duelId,
             player1: player1Id,
@@ -446,7 +442,6 @@ async function startDuel(player1Id, player2Id) {
             }
         }
         
-        // 20 soniya timer
         setTimeout(async () => {
             const duelData = activeDuels.get(duelId);
             if (duelData && !duelData.ended) {
@@ -496,10 +491,8 @@ async function processDuelResult(duelId) {
         );
         
         if (player1Liked && player2Liked) {
-            // Har ikki tomon like bosdi
             const updatePromises = [];
             
-            // Player1 yangilash
             updatePromises.push(
                 User.updateOne(
                     { userId: duelData.player1 },
@@ -516,7 +509,6 @@ async function processDuelResult(duelId) {
                 )
             );
             
-            // Player2 yangilash
             updatePromises.push(
                 User.updateOne(
                     { userId: duelData.player2 },
@@ -533,7 +525,6 @@ async function processDuelResult(duelId) {
                 )
             );
             
-            // Agar O'ZARO SUPER LIKE bo'lsa
             if (player1SuperLike && player2SuperLike) {
                 await addMutualMatch(duelData.player1, duelData.player2);
             }
@@ -589,7 +580,6 @@ async function processDuelResult(duelId) {
             }
             
         } else if (player1Liked) {
-            // Faqat player1 like bosdi
             await User.updateOne(
                 { userId: duelData.player1 },
                 {
@@ -635,7 +625,6 @@ async function processDuelResult(duelId) {
             }
             
         } else if (player2Liked) {
-            // Faqat player2 like bosdi
             await User.updateOne(
                 { userId: duelData.player2 },
                 {
@@ -681,7 +670,6 @@ async function processDuelResult(duelId) {
             }
             
         } else {
-            // Hech kim like bermadi
             await User.updateOne(
                 { userId: duelData.player1 },
                 { $inc: { duels: 1 }, $set: { updatedAt: new Date() } }
@@ -705,7 +693,6 @@ async function processDuelResult(duelId) {
             }
         }
         
-        // Navbatga qaytarish
         setTimeout(() => {
             returnPlayersToQueue(duelData.player1, duelData.player2);
             activeDuels.delete(duelId);
@@ -723,7 +710,6 @@ async function handleDuelTimeout(duelId) {
         
         duelData.ended = true;
         
-        // Duelni timeout bilan belgilash
         await Duel.updateOne(
             { duelId },
             {
@@ -734,7 +720,6 @@ async function handleDuelTimeout(duelId) {
             }
         );
         
-        // Foydalanuvchilarga xabar
         const player1SocketId = onlineUsers.get(duelData.player1);
         const player2SocketId = onlineUsers.get(duelData.player2);
         
@@ -797,13 +782,19 @@ io.on('connection', async (socket) => {
     
     socket.on('auth', async (data) => {
         try {
-            const userId = data.userId;
+            console.log('🔐 Auth qabul qilindi:', data);
             
-            // Foydalanuvchini topish yoki yaratish
+            if (!data || !data.userId) {
+                console.error('❌ userId yo\'q');
+                socket.emit('error', { message: 'userId talab qilinadi' });
+                return;
+            }
+            
+            const userId = data.userId.toString();
+            
             let user = await User.findOne({ userId });
             
             if (!user) {
-                // Yangi foydalanuvchi yaratish
                 user = new User({
                     userId: userId,
                     firstName: data.firstName || 'Foydalanuvchi',
@@ -814,26 +805,26 @@ io.on('connection', async (socket) => {
                     bio: data.bio || '',
                     filter: data.filter || 'not_specified'
                 });
+                console.log('✅ Yangi foydalanuvchi yaratildi:', userId);
             } else {
-                // Mavjud foydalanuvchini yangilash
                 user.firstName = data.firstName || user.firstName;
                 user.username = data.username || user.username;
                 user.photoUrl = data.photoUrl || user.photoUrl;
-                if (data.gender) user.gender = data.gender;
+                if (data.gender !== undefined) user.gender = data.gender;
                 if (data.hasSelectedGender !== undefined) user.hasSelectedGender = data.hasSelectedGender;
                 if (data.bio !== undefined) user.bio = data.bio;
                 if (data.filter !== undefined) user.filter = data.filter;
+                console.log('✅ Mavjud foydalanuvchi yangilandi:', userId);
             }
             
-            // Kunlik limitlarni yangilash
             const today = new Date().toDateString();
             if (user.lastResetDate !== today) {
                 user.dailySuperLikes = 3;
                 user.dailySuperLikesUsed = 0;
                 user.lastResetDate = today;
+                console.log('🔄 Kunlik limitlar yangilandi');
             }
             
-            // Online holatini yangilash
             user.socketId = socket.id;
             user.connected = true;
             user.lastActive = new Date();
@@ -841,17 +832,23 @@ io.on('connection', async (socket) => {
             
             await user.save();
             
-            // Online users ro'yxatiga qo'shish
             onlineUsers.set(userId, socket.id);
             socket.userId = userId;
             
-            // Mutual matches sonini yangilash
             const mutualMatches = await getMutualMatches(userId);
             user.mutualMatchesCount = mutualMatches.length;
             user.friendsCount = mutualMatches.length;
             await user.save();
             
-            // Clientga ma'lumot yuborish
+            console.log('📊 User ma\'lumotlari:', {
+                userId: user.userId,
+                firstName: user.firstName,
+                hasSelectedGender: user.hasSelectedGender,
+                gender: user.gender,
+                matches: user.matches,
+                duels: user.duels
+            });
+            
             socket.emit('auth_ok', {
                 userId: user.userId,
                 firstName: user.firstName,
@@ -874,13 +871,16 @@ io.on('connection', async (socket) => {
                 winRate: user.duels > 0 ? Math.round((user.wins / user.duels) * 100) : 0
             });
             
-            // Agar gender tanlangan bo'lsa, navbatga qo'shish
+            console.log('✅ Auth_ok yuborildi');
+            
             if (user.hasSelectedGender) {
                 if (!queue.includes(userId)) {
                     queue.push(userId);
                     updateWaitingCount();
                 }
+                console.log('🎯 Gender tanlangan, navbatga qo\'shildi');
             } else {
+                console.log('⚠️ Gender tanlanmagan, modal yuborilmoqda');
                 setTimeout(() => {
                     socket.emit('show_gender_selection', {
                         mandatory: true,
@@ -889,14 +889,17 @@ io.on('connection', async (socket) => {
                 }, 500);
             }
             
-            // Duel qidirish
             if (user.hasSelectedGender) {
                 setTimeout(() => findAndStartDuels(), 1000);
             }
             
         } catch (error) {
-            console.error('Auth xatosi:', error);
-            socket.emit('error', { message: 'Server xatosi' });
+            console.error('❌ Auth xatosi:', error);
+            console.error('❌ Error stack:', error.stack);
+            socket.emit('error', { 
+                message: 'Server xatosi: ' + (error.message || 'Noma\'lum xato'),
+                code: 'AUTH_ERROR'
+            });
         }
     });
     
@@ -921,10 +924,9 @@ io.on('connection', async (socket) => {
             socket.emit('gender_selected', {
                 gender: gender,
                 hasSelectedGender: true,
-                message: `Gender tanlandi!`
+                message: `Gender tanlandi! Endi duel o'ynashingiz mumkin.`
             });
             
-            // Navbatga qo'shish
             if (!queue.includes(userId)) {
                 queue.push(userId);
                 updateWaitingCount();
@@ -1005,7 +1007,6 @@ io.on('connection', async (socket) => {
                 return;
             }
             
-            // SUPER LIKE limitini tekshirish
             if (choice === 'super_like') {
                 const user = await User.findOne({ userId });
                 if (user.dailySuperLikes <= 0) {
@@ -1013,7 +1014,6 @@ io.on('connection', async (socket) => {
                     return;
                 }
                 
-                // SUPER LIKE ni kamaytirish
                 await User.updateOne(
                     { userId },
                     {
@@ -1027,10 +1027,8 @@ io.on('connection', async (socket) => {
                 });
             }
             
-            // Ovozni qo'shish
             duelData.votes[userId] = choice;
             
-            // Agar ikkala o'yinchi ham ovoz bersa
             if (duelData.votes[duelData.player1] && duelData.votes[duelData.player2]) {
                 await processDuelResult(duelId);
             }
@@ -1086,7 +1084,7 @@ io.on('connection', async (socket) => {
             
             const friends = await User.find({ 
                 userId: { $in: friendIds } 
-            }).select('userId firstName username photoUrl rating matches');
+            }).select('userId firstName username photoUrl rating matches lastActive');
             
             const friendsList = friends.map(friend => ({
                 id: friend.userId,
@@ -1116,17 +1114,14 @@ io.on('connection', async (socket) => {
             const userId = socket.userId;
             
             if (userId) {
-                // Online users ro'yxatidan o'chirish
                 onlineUsers.delete(userId);
                 
-                // Navbatdan chiqarish
                 const index = queue.indexOf(userId);
                 if (index > -1) {
                     queue.splice(index, 1);
                     updateWaitingCount();
                 }
                 
-                // Foydalanuvchi holatini yangilash
                 await User.updateOne(
                     { userId },
                     {
@@ -1138,7 +1133,6 @@ io.on('connection', async (socket) => {
                     }
                 );
                 
-                // Active duellar bilan ishlash
                 for (const [duelId, duelData] of activeDuels.entries()) {
                     if ((duelData.player1 === userId || duelData.player2 === userId) && !duelData.ended) {
                         duelData.ended = true;
@@ -1184,7 +1178,7 @@ setInterval(async () => {
     } catch (error) {
         console.error('Kunlik limitlarni yangilash xatosi:', error);
     }
-}, 60000); // Har 1 daqiqa
+}, 60000);
 
 // ==================== SERVER ISHGA TUSHIRISH ====================
 const PORT = process.env.PORT || 3000;
@@ -1211,7 +1205,6 @@ mongoose.connection.once('open', () => {
 mongoose.connection.on('error', (err) => {
     console.error('❌ MongoDB ulanish xatosi:', err);
     
-    // Agar MongoDB bo'lmasa ham server ishlashi uchun
     server.listen(PORT, '0.0.0.0', () => {
         console.log('⚠️ MongoDB ga ulanilmadi, lekin server ishga tushdi');
         console.log(`📍 Server: http://0.0.0.0:${PORT}`);

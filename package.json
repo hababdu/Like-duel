@@ -1,7 +1,7 @@
 {
   "name": "like-duel-server",
   "version": "1.0.0",
-  "description": "O'zaro SUPER LIKE tizimi",
+  "description": "Like Duel Game Server with MongoDB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,12 +9,12 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.7.2",
+    "socket.io": "^4.6.1",
     "cors": "^2.8.5",
-    "mongoose": "^7.6.3",
-    "dotenv": "^16.3.1"
+    "mongoose": "^7.0.3",
+    "dotenv": "^16.0.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
+    "nodemon": "^2.0.22"
   }
 }

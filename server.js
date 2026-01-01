@@ -19,12 +19,21 @@ const io = new Server(server, {
     pingInterval: 25000
 });
 
-// ==================== MONGODB MODELLARI ====================
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/likeduel', {
+// ==================== MONGODB ULASH ====================
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/likeduel';
+
+mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+}).then(() => {
+    console.log(`✅ MongoDB ga ulandi: ${MONGODB_URI.includes('mongodb+srv') ? 'Atlas' : 'Local'}`);
+}).catch((err) => {
+    console.error('❌ MongoDB ulanish xatosi:', err.message);
 });
 
+// ==================== MONGODB MODELLARI ====================
 const userSchema = new mongoose.Schema({
     userId: { type: String, required: true, unique: true },
     telegramId: { type: String, unique: true, sparse: true },
@@ -120,15 +129,18 @@ app.get('/api/health', async (req, res) => {
     try {
         const totalUsers = await User.countDocuments();
         const totalMatches = await MutualMatch.countDocuments();
+        const totalDuels = await Duel.countDocuments();
         
         res.json({
             status: 'online',
             message: 'Like Duel Server is running with MongoDB',
             timestamp: new Date().toISOString(),
             database: 'MongoDB',
+            mongoURI: MONGODB_URI.includes('mongodb+srv') ? 'Atlas' : 'Local',
             totalUsers,
             totalMatches,
-            activeDuels: duels.size,
+            totalDuels,
+            activeDuels: activeDuels.size,
             queue: queue.length
         });
     } catch (error) {

@@ -26,7 +26,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, './public')));
 
 // ==================== STATIC FAYLLARNI SERVIS QILISH ====================
 app.get('/', (req, res) => {
@@ -34,31 +34,31 @@ app.get('/', (req, res) => {
 });
 
 app.get('/main.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'main.js'));
+    res.sendFile(path.join(__dirname, './public', 'main.js'));
 });
 
 app.get('/style.css', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'style.css'));
+    res.sendFile(path.join(__dirname, './public', 'style.css'));
 });
 
 app.get('/ui.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'ui.js'));
+    res.sendFile(path.join(__dirname, './public', 'ui.js'));
 });
 
 app.get('/socket.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'socket.js'));
+    res.sendFile(path.join(__dirname, './public', 'socket.js'));
 });
 
 app.get('/gameLogic.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'gameLogic.js'));
+    res.sendFile(path.join(__dirname, './public', 'gameLogic.js'));
 });
 
 app.get('/storage.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'storage.js'));
+    res.sendFile(path.join(__dirname, './public', 'storage.js'));
 });
 
 app.get('/utils.js', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'utils.js'));
+    res.sendFile(path.join(__dirname, './public', 'utils.js'));
 });
 
 // ==================== API ENDPOINTLAR ====================

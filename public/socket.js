@@ -1,3 +1,5 @@
+// Socket.js - Socket.IO boshqaruv moduli
+
 // ==================== SOCKET.IO MANAGEMENT ====================
 
 const SocketManager = {
@@ -269,10 +271,49 @@ const SocketManager = {
     },
     
     /**
-     * Handle duel started
+     * Handle waiting response - bunday event serverdan kelmasligi kerak!
+     * server faqat duel_started, match, liked_only, no_match, timeout event'larini yuboradi
+     */
+    handleWaitingResponse: function(data) {
+        console.log('⏳ Server: waiting_response (BU NOTO\'G\'RI ISHLATILMASI KERAK!)');
+        
+        // Bu event faqat biz ovoz berganimizdan keyin kelishi kerak
+        // Serverda boshqa o'yinchi ovoz berganda, bizga "waiting_response" yuborilmasligi kerak
+        // Buning o'rniga, biz duel_started qayta kelishi kerak yoki hech narsa kelmasligi kerak
+        
+        // Agar bu event kelgan bo'lsa, demak server noto'g'ri konfiguratsiya
+        console.warn('⚠️ Server noto\'g\'ri konfiguratsiya: waiting_response event');
+        
+        // Faqat log qilamiz, ammo hech qanday UI o'zgartirmaymiz
+        // UI faqat bizning o'zimiz ovoz berganimizda o'zgaradi
+    },
+    
+    /**
+     * Handle duel started - serverdan raqib ovoz berganda
      */
     handleDuelStarted: function(data) {
-        console.log('⚔️ Duel boshlandi:', data);
+        console.log('⚔️ Duel boshlandi yoki davom etmoqda:', data);
+        
+        // Agar duel allaqachon boshlandi bo'lsa, bu raqib ovoz bergani degani
+        if (window.gameState.isInDuel && window.gameState.currentDuelId === data.duelId) {
+            console.log('⚠️ Duel davom etmoqda, raqib ovoz berdi');
+            
+            // Raqib ovoz bergani uchun "keyingisi" tugmasi CHIQMAYDI!
+            // Buning o'rniga, bizga ovoz berish imkoniyati beriladi
+            
+            // Faqat UI yangilash, tugmalarni o'zgartirmaslik
+            if (window.elements?.timer) {
+                window.elements.timer.textContent = window.gameState.timeLeft || 20;
+                window.elements.timer.style.color = '#2ecc71';
+            }
+            
+            window.updateDuelStatus?.('Raqib ovoz berdi. Siz ovoz bering...');
+            return;
+        }
+        
+        // Yangi duel boshlandi
+        console.log('🎮 Yangi duel boshlandi');
+        
         window.gameState.isInDuel = true;
         window.gameState.waitingForOpponent = false;
         window.gameState.matchCompleted = false;
@@ -280,7 +321,7 @@ const SocketManager = {
         window.showScreen?.('duel');
         
         // Oldingi taymerlarni to'xtatamiz
-        clearInterval(window.gameState.timerInterval);
+        window.gameLogic?.stopAllTimers?.();
         
         // Tugmalarni reset qilamiz
         window.resetVoteButtons?.();
@@ -315,7 +356,7 @@ const SocketManager = {
         
         // Start timer
         window.startTimer?.();
-        window.updateDuelStatus?.('Ovoz bering: ❤️ yoki 💖 yoki ✖');
+        window.updateDuelStatus?.('Raqibingizni baholang...');
     },
     
     /**
@@ -368,14 +409,6 @@ const SocketManager = {
         console.log('⏰ Vaqt tugadi');
         window.gameState.matchCompleted = true;
         window.handleTimeout?.(data);
-    },
-    
-    /**
-     * Handle waiting response
-     */
-    handleWaitingResponse: function(data) {
-        console.log('⏳ Raqib javobini kutish:', data);
-        window.handleWaitingResponse?.(data);
     },
     
     /**

@@ -8,18 +8,27 @@ const GameLogic = {
      */
     startTimer: function() {
         // Old timerlarni to'xtatish
-        clearInterval(window.gameState.timerInterval);
+        if (window.gameState.timerInterval) {
+            clearInterval(window.gameState.timerInterval);
+            window.gameState.timerInterval = null;
+        }
         
         // Timer qiymatini 20 soniya qilish
         window.gameState.timeLeft = 20;
         
         // Timer elementini yangilash
         if (window.elements?.timer) {
-            window.elements.timer.textContent = window.gameState.timeLeft;
-            window.elements.timer.style.color = '#fff';
+            window.elements.timer.textContent = '20';
+            window.elements.timer.style.color = '#2ecc71';
+            window.elements.timer.style.fontSize = '3rem';
+            window.elements.timer.style.fontWeight = 'bold';
             window.elements.timer.style.animation = '';
-            window.elements.timer.classList.remove('danger');
         }
+        
+        // Status yangilash
+        window.updateDuelStatus?.('Raqibingizni baholang...');
+        
+        console.log('⏰ Duel timer boshlandi: 20 soniya');
         
         // Yangi timer boshlash
         window.gameState.timerInterval = setInterval(() => {
@@ -29,21 +38,28 @@ const GameLogic = {
             if (window.elements?.timer) {
                 window.elements.timer.textContent = window.gameState.timeLeft;
                 
+                // 10 soniyadan kam qolganida sariq rang
+                if (window.gameState.timeLeft <= 10 && window.gameState.timeLeft > 5) {
+                    window.elements.timer.style.color = '#f1c40f';
+                }
+                
                 // 5 soniyadan kam qolganida qizil rang va animatsiya
                 if (window.gameState.timeLeft <= 5) {
                     window.elements.timer.style.color = '#e74c3c';
-                    window.elements.timer.style.animation = 'pulse 1s infinite';
-                    window.elements.timer.classList.add('danger');
+                    window.elements.timer.style.animation = 'pulse 0.5s infinite';
                 }
             }
             
             // Vaqt tugaganda
             if (window.gameState.timeLeft <= 0) {
                 clearInterval(window.gameState.timerInterval);
+                window.gameState.timerInterval = null;
                 
                 // Agar duel davom etayotgan bo'lsa
-                if (window.gameState.socket && window.gameState.isInDuel) {
-                    // Serverga ovoz yuborish
+                if (window.gameState.socket && window.gameState.isInDuel && window.gameState.currentDuelId) {
+                    console.log('⏰ Vaqt tugadi, skip avtomatik yuborilmoqda...');
+                    
+                    // Serverga skip ovoz yuborish
                     window.gameState.socket.emit('vote', { 
                         duelId: window.gameState.currentDuelId, 
                         choice: 'skip' 
@@ -56,71 +72,90 @@ const GameLogic = {
                     }
                     
                     // Statusni yangilash
-                    window.updateDuelStatus?.('⏰ Vaqt tugadi...');
+                    window.updateDuelStatus?.('Vaqt tugadi...');
                     
-                    // Match holatini o'zgartirish
-                    window.gameState.matchCompleted = true;
+                    // Tugmalarni o'chirish
+                    this.disableVoteButtons();
                     
-                    // No match modalini ko'rsatish
+                    // Timeout modalini ko'rsatish
                     setTimeout(() => {
                         window.showTimeoutOptions?.();
-                    }, 1000);
+                    }, 1500);
                 }
             }
         }, 1000);
-        
-        console.log('⏰ Duel timer boshlandi: 20 soniya');
     },
     
     /**
-     * Start waiting timer (2 minutes)
+     * Start waiting timer (30 soniya)
      */
     startWaitingTimer: function() {
         // Old timerlarni to'xtatish
-        clearInterval(window.gameState.timerInterval);
-        
-        // Timer qiymatini 2 daqiqa (120 soniya) qilish
-        window.gameState.timeLeft = 120;
-        
-        // Timer elementini formatlash
-        if (window.elements?.timer) {
-            const minutes = Math.floor(window.gameState.timeLeft / 60);
-            const seconds = window.gameState.timeLeft % 60;
-            window.elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-            window.elements.timer.style.color = '#ff9500';
-            window.elements.timer.style.animation = 'pulse 2s infinite';
+        if (window.gameState.waitingTimerInterval) {
+            clearInterval(window.gameState.waitingTimerInterval);
+            window.gameState.waitingTimerInterval = null;
         }
         
+        // Timer qiymatini 30 soniya qilish
+        window.gameState.waitingTimeLeft = 30;
+        
+        console.log('⏳ Raqib javobini kutish timer boshlandi: 30 soniya');
+        
         // Yangi timer boshlash
-        window.gameState.timerInterval = setInterval(() => {
-            window.gameState.timeLeft--;
+        window.gameState.waitingTimerInterval = setInterval(() => {
+            window.gameState.waitingTimeLeft--;
             
-            // Timer elementini formatlash va yangilash
-            const minutes = Math.floor(window.gameState.timeLeft / 60);
-            const seconds = window.gameState.timeLeft % 60;
-            
+            // Timer elementini yangilash
             if (window.elements?.timer) {
-                window.elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                window.elements.timer.textContent = window.gameState.waitingTimeLeft;
+                window.elements.timer.style.color = '#ff9500';
                 
-                // 30 soniyadan kam qolganida qizil rang va tez animatsiya
-                if (window.gameState.timeLeft <= 30) {
+                // 10 soniyadan kam qolganida qizil rang
+                if (window.gameState.waitingTimeLeft <= 10) {
                     window.elements.timer.style.color = '#ff4444';
                     window.elements.timer.style.animation = 'pulse 0.5s infinite';
                 }
             }
             
+            // Statusni yangilash
+            if (window.elements?.duelStatus) {
+                window.elements.duelStatus.textContent = 
+                    `Raqib javobini kutish... (${window.gameState.waitingTimeLeft}s)`;
+            }
+            
             // Vaqt tugaganda
-            if (window.gameState.timeLeft <= 0) {
-                clearInterval(window.gameState.timerInterval);
+            if (window.gameState.waitingTimeLeft <= 0) {
+                clearInterval(window.gameState.waitingTimerInterval);
+                window.gameState.waitingTimerInterval = null;
                 
-                // Raqib javob bermaganligi uchun modal ko'rsatish
+                console.log('⏰ Raqib javob bermadi, timeout...');
+                
+                // Timeout modalini ko'rsatish
                 setTimeout(() => {
-                    this.handleOpponentTimeout();
+                    window.showOpponentTimeoutModal?.();
                 }, 500);
             }
         }, 1000);
+    },
+    
+    /**
+     * Stop all timers
+     */
+    stopAllTimers: function() {
+        if (window.gameState.timerInterval) {
+            clearInterval(window.gameState.timerInterval);
+            window.gameState.timerInterval = null;
+        }
         
-        console.log('⏰ Kutish timer boshlandi: 2 daqiqa');
+        if (window.gameState.waitingTimerInterval) {
+            clearInterval(window.gameState.waitingTimerInterval);
+            window.gameState.waitingTimerInterval = null;
+        }
+        
+        window.gameState.timeLeft = 20;
+        window.gameState.waitingTimeLeft = 30;
+        
+        console.log('⏹️ Barcha timerlar to\'xtatildi');
     },
     
     // ==================== VOTE HANDLING ====================
@@ -135,19 +170,93 @@ const GameLogic = {
         if (!window.gameState.socket || !window.gameState.isInDuel) {
             console.error('❌ Ovoz berish: Duel holati noto\'g\'ri');
             window.utils?.showNotification('Xato', 'Siz hozir duelda emassiz');
-            return;
+            return false;
         }
         
         // Duel ID ni tekshirish
         if (!window.gameState.currentDuelId) {
             console.error('❌ Ovoz berish: Duel ID topilmadi');
             window.utils?.showNotification('Xato', 'Duel ma\'lumotlari topilmadi');
-            return;
+            return false;
+        }
+        
+        // Super like limitini tekshirish
+        if (choice === 'super_like' && window.userState.dailySuperLikes <= 0) {
+            console.warn('⚠️ Super like limiti tugagan');
+            window.utils?.showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
+            return false;
         }
         
         console.log(`🗳️ Ovoz berish: ${choice}, duel: ${window.gameState.currentDuelId}`);
         
-        // Tugmalarni vaqtincha o'chirish
+        // Tugmalarni o'chirish
+        this.disableVoteButtons();
+        
+        // Timer to'xtatish
+        this.stopAllTimers();
+        
+        // Ovoz turiga qarab UI yangilash
+        switch(choice) {
+            case 'like':
+                if (window.elements?.timer) {
+                    window.elements.timer.textContent = '❤️';
+                    window.elements.timer.style.color = '#e74c3c';
+                }
+                window.updateDuelStatus?.('LIKE berdingiz. Raqib javobini kutish...');
+                console.log('❤️ Like berildi');
+                break;
+                
+            case 'super_like':
+                // Super like hisobini kamaytirish
+                window.userState.dailySuperLikes--;
+                if (window.elements?.superLikeCount) {
+                    window.elements.superLikeCount.textContent = window.userState.dailySuperLikes;
+                }
+                window.storage?.saveUserState?.();
+                
+                if (window.elements?.timer) {
+                    window.elements.timer.textContent = '💖';
+                    window.elements.timer.style.color = '#9b59b6';
+                }
+                window.updateDuelStatus?.('SUPER LIKE! Raqib javobini kutish...');
+                console.log(`💖 Super like berildi, qolgan: ${window.userState.dailySuperLikes}`);
+                break;
+                
+            case 'skip':
+                if (window.elements?.timer) {
+                    window.elements.timer.textContent = '✖';
+                    window.elements.timer.style.color = '#e74c3c';
+                }
+                window.updateDuelStatus?.('O\'tkazib yubordingiz...');
+                window.gameState.matchCompleted = true;
+                console.log('✖ O\'tkazib yuborildi');
+                
+                // No match modalini ko'rsatish
+                setTimeout(() => {
+                    window.showNoMatchOptions?.();
+                }, 1500);
+                break;
+        }
+        
+        // Serverga ovoz yuborish
+        window.socketManager?.sendVote?.(window.gameState.currentDuelId, choice);
+        
+        // Kutish timerini boshlash (faqat like yoki super_like uchun)
+        if (choice === 'like' || choice === 'super_like') {
+            setTimeout(() => {
+                this.startWaitingTimer();
+            }, 500);
+        }
+        
+        return true;
+    },
+    
+    /**
+     * Disable vote buttons
+     */
+    disableVoteButtons: function() {
+        console.log('🔒 Tugmalar o\'chirilmoqda...');
+        
         [window.elements?.noBtn, window.elements?.likeBtn, window.elements?.superLikeBtn].forEach(b => {
             if (b) {
                 b.disabled = true;
@@ -157,69 +266,7 @@ const GameLogic = {
             }
         });
         
-        // Super like limitini tekshirish
-        if (choice === 'super_like') {
-            if (window.userState.dailySuperLikes <= 0) {
-                console.warn('⚠️ Super like limiti tugagan');
-                window.utils?.showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
-                
-                // Tugmalarni qayta yoqish
-                setTimeout(() => {
-                    window.resetVoteButtons?.();
-                }, 1000);
-                
-                return;
-            }
-            
-            // Super like hisobini kamaytirish
-            window.userState.dailySuperLikes--;
-            if (window.elements?.superLikeCount) {
-                window.elements.superLikeCount.textContent = window.userState.dailySuperLikes;
-            }
-            window.storage?.saveUserState?.();
-            
-            console.log(`💖 Super like ishlatildi, qolgan: ${window.userState.dailySuperLikes}`);
-        }
-        
-        // Timer to'xtatish
-        clearInterval(window.gameState.timerInterval);
-        
-        // Ovoz turiga qarab UI yangilash
-        if (choice === 'like') {
-            if (window.elements?.timer) {
-                window.elements.timer.textContent = '❤️';
-                window.elements.timer.style.color = '#e74c3c';
-            }
-            window.updateDuelStatus?.('LIKE berdingiz. Raqib javobini kutish...');
-            console.log('❤️ Like berildi');
-            
-        } else if (choice === 'super_like') {
-            if (window.elements?.timer) {
-                window.elements.timer.textContent = '💖';
-                window.elements.timer.style.color = '#9b59b6';
-            }
-            window.updateDuelStatus?.('SUPER LIKE! Raqib javobini kutish...');
-            console.log('💖 Super like berildi');
-            
-        } else if (choice === 'skip') {
-            if (window.elements?.timer) {
-                window.elements.timer.textContent = '✖';
-                window.elements.timer.style.color = '#e74c3c';
-            }
-            window.updateDuelStatus?.('O\'tkazib yubordingiz...');
-            window.gameState.matchCompleted = true;
-            console.log('✖ O\'tkazib yuborildi');
-            
-            // No match modalini ko'rsatish
-            setTimeout(() => {
-                window.showNoMatchOptions?.();
-            }, 1500);
-        }
-        
-        // Serverga ovoz yuborish
-        window.socketManager?.sendVote?.(window.gameState.currentDuelId, choice);
-        
-        return true;
+        console.log('✅ Tugmalar o\'chirildi');
     },
     
     /**
@@ -228,30 +275,50 @@ const GameLogic = {
     resetVoteButtons: function() {
         console.log('🔄 Tugmalar reset qilinmoqda...');
         
-        // Barcha ovoz berish tugmalarini yoqish
-        [window.elements?.noBtn, window.elements?.likeBtn, window.elements?.superLikeBtn].forEach(b => {
-            if (b) {
-                b.disabled = false;
-                b.style.opacity = '1';
-                b.style.cursor = 'pointer';
-                b.classList.remove('disabled');
-            }
-        });
-        
-        // Tugma matnlarini va ranglarini tiklash
+        // Original onclick handler'lar qayta o'rnatish
         if (window.elements?.noBtn) {
+            window.elements.noBtn.disabled = false;
+            window.elements.noBtn.style.opacity = '1';
+            window.elements.noBtn.style.cursor = 'pointer';
+            window.elements.noBtn.classList.remove('disabled');
             window.elements.noBtn.textContent = '✖';
             window.elements.noBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+            
+            // Original handler
+            window.elements.noBtn.onclick = () => {
+                console.log('✖ Skip tugmasi bosildi');
+                window.gameLogic?.handleVote?.('skip');
+            };
         }
         
         if (window.elements?.likeBtn) {
+            window.elements.likeBtn.disabled = false;
+            window.elements.likeBtn.style.opacity = '1';
+            window.elements.likeBtn.style.cursor = 'pointer';
+            window.elements.likeBtn.classList.remove('disabled');
             window.elements.likeBtn.textContent = '❤️';
             window.elements.likeBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+            
+            // Original handler
+            window.elements.likeBtn.onclick = () => {
+                console.log('❤️ Like tugmasi bosildi');
+                window.gameLogic?.handleVote?.('like');
+            };
         }
         
         if (window.elements?.superLikeBtn) {
+            window.elements.superLikeBtn.disabled = false;
+            window.elements.superLikeBtn.style.opacity = '1';
+            window.elements.superLikeBtn.style.cursor = 'pointer';
+            window.elements.superLikeBtn.classList.remove('disabled');
             window.elements.superLikeBtn.textContent = '💖';
             window.elements.superLikeBtn.style.background = 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)';
+            
+            // Original handler
+            window.elements.superLikeBtn.onclick = () => {
+                console.log('💖 Super like tugmasi bosildi');
+                window.gameLogic?.handleVote?.('super_like');
+            };
         }
         
         console.log('✅ Tugmalar reset qilindi');
@@ -265,8 +332,8 @@ const GameLogic = {
     handleMatch: function(data) {
         console.log('🎉 MATCH boshlandi!', data);
         
-        // Timer to'xtatish
-        clearInterval(window.gameState.timerInterval);
+        // Barcha timerlarni to'xtatish
+        this.stopAllTimers();
         
         // Game state yangilash
         window.gameState.isInDuel = false;
@@ -277,7 +344,7 @@ const GameLogic = {
         window.gameState.matchCompleted = true;
         
         // Tugmalarni reset qilish
-        window.resetVoteButtons?.();
+        this.resetVoteButtons();
         
         // Match ekraniga o'tish
         window.showScreen?.('match');
@@ -387,211 +454,18 @@ const GameLogic = {
     },
     
     /**
-     * Create match options buttons
-     */
-    createMatchOptions: function(partner) {
-        if (!window.elements?.matchOptions) {
-            console.error('❌ Match options elementi topilmadi');
-            return;
-        }
-        
-        console.log('🎯 Match variantlari yaratilmoqda...');
-        
-        // Oldingi variantlarni tozalash
-        window.elements.matchOptions.innerHTML = '';
-        
-        const options = [
-            {
-                action: 'open_chat',
-                label: '💬 Chatga o\'tish',
-                style: 'background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);',
-                icon: 'fas fa-comments'
-            },
-            {
-                action: 'show_next_duel_confirm',
-                label: '➡️ Yangi duel',
-                style: 'background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);',
-                icon: 'fas fa-gamepad'
-            },
-            {
-                action: 'return_to_menu',
-                label: '🏠 Bosh menyu',
-                style: 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);',
-                icon: 'fas fa-home'
-            }
-        ];
-        
-        // Har bir variant uchun tugma yaratish
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'match-option-btn';
-            btn.innerHTML = `<i class="${opt.icon}"></i> ${opt.label}`;
-            btn.style.cssText = opt.style + ' margin: 5px 0;';
-            
-            // Click handler qo'shish
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.handleMatchOption(opt.action, partner);
-            });
-            
-            window.elements.matchOptions.appendChild(btn);
-        });
-        
-        console.log('✅ Match variantlari yaratildi');
-    },
-    
-    /**
-     * Handle match option selection
-     */
-    handleMatchOption: function(action, partner) {
-        console.log(`🎯 Match variant tanlandi: ${action}`, partner);
-        
-        switch(action) {
-            case 'open_chat':
-                console.log('💬 Chat ochish');
-                window.openChat?.(partner);
-                break;
-                
-            case 'show_next_duel_confirm':
-                console.log('🎮 Yangi duelni tasdiqlash modali');
-                window.showNextDuelConfirmModal?.(partner);
-                break;
-                
-            case 'return_to_menu':
-                console.log('🏠 Bosh menyuga qaytish');
-                this.returnToMenu();
-                break;
-                
-            default:
-                console.log('⚠️ Noma\'lum variant, bosh menyuga qaytish');
-                this.returnToMenu();
-        }
-    },
-    
-    /**
-     * Handle liked only result
-     */
-    handleLikedOnly: function(data) {
-        console.log('❤️ Faqat siz like berdidingiz:', data);
-        
-        // Timer to'xtatish
-        clearInterval(window.gameState.timerInterval);
-        
-        // Game state yangilash
-        window.gameState.isInDuel = false;
-        window.gameState.currentDuelId = null;
-        window.gameState.waitingForOpponent = false;
-        window.gameState.matchCompleted = true;
-        
-        // Tugmalarni reset qilish
-        window.resetVoteButtons?.();
-        
-        // Timer elementini yangilash
-        if (window.elements?.timer) {
-            window.elements.timer.textContent = '❤️';
-            window.elements.timer.style.color = '#e74c3c';
-        }
-        
-        // Mukofotlarni yangilash
-        if (data.reward) {
-            window.userState.coins += data.reward.coins || 0;
-            window.userState.totalLikes++;
-            window.storage?.saveUserState?.();
-            window.updateUIFromUserState?.();
-            
-            console.log(`💰 Mukofot: +${data.reward.coins} coin, +${data.reward.xp || 0} XP`);
-            
-            // Ogohlantirish
-            window.utils?.showNotification('Like uchun mukofot', 
-                `+${data.reward.coins} coin, +${data.reward.xp || 0} XP`);
-        }
-        
-        // Variantlarni ko'rsatish
-        setTimeout(() => {
-            window.showLikedOnlyOptions?.(data.opponentName || 'Raqib');
-        }, 1500);
-    },
-    
-    /**
-     * Handle no match result
-     */
-    handleNoMatch: function(data) {
-        console.log('❌ Match bo\'lmadi');
-        
-        // Timer to'xtatish
-        clearInterval(window.gameState.timerInterval);
-        
-        // Game state yangilash
-        window.gameState.isInDuel = false;
-        window.gameState.currentDuelId = null;
-        window.gameState.waitingForOpponent = false;
-        window.gameState.matchCompleted = true;
-        
-        // Tugmalarni reset qilish
-        window.resetVoteButtons?.();
-        
-        // Timer elementini yangilash
-        if (window.elements?.timer) {
-            window.elements.timer.textContent = '✖';
-            window.elements.timer.style.color = '#e74c3c';
-        }
-        
-        // Variantlarni ko'rsatish
-        setTimeout(() => {
-            window.showNoMatchModal?.();
-        }, 1500);
-    },
-    
-    /**
-     * Handle timeout result
-     */
-    handleTimeout: function(data) {
-        console.log('⏰ Vaqt tugadi');
-        
-        // Timer to'xtatish
-        clearInterval(window.gameState.timerInterval);
-        
-        // Game state yangilash
-        window.gameState.isInDuel = false;
-        window.gameState.currentDuelId = null;
-        window.gameState.waitingForOpponent = false;
-        window.gameState.matchCompleted = true;
-        
-        // Tugmalarni reset qilish
-        window.resetVoteButtons?.();
-        
-        // Timer elementini yangilash
-        if (window.elements?.timer) {
-            window.elements.timer.textContent = '⏰';
-            window.elements.timer.style.color = '#e74c3c';
-        }
-        
-        // Variantlarni ko'rsatish
-        setTimeout(() => {
-            window.showTimeoutOptions?.();
-        }, 1500);
-    },
-    
-    /**
      * Handle waiting for opponent response
      */
     handleWaitingResponse: function(data) {
         console.log('⏳ Raqib javobini kutish...');
         
-        // Old timerlarni to'xtatish
-        clearInterval(window.gameState.timerInterval);
-        
-        // Kutish holatini yoqish
+        // Biz ovoz berganmiz, kutish holatida
         window.gameState.waitingForOpponent = true;
         
-        // 2 daqiqa kutish timerini boshlash
-        this.startWaitingTimer();
-        
         // Statusni yangilash
-        window.updateDuelStatus?.('⏳ Raqib javobini kutish... (2 daqiqa)');
+        window.updateDuelStatus?.('Raqib javobini kutish...');
         
-        // Like tugmalarini o'chirish
+        // LIKE va SUPER LIKE tugmalarini o'chirish
         if (window.elements?.likeBtn) {
             window.elements.likeBtn.disabled = true;
             window.elements.likeBtn.style.opacity = '0.5';
@@ -604,39 +478,45 @@ const GameLogic = {
             window.elements.superLikeBtn.classList.add('disabled');
         }
         
-        // Skip tugmasini yoqish va matnini o'zgartirish
+        // SKIP tugmasini yoqish (lekin o'zgartirmaymiz)
         if (window.elements?.noBtn) {
             window.elements.noBtn.disabled = false;
             window.elements.noBtn.style.opacity = '1';
-            window.elements.noBtn.textContent = '⏭️ Keyingisi';
-            window.elements.noBtn.style.background = 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)';
+            window.elements.noBtn.textContent = '✖'; // O'zgartirmaymiz!
+            window.elements.noBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'; // O'zgartirmaymiz!
             window.elements.noBtn.classList.remove('disabled');
             
-            // Click handler qo'shish
+            // SKIP uchun original handler
             window.elements.noBtn.onclick = () => {
-                console.log('⏭️ Keyingi duelga o\'tish tugmasi bosildi');
-                this.skipToNextDuel();
+                console.log('✖ Skip tugmasi bosildi (kutish paytida)');
+                window.gameLogic?.handleVote?.('skip');
             };
         }
+        
+        console.log('✅ Kutish rejimi yoqildi');
     },
     
     /**
-     * Handle opponent timeout
+     * Handle opponent voted first
      */
-    handleOpponentTimeout: function() {
-        console.log('⏰ Raqib javob bermadi');
+    handleOpponentVotedFirst: function() {
+        console.log('⚠️ Raqib avval ovoz berdi, siz ovoz berishingiz kerak');
         
-        // Timer elementini yangilash
-        if (window.elements?.timer) {
-            window.elements.timer.textContent = '⏰';
-            window.elements.timer.style.color = '#e74c3c';
-        }
+        // Raqib ovoz bergani uchun bizga maxsus "Keyingisi" tugmasi CHIQMAYDI!
+        // Faqat LIKE, SUPER LIKE, SKIP tugmalari bo'ladi
         
         // Statusni yangilash
-        window.updateDuelStatus?.('Raqib javob bermadi. O\'yinni tugatish?');
+        window.updateDuelStatus?.('Raqib ovoz berdi. Siz ovoz bering...');
         
-        // Timeout modali ko'rsatish
-        window.showOpponentTimeoutModal?.();
+        // Barcha tugmalarni yoqish
+        this.resetVoteButtons();
+        
+        // Timer yangilash (agar kerak bo'lsa)
+        if (window.elements?.timer) {
+            window.elements.timer.style.color = '#2ecc71';
+        }
+        
+        console.log('✅ Raqib avval ovoz bergan holat ishlatildi');
     },
     
     // ==================== GAME FLOW ====================
@@ -660,6 +540,7 @@ const GameLogic = {
             window.gameState.currentDuelId = null;
             window.gameState.matchCompleted = false;
             window.gameState.currentPartner = null;
+            window.gameState.waitingForOpponent = false;
             
             window.gameState.socket.emit('enter_queue');
             window.utils?.showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
@@ -682,18 +563,17 @@ const GameLogic = {
         window.closeChatModal?.();
         
         // Barcha timerlarni to'xtatish
-        clearInterval(window.gameState.timerInterval);
+        this.stopAllTimers();
         
         // UI reset
         if (window.elements?.timer) {
             window.elements.timer.textContent = '20';
-            window.elements.timer.style.color = '#fff';
+            window.elements.timer.style.color = '#2ecc71';
             window.elements.timer.style.animation = '';
-            window.elements.timer.classList.remove('danger');
         }
         
         // Tugmalarni reset qilish
-        window.resetVoteButtons?.();
+        this.resetVoteButtons();
         
         // Game state yangilash
         window.gameState.waitingForOpponent = false;
@@ -701,6 +581,7 @@ const GameLogic = {
         window.gameState.skipToNextRequested = true;
         window.gameState.isInDuel = false;
         window.gameState.currentDuelId = null;
+        window.gameState.currentPartner = null;
         
         // Queue ekraniga o'tish
         window.showScreen?.('queue');
@@ -733,7 +614,7 @@ const GameLogic = {
         window.closeChatModal?.();
         
         // Barcha timerlarni to'xtatish
-        clearInterval(window.gameState.timerInterval);
+        this.stopAllTimers();
         
         // Navbatdan chiqish
         if (window.gameState.socket && window.gameState.isConnected) {
@@ -752,13 +633,12 @@ const GameLogic = {
         // UI reset
         if (window.elements?.timer) {
             window.elements.timer.textContent = '20';
-            window.elements.timer.style.color = '#fff';
+            window.elements.timer.style.color = '#2ecc71';
             window.elements.timer.style.animation = '';
-            window.elements.timer.classList.remove('danger');
         }
         
         // Tugmalarni reset qilish
-        window.resetVoteButtons?.();
+        this.resetVoteButtons();
         
         // Welcome ekraniga qaytish
         window.showScreen?.('welcome');
@@ -835,7 +715,10 @@ const GameLogic = {
         
         // Timer functions
         window.startTimer = () => this.startTimer();
+        window.startWaitingTimer = () => this.startWaitingTimer();
+        window.stopAllTimers = () => this.stopAllTimers();
         window.resetVoteButtons = () => this.resetVoteButtons();
+        window.disableVoteButtons = () => this.disableVoteButtons();
         
         // Game flow functions
         window.skipToNextDuel = () => this.skipToNextDuel();
@@ -848,6 +731,7 @@ const GameLogic = {
         window.handleNoMatch = (data) => this.handleNoMatch(data);
         window.handleTimeout = (data) => this.handleTimeout(data);
         window.handleWaitingResponse = (data) => this.handleWaitingResponse(data);
+        window.handleOpponentVotedFirst = () => this.handleOpponentVotedFirst();
         window.updateStats = (data) => this.updateStats(data);
         
         console.log('✅ Game logic global funksiyalar export qilindi');

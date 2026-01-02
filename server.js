@@ -3,7 +3,6 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -16,29 +15,23 @@ const io = new Server(server, {
     pingTimeout: 60000,
     pingInterval: 25000
 });
-
 // ==================== CORS SOZLAMALARI ====================
 app.use(cors({
     origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500"],
     credentials: true
 }));
-
 app.use(express.json());
 app.use(express.static('public'));
-
 // ==================== STATIC FAYLLARNI SERVIS QILISH ====================
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
 app.get('/main.js', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'main.js'));
 });
-
 app.get('/style.css', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'style.css'));
 });
-
 // ==================== API ENDPOINTLAR ====================
 app.get('/api/health', (req, res) => {
     res.json({
@@ -53,13 +46,12 @@ app.get('/api/health', (req, res) => {
         mutualMatches: Object.keys(mutualMatches).length
     });
 });
-
 app.get('/api/stats', (req, res) => {
     const totalUsers = Object.keys(users).length;
     const usersWithGender = Object.values(users).filter(u => u.hasSelectedGender).length;
     const maleUsers = Object.values(users).filter(u => u.gender === 'male').length;
     const femaleUsers = Object.values(users).filter(u => u.gender === 'female').length;
-    
+   
     res.json({
         status: 'online',
         server: 'Render.com',
@@ -72,7 +64,7 @@ app.get('/api/stats', (req, res) => {
             all: Object.values(users).filter(u => u.gender === 'not_specified').length
         },
         waitingQueue: queue.length,
-        activeDuels: Object.keys(activeDuels).length,
+        activeDuels: Object.keys(activeDuels).length,activeDuels: Object.keys(activeDuels).length,
         totalMutualMatches: Object.keys(mutualMatches).length
     });
 });
@@ -98,50 +90,50 @@ function checkGenderCompatibility(user1, user2) {
 function checkFilterCompatibility(user, opponent) {
     const userFilter = user.filter || 'not_specified';
     const opponentFilter = opponent.filter || 'not_specified';
-    
+   
     if (userFilter === 'male') {
         return opponent.gender === 'male';
     }
-    
+   
     if (userFilter === 'female') {
         return opponent.gender === 'female';
     }
-    
+   
     if (userFilter === 'not_specified') {
         return true;
     }
-    
+   
     return false;
 }
 
 function findOpponentFor(userId) {
     const user = users[userId];
     if (!user || !user.hasSelectedGender || !user.gender) return null;
-    
+   
     for (let i = 0; i < queue.length; i++) {
         const opponentId = queue[i];
         if (opponentId === userId) continue;
-        
+       
         const opponent = users[opponentId];
         if (!opponent) continue;
-        
+       
         if (!opponent.hasSelectedGender || !opponent.gender) continue;
-        
+       
         if (!checkGenderCompatibility(user, opponent)) continue;
-        
+       
         if (!checkFilterCompatibility(user, opponent)) continue;
-        
+       
         if (!checkFilterCompatibility(opponent, user)) continue;
-        
+       
         return opponentId;
     }
-    
+   
     return null;
 }
 
 function updateWaitingCount() {
     const count = queue.length;
-    
+   
     queue.forEach((userId, index) => {
         const user = users[userId];
         if (user && user.socketId) {
@@ -165,27 +157,27 @@ function addMutualMatch(userId1, userId2) {
     if (!mutualMatches[userId1].includes(userId2)) {
         mutualMatches[userId1].push(userId2);
     }
-    
+   
     if (!mutualMatches[userId2]) {
         mutualMatches[userId2] = [];
     }
     if (!mutualMatches[userId2].includes(userId1)) {
         mutualMatches[userId2].push(userId1);
     }
-    
+   
     console.log(`✅ O'zaro match qo'shildi: ${userId1} <-> ${userId2}`);
-    
+   
     // Do'stlar sonini yangilash
     if (users[userId1]) {
         users[userId1].mutualMatchesCount = mutualMatches[userId1].length;
         users[userId1].friendsCount = mutualMatches[userId1].length;
     }
-    
+   
     if (users[userId2]) {
         users[userId2].mutualMatchesCount = mutualMatches[userId2].length;
         users[userId2].friendsCount = mutualMatches[userId2].length;
     }
-    
+   
     // Har ikki foydalanuvchiga xabar yuborish
     notifyMutualMatchAdded(userId1, userId2);
     notifyMutualMatchAdded(userId2, userId1);
@@ -194,7 +186,7 @@ function addMutualMatch(userId1, userId2) {
 function notifyMutualMatchAdded(userId, friendId) {
     const user = users[userId];
     const friend = users[friendId];
-    
+   
     if (user && user.socketId && friend) {
         const socket = io.sockets.sockets.get(user.socketId);
         if (socket) {
@@ -214,17 +206,17 @@ function getMutualMatches(userId) {
 
 function addMatchHistory(userId1, userId2) {
     const matchId = `match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+   
     if (!matchHistory[userId1]) matchHistory[userId1] = [];
     if (!matchHistory[userId2]) matchHistory[userId2] = [];
-    
+   
     const matchData = {
         id: matchId,
         userId: userId1 === userId1 ? userId2 : userId1,
         timestamp: new Date(),
         type: 'mutual'
     };
-    
+   
     matchHistory[userId1].push(matchData);
     matchHistory[userId2].push({
         ...matchData,
@@ -235,18 +227,18 @@ function addMatchHistory(userId1, userId2) {
 // ==================== DUEL QIDIRISH VA BOSHLASH ====================
 function findAndStartDuels() {
     if (queue.length < 2) return;
-    
+   
     for (let i = 0; i < queue.length; i++) {
         const userId = queue[i];
         const opponentId = findOpponentFor(userId);
-        
+       
         if (opponentId) {
             const userIndex = queue.indexOf(userId);
             const opponentIndex = queue.indexOf(opponentId);
-            
+           
             if (userIndex > -1) queue.splice(userIndex, 1);
             if (opponentIndex > -1) queue.splice(opponentIndex, 1);
-            
+           
             startDuel(userId, opponentId);
             updateWaitingCount();
             break;
@@ -258,7 +250,7 @@ function startDuel(player1Id, player2Id) {
     const duelId = generateDuelId();
     const player1 = users[player1Id];
     const player2 = users[player2Id];
-    
+   
     activeDuels[duelId] = {
         id: duelId,
         player1: player1Id,
@@ -268,7 +260,7 @@ function startDuel(player1Id, player2Id) {
         ended: false,
         resultsSent: false
     };
-    
+   
     // Player1 ga ma'lumot
     const player1Socket = io.sockets.sockets.get(player1.socketId);
     if (player1Socket) {
@@ -287,7 +279,7 @@ function startDuel(player1Id, player2Id) {
             timeLeft: 20
         });
     }
-    
+   
     // Player2 ga ma'lumot
     const player2Socket = io.sockets.sockets.get(player2.socketId);
     if (player2Socket) {
@@ -306,7 +298,7 @@ function startDuel(player1Id, player2Id) {
             timeLeft: 20
         });
     }
-    
+   
     // 20 soniya timer
     setTimeout(() => {
         if (activeDuels[duelId] && !activeDuels[duelId].ended) {
@@ -318,45 +310,45 @@ function startDuel(player1Id, player2Id) {
 function processDuelResult(duelId) {
     const duel = activeDuels[duelId];
     if (!duel || duel.ended || duel.resultsSent) return;
-    
+   
     duel.ended = true;
     duel.resultsSent = true;
-    
+   
     const player1Vote = duel.votes[duel.player1];
     const player2Vote = duel.votes[duel.player2];
-    
+   
     const player1 = users[duel.player1];
     const player2 = users[duel.player2];
-    
+   
     // MATCH holati - O'ZARO LIKE BERSA (LIKE yoki SUPER_LIKE)
-    if ((player1Vote === 'like' || player1Vote === 'super_like') && 
+    if ((player1Vote === 'like' || player1Vote === 'super_like') &&
         (player2Vote === 'like' || player2Vote === 'super_like')) {
-        
+       
         player1.matches++;
         player2.matches++;
         player1.duels++;
         player2.duels++;
         player1.wins++;
         player2.wins++;
-        
+       
         // Mukofotlar
         let player1Reward = 50;
         let player2Reward = 50;
-        
+       
         if (player1Vote === 'super_like') {
             player1Reward += 20;
         }
         if (player2Vote === 'super_like') {
             player2Reward += 20;
         }
-        
+       
         player1.coins += player1Reward;
         player2.coins += player2Reward;
-        
+       
         // O'ZARO MATCH QO'SHISH
         addMutualMatch(duel.player1, duel.player2);
         addMatchHistory(duel.player1, duel.player2);
-        
+       
         // Player1 ga xabar
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
@@ -376,7 +368,7 @@ function processDuelResult(duelId) {
                 isMutual: true
             });
         }
-        
+       
         // Player2 ga xabar
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
@@ -396,14 +388,14 @@ function processDuelResult(duelId) {
                 isMutual: true
             });
         }
-        
+       
     } else if (player1Vote === 'like' || player1Vote === 'super_like') {
         // Faqat player1 like berdi
         player1.duels++;
         const coins = player1Vote === 'super_like' ? 30 : 10;
         player1.coins += coins;
         player1.totalLikes++;
-        
+       
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
             player1Socket.emit('liked_only', {
@@ -411,19 +403,19 @@ function processDuelResult(duelId) {
                 reward: { coins: coins, xp: 5 }
             });
         }
-        
+       
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
             player2Socket.emit('no_match', {});
         }
-        
+       
     } else if (player2Vote === 'like' || player2Vote === 'super_like') {
         // Faqat player2 like berdi
         player2.duels++;
         const coins = player2Vote === 'super_like' ? 30 : 10;
         player2.coins += coins;
         player2.totalLikes++;
-        
+       
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
             player2Socket.emit('liked_only', {
@@ -431,28 +423,28 @@ function processDuelResult(duelId) {
                 reward: { coins: coins, xp: 5 }
             });
         }
-        
+       
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
             player1Socket.emit('no_match', {});
         }
-        
+       
     } else {
         // Hech kim like bermadi
         player1.duels++;
         player2.duels++;
-        
+       
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) player1Socket.emit('no_match', {});
-        
+       
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) player2Socket.emit('no_match', {});
     }
-    
+   
     // Ratinglarni yangilash
     if (player1) player1.rating = Math.max(1000, player1.rating + (player1Vote === 'like' || player1Vote === 'super_like' ? 10 : -5));
     if (player2) player2.rating = Math.max(1000, player2.rating + (player2Vote === 'like' || player2Vote === 'super_like' ? 10 : -5));
-    
+   
     // Navbatga qaytarish
     setTimeout(() => {
         returnPlayersToQueue(duel.player1, duel.player2);
@@ -463,19 +455,19 @@ function processDuelResult(duelId) {
 function handleDuelTimeout(duelId) {
     const duel = activeDuels[duelId];
     if (!duel || duel.ended) return;
-    
+   
     duel.ended = true;
     duel.resultsSent = true;
-    
+   
     const player1 = users[duel.player1];
     const player2 = users[duel.player2];
-    
+   
     const player1Socket = io.sockets.sockets.get(player1?.socketId);
     const player2Socket = io.sockets.sockets.get(player2?.socketId);
-    
+   
     if (player1Socket) player1Socket.emit('timeout', {});
     if (player2Socket) player2Socket.emit('timeout', {});
-    
+   
     setTimeout(() => {
         returnPlayersToQueue(duel.player1, duel.player2);
         delete activeDuels[duelId];
@@ -489,7 +481,7 @@ function returnPlayersToQueue(player1Id, player2Id) {
             queue.push(playerId);
         }
     });
-    
+   
     updateWaitingCount();
     setTimeout(findAndStartDuels, 1000);
 }
@@ -497,10 +489,10 @@ function returnPlayersToQueue(player1Id, player2Id) {
 // ==================== SOCKET.IO HANDLERS ====================
 io.on('connection', (socket) => {
     console.log('✅ Yangi ulanish:', socket.id);
-    
+   
     socket.on('auth', (data) => {
         const userId = data.userId;
-        
+       
         if (!users[userId]) {
             users[userId] = {
                 id: userId,
@@ -531,33 +523,33 @@ io.on('connection', (socket) => {
             users[userId].socketId = socket.id;
             users[userId].connected = true;
             users[userId].lastActive = new Date();
-            
+           
             if (data.gender) users[userId].gender = data.gender;
             if (data.hasSelectedGender !== undefined) users[userId].hasSelectedGender = data.hasSelectedGender;
             if (data.bio !== undefined) users[userId].bio = data.bio;
             if (data.filter !== undefined) users[userId].filter = data.filter;
-            
+           
             // Mutual matches sonini yangilash
             users[userId].mutualMatchesCount = getMutualMatches(userId)?.length || 0;
             users[userId].friendsCount = getMutualMatches(userId)?.length || 0;
         }
-        
+       
         socket.userId = userId;
-        
+       
         // Kunlik reset tekshirish
         const today = new Date().toDateString();
         if (users[userId].lastResetDate !== today) {
             users[userId].dailySuperLikes = 3;
             users[userId].lastResetDate = today;
         }
-        
+       
         // Clientga ma'lumot yuborish
         socket.emit('auth_ok', {
             ...users[userId],
-            winRate: users[userId].duels > 0 ? 
+            winRate: users[userId].duels > 0 ?
                 Math.round((users[userId].wins / users[userId].duels) * 100) : 0
         });
-        
+       
         // Agar gender tanlangan bo'lsa, navbatga qo'shish
         if (users[userId].hasSelectedGender) {
             if (!queue.includes(userId)) {
@@ -571,23 +563,23 @@ io.on('connection', (socket) => {
                 });
             }, 500);
         }
-        
+       
         updateWaitingCount();
-        
+       
         if (users[userId].hasSelectedGender) {
             setTimeout(() => findAndStartDuels(), 1000);
         }
     });
-    
+   
     socket.on('select_gender', (data) => {
         const userId = socket.userId;
         const gender = data.gender;
-        
+       
         if (!userId || !users[userId]) return;
-        
+       
         users[userId].gender = gender;
         users[userId].hasSelectedGender = true;
-        
+       
         socket.emit('gender_selected', {
             gender: gender,
             hasSelectedGender: true,
@@ -597,23 +589,23 @@ io.on('connection', (socket) => {
                 'Hamma bilan duel'
             }`
         });
-        
+       
         if (!queue.includes(userId)) {
             queue.push(userId);
         }
-        
+       
         updateWaitingCount();
         setTimeout(() => findAndStartDuels(), 500);
     });
-    
+   
     socket.on('enter_queue', () => {
         const userId = socket.userId;
-        
+       
         if (!userId || !users[userId]) {
             socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
             return;
         }
-        
+       
         if (!users[userId].hasSelectedGender) {
             socket.emit('show_gender_selection', {
                 mandatory: true,
@@ -621,7 +613,7 @@ io.on('connection', (socket) => {
             });
             return;
         }
-        
+       
         if (queue.includes(userId)) {
             socket.emit('queue_joined', {
                 position: queue.indexOf(userId) + 1,
@@ -629,46 +621,46 @@ io.on('connection', (socket) => {
             });
             return;
         }
-        
+       
         queue.push(userId);
-        
+       
         socket.emit('queue_joined', {
             position: queue.length,
             total: queue.length
         });
-        
+       
         setTimeout(() => findAndStartDuels(), 500);
     });
-    
+   
     socket.on('leave_queue', () => {
         const userId = socket.userId;
-        
+       
         if (!userId) return;
-        
+       
         const index = queue.indexOf(userId);
         if (index > -1) {
             queue.splice(index, 1);
             updateWaitingCount();
         }
     });
-    
+   
     socket.on('vote', (data) => {
         const userId = socket.userId;
         const { duelId, choice } = data;
-        
+       
         if (!activeDuels[duelId] || activeDuels[duelId].ended) {
             socket.emit('error', { message: 'Bu duel tugagan' });
             return;
         }
-        
+       
         const duel = activeDuels[duelId];
         if (duel.player1 !== userId && duel.player2 !== userId) {
             socket.emit('error', { message: 'Siz bu duelda emassiz' });
             return;
         }
-        
+       
         duel.votes[userId] = choice;
-        
+       
         if (choice === 'super_like') {
             const user = users[userId];
             if (user.dailySuperLikes <= 0) {
@@ -677,34 +669,34 @@ io.on('connection', (socket) => {
                 return;
             }
             user.dailySuperLikes--;
-            
+           
             socket.emit('super_like_used', {
                 remaining: user.dailySuperLikes
             });
         }
-        
+       
         if (duel.votes[duel.player1] && duel.votes[duel.player2]) {
             processDuelResult(duelId);
         }
     });
-    
+   
     socket.on('update_profile', (data) => {
         const userId = socket.userId;
         if (!userId || !users[userId]) return;
-        
+       
         const user = users[userId];
-        
+       
         if (data.bio !== undefined) {
             user.bio = data.bio;
         }
-        
+       
         if (data.gender !== undefined) {
             const oldGender = user.gender;
             user.gender = data.gender;
-            
+           
             const index = queue.indexOf(userId);
             if (index > -1) queue.splice(index, 1);
-            
+           
             setTimeout(() => {
                 if (!queue.includes(userId) && user.hasSelectedGender) {
                     queue.push(userId);
@@ -713,13 +705,13 @@ io.on('connection', (socket) => {
                 }
             }, 500);
         }
-        
+       
         if (data.filter !== undefined) {
             user.filter = data.filter;
-            
+           
             const index = queue.indexOf(userId);
             if (index > -1) queue.splice(index, 1);
-            
+           
             setTimeout(() => {
                 if (!queue.includes(userId) && user.hasSelectedGender) {
                     queue.push(userId);
@@ -728,7 +720,7 @@ io.on('connection', (socket) => {
                 }
             }, 500);
         }
-        
+       
         socket.emit('profile_updated', {
             bio: user.bio,
             gender: user.gender,
@@ -738,16 +730,16 @@ io.on('connection', (socket) => {
             friendsCount: user.friendsCount
         });
     });
-    
+   
     socket.on('get_friends_list', () => {
         const userId = socket.userId;
         if (!userId || !users[userId]) return;
-        
+       
         const mutualMatchIds = getMutualMatches(userId);
         const friendsList = mutualMatchIds.map(friendId => {
             const friend = users[friendId];
             if (!friend) return null;
-            
+           
             return {
                 id: friend.id,
                 name: friend.firstName,
@@ -761,20 +753,20 @@ io.on('connection', (socket) => {
                 isMutual: true
             };
         }).filter(friend => friend !== null);
-        
+       
         socket.emit('friends_list', {
             friends: friendsList,
             total: friendsList.length,
             online: friendsList.filter(f => f.online).length
         });
     });
-    
+   
     socket.on('request_rematch', (data) => {
         const userId = socket.userId;
         const opponentId = data.opponentId;
-        
+       
         if (!userId || !opponentId || !users[userId] || !users[opponentId]) return;
-        
+       
         const opponentSocket = io.sockets.sockets.get(users[opponentId].socketId);
         if (opponentSocket) {
             opponentSocket.emit('rematch_request', {
@@ -784,47 +776,47 @@ io.on('connection', (socket) => {
             });
         }
     });
-    
+   
     socket.on('accept_rematch', (data) => {
         const userId = socket.userId;
         const opponentId = data.opponentId;
-        
+       
         if (!userId || !opponentId || !users[userId] || !users[opponentId]) return;
-        
+       
         const userIndex = queue.indexOf(userId);
         const opponentIndex = queue.indexOf(opponentId);
-        
+       
         if (userIndex > -1) queue.splice(userIndex, 1);
         if (opponentIndex > -1) queue.splice(opponentIndex, 1);
-        
+       
         startDuel(userId, opponentId);
     });
-    
+   
     socket.on('disconnect', () => {
         const userId = socket.userId;
-        
+       
         if (userId && users[userId]) {
             users[userId].connected = false;
             users[userId].lastActive = new Date();
-            
+           
             const index = queue.indexOf(userId);
             if (index > -1) {
                 queue.splice(index, 1);
                 updateWaitingCount();
             }
-            
+           
             for (const duelId in activeDuels) {
                 const duel = activeDuels[duelId];
                 if ((duel.player1 === userId || duel.player2 === userId) && !duel.ended) {
                     duel.ended = true;
-                    
+                   
                     const opponentId = duel.player1 === userId ? duel.player2 : duel.player1;
                     const opponentSocket = io.sockets.sockets.get(users[opponentId]?.socketId);
-                    
+                   
                     if (opponentSocket) {
                         opponentSocket.emit('opponent_left');
                     }
-                    
+                   
                     delete activeDuels[duelId];
                     break;
                 }
@@ -835,7 +827,6 @@ io.on('connection', (socket) => {
 
 // ==================== SERVER ISHGA TUSHIRISH ====================
 const PORT = process.env.PORT || 3000;
-
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
     console.log('🚀 LIKE DUEL SERVER - O\'ZARO MATCH TIZIMI');
@@ -857,7 +848,7 @@ setInterval(() => {
         if (user.lastResetDate !== today) {
             user.dailySuperLikes = 3;
             user.lastResetDate = today;
-            
+           
             const userSocket = io.sockets.sockets.get(user.socketId);
             if (userSocket) {
                 userSocket.emit('daily_reset', { superLikes: 3 });

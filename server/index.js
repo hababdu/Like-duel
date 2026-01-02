@@ -1256,7 +1256,7 @@ setInterval(() => {
             }
         });
     }
-}, 60000); // Har daqiqa
+}, 60000); 
 
 // Automatik duel boshlash
 setInterval(() => {

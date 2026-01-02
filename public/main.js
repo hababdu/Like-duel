@@ -168,6 +168,8 @@ function initElementReferences() {
         // View stats button
         viewStatsBtn: getElement('viewStatsBtn')
     };
+    
+    console.log('✅ DOM element referenslari o\'rnatildi');
 }
 
 // ==================== EVENT LISTENERS ====================
@@ -176,135 +178,70 @@ function initElementReferences() {
  * Initialize all event listeners
  */
 function initEventListeners() {
+    console.log('🎮 Event listenerlar o\'rnatilmoqda...');
+    
     // Start game button
     if (window.elements.startBtn) {
         window.elements.startBtn.addEventListener('click', startGame);
+        console.log('✅ Start button event listener o\'rnatildi');
+    } else {
+        console.error('❌ Start button topilmadi');
     }
     
     // Leave queue button
     if (window.elements.leaveQueueBtn) {
         window.elements.leaveQueueBtn.addEventListener('click', leaveQueue);
+        console.log('✅ Leave queue button event listener o\'rnatildi');
+    } else {
+        console.error('❌ Leave queue button topilmadi');
     }
     
     // Vote buttons
     if (window.elements.noBtn) {
-        window.elements.noBtn.addEventListener('click', () => window.gameLogic?.handleVote?.('skip'));
+        window.elements.noBtn.addEventListener('click', () => {
+            console.log('🗳️ No button bosildi');
+            window.gameLogic?.handleVote?.('skip');
+        });
+        console.log('✅ No button event listener o\'rnatildi');
+    } else {
+        console.error('❌ No button topilmadi');
     }
     
     if (window.elements.likeBtn) {
-        window.elements.likeBtn.addEventListener('click', () => window.gameLogic?.handleVote?.('like'));
+        window.elements.likeBtn.addEventListener('click', () => {
+            console.log('🗳️ Like button bosildi');
+            window.gameLogic?.handleVote?.('like');
+        });
+        console.log('✅ Like button event listener o\'rnatildi');
+    } else {
+        console.error('❌ Like button topilmadi');
     }
     
     if (window.elements.superLikeBtn) {
-        window.elements.superLikeBtn.addEventListener('click', () => window.gameLogic?.handleVote?.('super_like'));
-    }
-    
-    // Gender selection buttons
-    if (window.elements.selectMaleBtn) {
-        window.elements.selectMaleBtn.onclick = () => {
-            window.uiManager?.selectGender?.('male');
-            window.uiManager?.hideGenderModal?.();
-        };
-    }
-    
-    if (window.elements.selectFemaleBtn) {
-        window.elements.selectFemaleBtn.onclick = () => {
-            window.uiManager?.selectGender?.('female');
-            window.uiManager?.hideGenderModal?.();
-        };
-    }
-    
-    if (window.elements.selectAllBtn) {
-        window.elements.selectAllBtn.onclick = () => {
-            window.uiManager?.selectGender?.('not_specified');
-            window.uiManager?.hideGenderModal?.();
-        };
-    }
-    
-    if (window.elements.selectGenderNowBtn) {
-        window.elements.selectGenderNowBtn.addEventListener('click', () => {
-            window.uiManager?.showGenderModal?.(true);
+        window.elements.superLikeBtn.addEventListener('click', () => {
+            console.log('🗳️ Super like button bosildi');
+            window.gameLogic?.handleVote?.('super_like');
         });
+        console.log('✅ Super like button event listener o\'rnatildi');
+    } else {
+        console.error('❌ Super like button topilmadi');
     }
     
-    // Profile edit buttons
-    if (window.elements.editProfileBtn) {
-        window.elements.editProfileBtn.addEventListener('click', () => {
-            if (window.elements.editBio) {
-                window.elements.editBio.value = window.userState.bio || '';
-            }
-            if (window.elements.editGender) {
-                window.elements.editGender.value = window.userState.currentGender || 'not_specified';
-            }
-            if (window.elements.editFilter) {
-                window.elements.editFilter.value = window.userState.filter || 'not_specified';
-            }
-            if (window.elements.profileEditModal) {
-                window.elements.profileEditModal.classList.add('active');
-            }
+    // Refresh friends button
+    if (window.elements.refreshFriendsBtn) {
+        window.elements.refreshFriendsBtn.addEventListener('click', () => {
+            console.log('🔄 Refresh friends button bosildi');
+            window.uiManager?.loadFriendsList?.();
         });
-    }
-    
-    if (window.elements.closeProfileEditBtn) {
-        window.elements.closeProfileEditBtn.addEventListener('click', () => {
-            if (window.elements.profileEditModal) {
-                window.elements.profileEditModal.classList.remove('active');
-            }
-        });
-    }
-    
-    if (window.elements.saveProfileBtn) {
-        window.elements.saveProfileBtn.addEventListener('click', () => {
-            const bio = window.elements.editBio?.value.trim() || '';
-            const gender = window.elements.editGender?.value || 'not_specified';
-            const filter = window.elements.editFilter?.value || 'not_specified';
-            
-            if (window.gameState.socket) {
-                window.socketManager?.updateProfile?.({ bio, gender, filter });
-                
-                window.userState.bio = bio;
-                if (gender !== window.userState.currentGender) {
-                    window.userState.currentGender = gender;
-                    window.userState.hasSelectedGender = true;
-                }
-                window.userState.filter = filter;
-                
-                window.storage?.saveUserState?.();
-                window.uiManager?.updateUIFromUserState?.();
-                
-                if (bio && window.elements.profileBio) {
-                    window.elements.profileBio.textContent = bio;
-                }
-            }
-            
-            if (window.elements.profileEditModal) {
-                window.elements.profileEditModal.classList.remove('active');
-            }
-            window.utils?.showNotification('✅ Profil yangilandi', 'O\'zgarishlar saqlandi');
-        });
-    }
-    
-    // Chat modal buttons
-    if (window.elements.closeChatBtn) {
-        window.elements.closeChatBtn.addEventListener('click', () => {
-            window.uiManager?.closeChatModal?.();
-        });
-    }
-    
-    if (window.elements.chatOpenTelegramBtn) {
-        window.elements.chatOpenTelegramBtn.addEventListener('click', () => {
-            if (window.gameState.currentPartner && window.gameState.currentPartner.username) {
-                window.uiManager?.openTelegramChat?.(window.gameState.currentPartner.username);
-            } else {
-                window.utils?.showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
-                window.uiManager?.closeChatModal?.();
-            }
-        });
+        console.log('✅ Refresh friends button event listener o\'rnatildi');
+    } else {
+        console.error('❌ Refresh friends button topilmadi');
     }
     
     // View stats button
     if (window.elements.viewStatsBtn) {
         window.elements.viewStatsBtn.addEventListener('click', () => {
+            console.log('📊 View stats button bosildi');
             const stats = `
                 Reyting: ${window.userState.rating}
                 Matchlar: ${window.userState.matches}
@@ -321,16 +258,14 @@ function initEventListeners() {
                 Filter: ${window.userState.filter === 'male' ? 'Faqat erkaklar' : 
                          window.userState.filter === 'female' ? 'Faqat ayollar' : 'Hamma'}
             `;
-            alert('Batafsil statistika:\n\n' + stats);
+            alert('📊 Batafsil statistika:\n\n' + stats);
         });
+        console.log('✅ View stats button event listener o\'rnatildi');
+    } else {
+        console.error('❌ View stats button topilmadi');
     }
     
-    // Refresh friends button
-    if (window.elements.refreshFriendsBtn) {
-        window.elements.refreshFriendsBtn.addEventListener('click', () => {
-            window.uiManager?.loadFriendsList?.();
-        });
-    }
+    console.log('✅ Barcha event listenerlar o\'rnatildi');
 }
 
 // ==================== GAME FUNCTIONS ====================
@@ -339,14 +274,16 @@ function initEventListeners() {
  * Start the game
  */
 function startGame() {
-    console.log('🎮 O\'yinni boshlash');
+    console.log('🎮 O\'yinni boshlash tugmasi bosildi');
     
     if (!window.userState.hasSelectedGender) {
-        window.uiManager?.showGenderModal?.(true);
+        console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
+        window.modalManager?.showGenderModal?.(true);
         window.utils?.showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
         return;
     }
     
+    console.log('✅ Gender tanlangan, serverga ulanish...');
     window.socketManager?.connectToServer?.();
 }
 
@@ -354,7 +291,7 @@ function startGame() {
  * Leave the queue
  */
 function leaveQueue() {
-    console.log('🚪 Navbatdan chiqish');
+    console.log('🚪 Navbatdan chiqish tugmasi bosildi');
     
     if (window.gameState.socket && window.gameState.isConnected) {
         window.socketManager?.leaveQueue?.();
@@ -378,6 +315,8 @@ function leaveQueue() {
  * Show liked only options modal
  */
 function showLikedOnlyOptions(opponentName) {
+    console.log('❤️ Liked only options modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="likedOnlyModal">
             <div class="modal-content">
@@ -409,6 +348,8 @@ function showLikedOnlyOptions(opponentName) {
  * Show no match modal
  */
 function showNoMatchModal() {
+    console.log('❌ No match modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="noMatchModal">
             <div class="modal-content">
@@ -439,6 +380,8 @@ function showNoMatchModal() {
  * Show timeout options modal
  */
 function showTimeoutOptions() {
+    console.log('⏰ Timeout options modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="timeoutModal">
             <div class="modal-content">
@@ -469,6 +412,8 @@ function showTimeoutOptions() {
  * Show opponent timeout modal
  */
 function showOpponentTimeoutModal() {
+    console.log('⏰ Opponent timeout modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="timeoutModal">
             <div class="modal-content">
@@ -499,6 +444,8 @@ function showOpponentTimeoutModal() {
  * Show opponent left modal
  */
 function showOpponentLeftModal() {
+    console.log('🚪 Opponent left modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="opponentLeftModal">
             <div class="modal-content">
@@ -529,6 +476,8 @@ function showOpponentLeftModal() {
  * Show no match options
  */
 function showNoMatchOptions() {
+    console.log('❌ No match options modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="noMatchModal">
             <div class="modal-content">
@@ -560,6 +509,8 @@ function showNoMatchOptions() {
  * Show next duel confirm modal
  */
 function showNextDuelConfirmModal(partner) {
+    console.log('🎮 Next duel confirm modal ko\'rsatilmoqda');
+    
     const modalHTML = `
         <div class="modal active" id="nextDuelConfirmModal">
             <div class="modal-content">
@@ -600,28 +551,66 @@ function showNextDuelConfirmModal(partner) {
  * Hide next duel confirm modal
  */
 function hideNextDuelConfirmModal() {
+    console.log('🎮 Next duel confirm modal yopilmoqda');
+    
     const modal = document.getElementById('nextDuelConfirmModal');
-    if (modal) modal.remove();
+    if (modal) {
+        modal.remove();
+        console.log('✅ Next duel confirm modal yopildi');
+    }
 }
 
 /**
  * Show modal
  */
 function showModal(html) {
+    console.log('🎯 Modal ko\'rsatilmoqda');
+    
     const modalContainer = document.getElementById('modalContainer') || (() => {
         const container = document.createElement('div');
         container.id = 'modalContainer';
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.right = '0';
+        container.style.bottom = '0';
+        container.style.zIndex = '2000';
         document.body.appendChild(container);
+        console.log('✅ Modal container yaratildi');
         return container;
     })();
     
     modalContainer.innerHTML = html;
+    
+    // Background click yopish
+    const modal = modalContainer.querySelector('.modal.active');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                console.log('✅ Background click bilan modal yopildi');
+            }
+        });
+        
+        // Escape key yopish
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escapeHandler);
+                console.log('✅ Escape key bilan modal yopildi');
+            }
+        };
+        
+        document.addEventListener('keydown', escapeHandler);
+    }
 }
 
 /**
  * Hide all modals
  */
 function hideAllModals() {
+    console.log('🎯 Barcha custom modallar yopilmoqda');
+    
     const modals = ['timeoutModal', 'opponentLeftModal', 'noMatchModal', 'likedOnlyModal', 'matchModal', 'nextDuelConfirmModal'];
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
@@ -632,6 +621,8 @@ function hideAllModals() {
     if (modalContainer && modalContainer.children.length === 0) {
         modalContainer.remove();
     }
+    
+    console.log('✅ Barcha custom modallar yopildi');
 }
 
 // ==================== GLOBAL FUNCTIONS EXPORT ====================
@@ -640,37 +631,44 @@ function hideAllModals() {
  * Export functions to global scope
  */
 function exportGlobalFunctions() {
+    console.log('🌍 Global funksiyalar export qilinmoqda...');
+    
+    // UI Manager functions
     window.selectGender = (gender) => window.uiManager?.selectGender?.(gender);
     window.hideGenderModal = () => window.uiManager?.hideGenderModal?.();
     window.openTelegramChat = (username) => window.uiManager?.openTelegramChat?.(username);
     window.selectFilter = (filter) => window.uiManager?.selectFilter?.(filter);
-    window.skipToNextDuel = () => window.gameLogic?.skipToNextDuel?.();
     window.returnToMenu = () => window.gameLogic?.returnToMenu?.();
     window.buyItem = (itemId) => window.uiManager?.buyItem?.(itemId);
-    window.hideAllModals = hideAllModals;
     window.closeChatModal = () => window.uiManager?.closeChatModal?.();
     window.openChatFromFriend = (friend) => window.uiManager?.openChatFromFriend?.(friend);
     window.startNewDuelFromMatch = () => window.gameLogic?.startNewDuelFromMatch?.();
-    window.hideNextDuelConfirmModal = hideNextDuelConfirmModal;
     
+    // Screen functions
     window.showScreen = (screen) => window.uiManager?.showScreen?.(screen);
     window.updateQueueStatus = (msg) => window.uiManager?.updateQueueStatus?.(msg);
     window.updateDuelStatus = (msg) => window.uiManager?.updateDuelStatus?.(msg);
     window.updateUIFromUserState = () => window.uiManager?.updateUIFromUserState?.();
     window.addGenderBadge = (element, gender) => window.uiManager?.addGenderBadge?.(element, gender);
-    window.showGenderModal = (mandatory) => window.uiManager?.showGenderModal?.(mandatory);
-    window.openChat = (partner) => window.uiManager?.openChat?.(partner);
+    window.showGenderModal = (mandatory) => window.modalManager?.showGenderModal?.(mandatory);
+    window.openChat = (partner) => window.modalManager?.showChatModal?.(partner);
     
+    // Game Logic functions
     window.handleMatch = (data) => window.gameLogic?.handleMatch?.(data);
     window.handleLikedOnly = (data) => window.gameLogic?.handleLikedOnly?.(data);
     window.handleNoMatch = (data) => window.gameLogic?.handleNoMatch?.(data);
     window.handleTimeout = (data) => window.gameLogic?.handleTimeout?.(data);
     window.handleWaitingResponse = (data) => window.gameLogic?.handleWaitingResponse?.(data);
     window.updateStats = (data) => window.gameLogic?.updateStats?.(data);
-    
     window.resetVoteButtons = () => window.gameLogic?.resetVoteButtons?.();
     window.startTimer = () => window.gameLogic?.startTimer?.();
     
+    // Modal functions
+    window.skipToNextDuel = () => window.gameLogic?.skipToNextDuel?.();
+    window.hideAllModals = hideAllModals;
+    window.hideNextDuelConfirmModal = hideNextDuelConfirmModal;
+    
+    // Modal display functions
     window.showLikedOnlyOptions = showLikedOnlyOptions;
     window.showNoMatchModal = showNoMatchModal;
     window.showTimeoutOptions = showTimeoutOptions;
@@ -678,6 +676,8 @@ function exportGlobalFunctions() {
     window.showOpponentLeftModal = showOpponentLeftModal;
     window.showNoMatchOptions = showNoMatchOptions;
     window.showNextDuelConfirmModal = showNextDuelConfirmModal;
+    
+    console.log('✅ Barcha global funksiyalar export qilindi');
 }
 
 // ==================== INITIALIZATION ====================
@@ -691,11 +691,27 @@ function initApplication() {
     // Initialize element references
     initElementReferences();
     
+    // Initialize modal manager (MUHIM!)
+    if (window.modalManager) {
+        window.modalManager.initAllModals();
+        console.log('✅ Modal manager ishga tushirildi');
+    } else {
+        console.error('❌ Modal manager topilmadi');
+    }
+    
     // Initialize user profile
-    window.uiManager?.initUserProfile?.();
+    if (window.uiManager) {
+        window.uiManager.initUserProfile();
+        console.log('✅ UI manager ishga tushirildi');
+    } else {
+        console.error('❌ UI manager topilmadi');
+    }
     
     // Initialize tab navigation
-    window.uiManager?.initTabNavigation?.();
+    if (window.uiManager) {
+        window.uiManager.initTabNavigation();
+        console.log('✅ Tab navigation ishga tushirildi');
+    }
     
     // Initialize event listeners
     initEventListeners();
@@ -704,14 +720,29 @@ function initApplication() {
     exportGlobalFunctions();
     
     // Load initial data
-    window.uiManager?.loadProfileQuests?.();
-    window.uiManager?.loadShopItems?.();
-    window.uiManager?.loadLeaderboard?.();
-    window.uiManager?.loadFriendsList?.();
+    if (window.uiManager) {
+        window.uiManager.loadProfileQuests();
+        window.uiManager.loadShopItems();
+        window.uiManager.loadLeaderboard();
+        window.uiManager.loadFriendsList();
+        console.log('✅ Dastlabki ma\'lumotlar yuklandi');
+    }
     
     console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
+    
+    // Auto show gender modal if not selected
+    setTimeout(() => {
+        if (!window.userState.hasSelectedGender) {
+            console.log('⚠️ Gender tanlanmagan, avtomatik modal ko\'rsatish');
+            window.modalManager?.showGenderModal?.(true);
+        }
+    }, 1500);
 }
 
 // ==================== DOM READY ====================
 
-document.addEventListener('DOMContentLoaded', initApplication);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApplication);
+} else {
+    initApplication();
+}

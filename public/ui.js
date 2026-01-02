@@ -88,12 +88,10 @@ const UIManager = {
         // Add filter to welcome screen
         this.addFilterToWelcomeScreen();
         
-        // Show gender modal if not selected
+        // Show gender modal if not selected (LEKIN ENDI ASOSIY main.js DA QILAMIZ)
         if (!window.userState.hasSelectedGender) {
-            console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
-            setTimeout(() => {
-                this.showGenderModal(true);
-            }, 1000);
+            console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish uchun signal');
+            // Asosiy modal manager bilan ishlaymiz, shuning uchun faqat log qilamiz
         }
         
         return tgUser;
@@ -286,92 +284,39 @@ const UIManager = {
     // ==================== GENDER SELECTION ====================
     
     /**
-     * Select gender
+     * Select gender (endilikcha bu funksiya modalManager da)
+     * Faqat eski kodlar bilan moslik uchun qoldiramiz
      */
     selectGender: function(gender) {
-        console.log(`🎯 Gender tanlash: ${gender}`);
-        
-        window.userState.currentGender = gender;
-        window.userState.hasSelectedGender = true;
-        
-        window.storage?.saveUserState?.();
-        this.updateUIFromUserState();
-        
-        this.hideGenderModal();
-        
-        // Notify server
-        if (window.gameState.socket && window.gameState.isConnected) {
-            window.gameState.socket.emit('select_gender', { gender: gender });
-        } else {
-            window.socketManager?.connectToServer?.();
-        }
-        
-        window.utils?.showNotification('🎉 Jins tanlandi', 
-            gender === 'male' ? 'Faqat ayollar bilan duel!' : 
-            gender === 'female' ? 'Faqat erkaklar bilan duel!' : 
-            'Hamma bilan duel!');
+        console.log(`🎯 Eski gender tanlash funksiyasi (modalManager ga yo'naltirish): ${gender}`);
+        // ModalManager ga yo'naltiramiz
+        window.modalManager?.selectGender?.(gender);
     },
     
     /**
-     * Show gender modal
+     * Show gender modal (endilikcha bu funksiya modalManager da)
      */
     showGenderModal: function(mandatory = true) {
-        console.log(`🎯 Gender modali ko'rsatilmoqda`);
-        
-        if (!window.elements?.genderModal) return;
-        
-        window.elements.genderModal.classList.add('active');
-        
-        if (mandatory && window.elements?.genderWarning) {
-            window.elements.genderWarning.classList.remove('hidden');
-        }
+        console.log(`🎯 Eski gender modal ko'rsatish funksiyasi (modalManager ga yo'naltirish)`);
+        window.modalManager?.showGenderModal?.(mandatory);
     },
     
     /**
-     * Hide gender modal
+     * Hide gender modal (endilikcha bu funksiya modalManager da)
      */
     hideGenderModal: function() {
-        if (window.elements?.genderModal) {
-            window.elements.genderModal.classList.remove('active');
-        }
-        if (window.elements?.genderWarning) {
-            window.elements.genderWarning.classList.add('hidden');
-        }
+        console.log(`🎯 Eski gender modal yopish funksiyasi (modalManager ga yo'naltirish)`);
+        window.modalManager?.hideGenderModal?.();
     },
     
     // ==================== CHAT MANAGEMENT ====================
     
     /**
-     * Open chat
+     * Open chat (endilikcha bu funksiya modalManager da)
      */
     openChat: function(partner) {
-        if (!partner) return;
-        
-        window.gameState.isChatModalOpen = true;
-        
-        // Update chat modal
-        if (window.elements?.chatPartnerAvatar) {
-            window.elements.chatPartnerAvatar.src = partner.photo || 
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=3498db&color=fff`;
-        }
-        
-        if (window.elements?.chatPartnerName) {
-            window.elements.chatPartnerName.textContent = partner.name;
-        }
-        
-        if (window.elements?.chatUsername && partner.username) {
-            window.elements.chatUsername.textContent = `@${partner.username}`;
-        } else if (window.elements?.chatUsername) {
-            window.elements.chatUsername.textContent = '';
-        }
-        
-        if (window.elements?.chatTitle) {
-            window.elements.chatTitle.textContent = `${partner.name} bilan chat`;
-        }
-        
-        if (window.elements?.chatModal) {
-            window.elements.chatModal.classList.add('active');
-        }
+        console.log(`🎯 Eski chat ochish funksiyasi (modalManager ga yo'naltirish)`);
+        window.modalManager?.showChatModal?.(partner);
     },
     
     /**
@@ -393,22 +338,11 @@ const UIManager = {
     },
     
     /**
-     * Close chat modal
+     * Close chat modal (endilikcha bu funksiya modalManager da)
      */
     closeChatModal: function() {
-        console.log('💬 Chat modali yopilmoqda');
-        
-        window.gameState.isChatModalOpen = false;
-        if (window.elements?.chatModal) {
-            window.elements.chatModal.classList.remove('active');
-        }
-        
-        // Return to match screen if available
-        if (window.gameState.currentPartner) {
-            this.showScreen('match');
-        } else {
-            window.returnToMenu?.();
-        }
+        console.log('🎯 Eski chat modal yopish funksiyasi (modalManager ga yo\'naltirish)');
+        window.modalManager?.hideChatModal?.();
     },
     
     // ==================== FRIENDS MANAGEMENT ====================
@@ -510,6 +444,7 @@ const UIManager = {
      * Open chat from friend
      */
     openChatFromFriend: function(friend) {
+        console.log('👥 Do\'stdan chat ochish');
         this.openChat(friend);
     },
     
@@ -574,7 +509,16 @@ const UIManager = {
      */
     loadLeaderboard: function() {
         const leaders = [
-            // Add leaderboard data here
+            { rank: 1, name: 'Ali', gender: 'male', rating: 1850, matches: 42, friends: 12 },
+            { rank: 2, name: 'Sara', gender: 'female', rating: 1780, matches: 38, friends: 15 },
+            { rank: 3, name: 'Bek', gender: 'male', rating: 1720, matches: 35, friends: 8 },
+            { rank: 4, name: 'Dilnoza', gender: 'female', rating: 1680, matches: 31, friends: 10 },
+            { rank: 5, name: 'Jasur', gender: 'male', rating: 1650, matches: 29, friends: 7 },
+            { rank: 6, name: 'Zarina', gender: 'female', rating: 1620, matches: 27, friends: 9 },
+            { rank: 7, name: 'Farrux', gender: 'male', rating: 1590, matches: 25, friends: 6 },
+            { rank: 8, name: 'Malika', gender: 'female', rating: 1560, matches: 23, friends: 8 },
+            { rank: 9, name: 'Rustam', gender: 'male', rating: 1530, matches: 21, friends: 5 },
+            { rank: 10, name: 'Gulnora', gender: 'female', rating: 1500, matches: 19, friends: 7 }
         ];
         
         if (!window.elements?.leaderboardList) return;

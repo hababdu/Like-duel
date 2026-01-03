@@ -8,7 +8,12 @@ const StorageManager = {
      */
     saveUserState: function() {
         try {
-            localStorage.setItem('userState', JSON.stringify(window.userState || {}));
+            if (!window.userState) {
+                console.warn('No userState to save');
+                return;
+            }
+            
+            localStorage.setItem('userState', JSON.stringify(window.userState));
             console.log('✅ User state saved');
         } catch (error) {
             console.error('❌ Error saving user state:', error);
@@ -23,8 +28,14 @@ const StorageManager = {
             const saved = localStorage.getItem('userState');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                Object.assign(window.userState || {}, parsed);
+                if (window.userState) {
+                    Object.assign(window.userState, parsed);
+                } else {
+                    window.userState = parsed;
+                }
                 console.log('✅ User state loaded');
+            } else {
+                console.log('ℹ️ No saved user state found');
             }
         } catch (error) {
             console.error('❌ Error loading user state:', error);
@@ -50,9 +61,16 @@ const StorageManager = {
      */
     saveGameState: function() {
         try {
+            if (!window.gameState) {
+                console.warn('No gameState to save');
+                return;
+            }
+            
             // Don't save socket connection data
             const gameStateToSave = {...window.gameState};
             delete gameStateToSave.socket;
+            delete gameStateToSave.timerInterval;
+            delete gameStateToSave.waitingTimerInterval;
             
             localStorage.setItem('gameState', JSON.stringify(gameStateToSave));
             console.log('✅ Game state saved');
@@ -69,8 +87,14 @@ const StorageManager = {
             const saved = localStorage.getItem('gameState');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                Object.assign(window.gameState || {}, parsed);
+                if (window.gameState) {
+                    Object.assign(window.gameState, parsed);
+                } else {
+                    window.gameState = parsed;
+                }
                 console.log('✅ Game state loaded');
+            } else {
+                console.log('ℹ️ No saved game state found');
             }
         } catch (error) {
             console.error('❌ Error loading game state:', error);
@@ -140,7 +164,9 @@ const StorageManager = {
     updateStats: function(stats) {
         try {
             Object.entries(stats).forEach(([key, value]) => {
-                localStorage.setItem(key, value.toString());
+                if (value !== undefined && value !== null) {
+                    localStorage.setItem(key, value.toString());
+                }
             });
             console.log('✅ Stats updated');
         } catch (error) {
@@ -250,6 +276,33 @@ const StorageManager = {
         }
     },
     
+    // ==================== SESSION DATA ====================
+    
+    /**
+     * Save session data
+     */
+    saveSession: function(data) {
+        try {
+            localStorage.setItem('session', JSON.stringify(data));
+            console.log('✅ Session saved');
+        } catch (error) {
+            console.error('❌ Error saving session:', error);
+        }
+    },
+    
+    /**
+     * Load session data
+     */
+    loadSession: function() {
+        try {
+            const saved = localStorage.getItem('session');
+            return saved ? JSON.parse(saved) : {};
+        } catch (error) {
+            console.error('❌ Error loading session:', error);
+            return {};
+        }
+    },
+    
     // ==================== CLEAR ALL ====================
     
     /**
@@ -276,7 +329,8 @@ const StorageManager = {
                 'friendsCount',
                 'mutualMatches',
                 'friendsList',
-                'purchasedItems'
+                'purchasedItems',
+                'session'
             ];
             
             keys.forEach(key => localStorage.removeItem(key));
@@ -302,7 +356,8 @@ const StorageManager = {
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if (key.startsWith('user') || key.startsWith('game') || 
-                    key.includes('match') || key.includes('friend')) {
+                    key.includes('match') || key.includes('friend') ||
+                    key.includes('purchased') || key === 'session') {
                     try {
                         data[key] = JSON.parse(localStorage.getItem(key));
                     } catch {
@@ -326,7 +381,7 @@ const StorageManager = {
             const data = JSON.parse(jsonData);
             
             Object.entries(data).forEach(([key, value]) => {
-                if (typeof value === 'object') {
+                if (typeof value === 'object' && value !== null) {
                     localStorage.setItem(key, JSON.stringify(value));
                 } else {
                     localStorage.setItem(key, value);
@@ -339,12 +394,122 @@ const StorageManager = {
             console.error('❌ Error importing data:', error);
             return false;
         }
+    },
+    
+    // ==================== BACKUP SYSTEM ====================
+    
+    /**
+     * Create backup
+     */
+    createBackup: function() {
+        try {
+            const backup = {
+                timestamp: new Date().toISOString(),
+                version: '1.0.0',
+                data: this.exportData()
+            };
+            
+            localStorage.setItem('backup', JSON.stringify(backup));
+            console.log('✅ Backup created');
+            return backup;
+        } catch (error) {
+            console.error('❌ Error creating backup:', error);
+            return null;
+        }
+    },
+    
+    /**
+     * Restore from backup
+     */
+    restoreBackup: function() {
+        try {
+            const backupStr = localStorage.getItem('backup');
+            if (!backupStr) {
+                console.warn('No backup found');
+                return false;
+            }
+            
+            const backup = JSON.parse(backupStr);
+            if (!backup.data) {
+                console.error('Invalid backup format');
+                return false;
+            }
+            
+            return this.importData(backup.data);
+        } catch (error) {
+            console.error('❌ Error restoring backup:', error);
+            return false;
+        }
+    },
+    
+    // ==================== INITIALIZATION ====================
+    
+    /**
+     * Initialize storage
+     */
+    init: function() {
+        console.log('💾 Storage manager initializing...');
+        
+        // Load existing data
+        this.loadUserState();
+        this.loadGameState();
+        
+        // Initialize default user state if not exists
+        if (!window.userState) {
+            window.userState = {
+                currentGender: null,
+                hasSelectedGender: false,
+                coins: 100,
+                level: 1,
+                rating: 1500,
+                matches: 0,
+                duels: 0,
+                wins: 0,
+                totalLikes: 0,
+                dailySuperLikes: 3,
+                bio: '',
+                filter: 'not_specified',
+                mutualMatchesCount: 0,
+                friendsCount: 0
+            };
+            this.saveUserState();
+            console.log('✅ Default user state created');
+        }
+        
+        // Initialize default game state if not exists
+        if (!window.gameState) {
+            window.gameState = {
+                socket: null,
+                isConnected: false,
+                isInQueue: false,
+                isInDuel: false,
+                timeLeft: 20,
+                timerInterval: null,
+                playerData: null,
+                currentDuelId: null,
+                currentPartner: null,
+                lastOpponent: null,
+                reconnectAttempts: 0,
+                maxReconnectAttempts: 5,
+                currentTab: 'duel',
+                isChatModalOpen: false,
+                currentFilter: 'not_specified',
+                mutualMatches: [],
+                friendsList: [],
+                waitingForOpponent: false,
+                matchCompleted: false,
+                skipToNextRequested: false
+            };
+            this.saveGameState();
+            console.log('✅ Default game state created');
+        }
+        
+        console.log('✅ Storage manager initialized');
     }
 };
 
-// Initialize storage
-StorageManager.loadUserState();
-StorageManager.loadGameState();
+// Initialize storage when loaded
+StorageManager.init();
 
 // Export to global scope
 window.storage = StorageManager;

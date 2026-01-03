@@ -741,6 +741,170 @@ window.stopAllTimers = function() {
     window.gameState.matchActionTimerInterval = null;
 };
 
+// ==================== DUEL STATE MANAGEMENT ====================
+
+window.startDuelFlow = function() {
+    console.log('🎮 Duel boshlash funksiyasi ishga tushdi');
+    
+    // 1. Gender tekshirish
+    if (!window.userState.hasSelectedGender) {
+        console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
+        window.modalManager?.showGenderModal?.(true);
+        window.utils?.showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+        return false;
+    }
+    
+    // 2. Socket manager ishlayotganligini tekshirish
+    if (!window.socketManager || !window.gameState.socket) {
+        console.log('🔄 Socket manager ishga tushmoqda...');
+        window.socketManager?.connectToServer?.();
+        return false;
+    }
+    
+    // 3. Navbatga kirish
+    if (window.gameState.socket && window.gameState.isConnected) {
+        console.log('✅ Serverga ulandi, navbatga kirilmoqda...');
+        window.gameState.isInQueue = true;
+        window.showScreen?.('queue');
+        window.updateQueueStatus?.('Raqib izlanmoqda...');
+        
+        // Navbatga kirishni kechiktirish
+        setTimeout(() => {
+            window.socketManager?.enterQueue?.();
+        }, 500);
+        
+        return true;
+    } else {
+        console.error('❌ Socket ulanmagan');
+        window.utils?.showNotification('Xato', 'Serverga ulanib bo\'lmadi');
+        return false;
+    }
+};
+
+window.showMatchScreen = function(data) {
+    console.log('🎉 Match screen ko\'rsatilmoqda:', data);
+    
+    // Match ekraniga o'tish
+    window.showScreen?.('match');
+    
+    // Partner ma'lumotlarini ko'rsatish
+    if (window.elements?.partnerName) {
+        window.elements.partnerName.textContent = data.partnerName || 'Foydalanuvchi';
+    }
+    
+    if (window.elements?.matchText) {
+        window.elements.matchText.innerHTML = 
+            `<span style="color: #fff; font-weight: bold;">${data.partnerName}</span> bilan suhbatlashish`;
+    }
+    
+    if (window.elements?.rewardCoins) {
+        window.elements.rewardCoins.textContent = data.coinsEarned || 25;
+    }
+    
+    if (window.elements?.rewardXP) {
+        window.elements.rewardXP.textContent = data.ratingChange || 15;
+    }
+    
+    // Match tugmalarini yaratish
+    if (window.elements?.matchOptions) {
+        window.elements.matchOptions.innerHTML = `
+            <div class="match-buttons-container">
+                <button class="match-option-btn accept-btn" id="acceptChatBtn" 
+                        style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+                    <i class="fas fa-comments"></i> Chat Qilish
+                </button>
+                <button class="match-option-btn skip-btn" id="skipChatBtn" 
+                        style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
+                    <i class="fas fa-forward"></i> Keyingisi
+                </button>
+            </div>
+            <div class="match-info">
+                <p style="color: #ccc; font-size: 0.9rem; margin-top: 10px;">
+                    <i class="fas fa-info-circle"></i> Chatni qabul qilsangiz, do'stlar ro'yxatingizga qo'shilasiz
+                </p>
+            </div>
+        `;
+        
+        // Event listener'larni qo'shish
+        setTimeout(() => {
+            const acceptBtn = document.getElementById('acceptChatBtn');
+            const skipBtn = document.getElementById('skipChatBtn');
+            
+            if (acceptBtn) {
+                acceptBtn.addEventListener('click', () => {
+                    console.log('💬 Chat qabul qilindi');
+                    window.acceptChatInvite(data);
+                });
+            }
+            
+            if (skipBtn) {
+                skipBtn.addEventListener('click', () => {
+                    console.log('⏭️ Keyingi duelga o\'tilmoqda');
+                    window.proceedToNextDuel();
+                });
+            }
+        }, 100);
+    }
+    
+    // Confetti chiqarish
+    if (window.confetti) {
+        setTimeout(() => {
+            window.confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }, 500);
+    }
+};
+
+// ==================== FRIENDS MANAGEMENT ====================
+
+window.addFriend = function(friendData) {
+    console.log('👥 Do\'st qo\'shilmoqda:', friendData);
+    
+    // Do'stlarni local storage ga saqlash
+    const currentFriends = window.storage?.loadFriendsList?.() || [];
+    
+    // Do'st mavjudligini tekshirish
+    const existingIndex = currentFriends.findIndex(f => f.id === friendData.id);
+    if (existingIndex === -1) {
+        currentFriends.push({
+            id: friendData.id,
+            name: friendData.name,
+            username: friendData.username,
+            photo: friendData.photo,
+            gender: friendData.gender,
+            rating: friendData.rating || 1500,
+            matches: friendData.matches || 0,
+            online: friendData.online || false,
+            lastActive: new Date(),
+            isMutual: true,
+            mutualMatchDate: new Date()
+        });
+        
+        // Saqlash
+        window.storage?.saveFriendsList?.(currentFriends);
+        
+        // User state yangilash
+        window.userState.mutualMatchesCount = currentFriends.length;
+        window.userState.friendsCount = currentFriends.length;
+        
+        // UI yangilash
+        window.updateUIFromUserState?.();
+        
+        // Notification
+        window.utils?.showNotification('🎉 Do\'st qo\'shildi', 
+            `${friendData.name} do'stlaringiz ro'yxatiga qo'shildi!`);
+        
+        console.log('✅ Do\'st qo\'shildi');
+        return true;
+    }
+    
+    console.log('ℹ️ Do\'st allaqachon mavjud');
+    return false;
+};
+
 // ==================== STATS FUNCTIONS ====================
 
 window.updateMatchStats = function(data) {

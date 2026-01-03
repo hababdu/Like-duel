@@ -273,9 +273,13 @@ function initEventListeners() {
 /**
  * Start the game
  */
+/**
+ * Start the game - UPDATED VERSION
+ */
 function startGame() {
     console.log('🎮 O\'yinni boshlash tugmasi bosildi');
     
+    // 1. Gender tanlanganligini tekshirish
     if (!window.userState.hasSelectedGender) {
         console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
         window.modalManager?.showGenderModal?.(true);
@@ -283,8 +287,43 @@ function startGame() {
         return;
     }
     
-    console.log('✅ Gender tanlangan, serverga ulanish...');
-    window.socketManager?.connectToServer?.();
+    console.log('✅ Gender tanlangan, duel boshlanmoqda...');
+    
+    // 2. O'yin holatini yangilash
+    window.gameState.isInQueue = false;
+    window.gameState.isInDuel = false;
+    window.gameState.matchCompleted = false;
+    window.gameState.isWaitingForMatchAction = false;
+    
+    // 3. Socket manager ishlayotganligini tekshirish
+    if (!window.socketManager) {
+        console.error('❌ Socket manager topilmadi');
+        window.utils?.showNotification('Xato', 'Serverga ulanib bo\'lmadi');
+        return;
+    }
+    
+    // 4. Agar socket ulanmagan bo'lsa, ulanish
+    if (!window.gameState.socket || !window.gameState.isConnected) {
+        console.log('🔄 Socket ulanmagan, ulanish...');
+        const connected = window.socketManager.connectToServer();
+        
+        if (!connected) {
+            window.utils?.showNotification('Xato', 'Serverga ulanib bo\'lmadi');
+            return;
+        }
+        
+        // Ulanish kutish
+        setTimeout(() => {
+            if (window.gameState.isConnected) {
+                window.startDuelFlow?.();
+            } else {
+                window.utils?.showNotification('Xato', 'Serverga ulanib bo\'lmadi');
+            }
+        }, 1000);
+    } else {
+        // Socket allaqachon ulangan, darhol navbatga kirish
+        window.startDuelFlow?.();
+    }
 }
 
 /**

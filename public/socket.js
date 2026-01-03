@@ -82,21 +82,25 @@ const SocketManager = {
             // Match ma'lumotlarini to'ldirish
             const matchData = {
                 ...data,
-                partnerName: data.opponent?.name || 'Foydalanuvchi',
-                partnerUsername: data.opponent?.username || '',
-                partnerPhoto: data.opponent?.photo || '',
-                partnerId: data.opponent?.userId,
-                partnerRating: data.opponent?.rating || 1500,
-                partnerWins: data.opponent?.wins || 0,
-                coinsEarned: data.coinsEarned || 25,
-                ratingChange: data.ratingChange || 15,
+                partnerName: data.partner?.name || data.opponent?.name || 'Foydalanuvchi',
+                partnerUsername: data.partner?.username || data.opponent?.username || '',
+                partnerPhoto: data.partner?.photo || data.opponent?.photo || '',
+                partnerId: data.partner?.id || data.opponent?.id,
+                partnerRating: data.partner?.rating || data.opponent?.rating || 1500,
+                partnerWins: data.partner?.wins || data.opponent?.wins || 0,
+                coinsEarned: data.rewards?.coins || data.coinsEarned || 50,
+                ratingChange: data.newRating || data.ratingChange || 25,
                 isMatch: true
             };
             
+            console.log('🎯 Match ma\'lumotlari tayyorlandi:', matchData);
+            
             // GameLogic ga yuborish
             if (window.gameLogic && window.gameLogic.handleMatch) {
+                console.log('✅ GameLogic handleMatch ga yuborilmoqda');
                 window.gameLogic.handleMatch(matchData);
             } else if (window.handleMatch) {
+                console.log('✅ Window handleMatch ga yuborilmoqda');
                 window.handleMatch(matchData);
             } else {
                 console.error('❌ Match handler topilmadi!');
@@ -186,6 +190,12 @@ const SocketManager = {
             this.handleFriendsList(data);
         });
         
+        // CHAT INVITE
+        socket.on('chat_invite', (data) => {
+            console.log('💬 Chat taklifi kelib tushdi:', data);
+            this.handleChatInvite(data);
+        });
+        
         // ERROR HANDLING
         socket.on('error', (data) => {
             console.error('❌ Server xatosi:', data);
@@ -245,6 +255,7 @@ const SocketManager = {
         window.gameState.currentDuelId = data.duelId;
         window.gameState.isInDuel = true;
         window.gameState.matchCompleted = false;
+        window.gameState.isWaitingForMatchAction = false;
         
         // Ekran o'zgartirish
         window.showScreen?.('duel');
@@ -321,10 +332,35 @@ const SocketManager = {
     },
     
     handleChatLinkCreated: function(data) {
-        if (data.chatLink && window.Telegram?.WebApp) {
+        console.log('🔗 Chat link yaratildi handler:', data);
+        
+        if (data.chatLink && data.partnerUsername) {
+            // Notification
+            window.showNotification?.('💬 Chat ochildi', 
+                `${data.partnerName} bilan chatga o'ting!`);
+            
             // Telegramda chat linkini ochish
-            window.Telegram.WebApp.openLink(data.chatLink);
+            if (window.Telegram?.WebApp) {
+                setTimeout(() => {
+                    window.Telegram.WebApp.openTelegramLink(data.chatLink);
+                }, 500);
+            } else {
+                // Agar Telegram Web App bo'lmasa, yangi tabda ochish
+                window.open(data.chatLink, '_blank');
+            }
+        } else {
+            window.showNotification?.('⚠️ Chat ochilmadi', 
+                'Chat linkini yaratishda xatolik yoki foydalanuvchining Telegram username\'i yo\'q');
         }
+    },
+    
+    handleChatInvite: function(data) {
+        console.log('💬 Chat taklifi qabul qilish kerak:', data);
+        
+        // Bu yerda foydalanuvchiga chat taklifini ko'rsatish kerak
+        // Lekin bizning holatda, match paytida avtomatik chat taklifi ko'rsatiladi
+        window.showNotification?.('💬 Chat taklifi', 
+            `${data.fromUserName} siz bilan chat qilishni xohlaydi!`);
     },
     
     handleOpponentLeft: function() {
@@ -433,9 +469,14 @@ const SocketManager = {
         
         console.log('🗳️ Ovoz yuborilmoqda:', { duelId, choice });
         
+        // Choice ni server formatiga o'tkazish
+        let serverChoice = choice;
+        if (choice === 'superLike') serverChoice = 'super_like';
+        if (choice === 'pass' || choice === 'skip') serverChoice = 'pass';
+        
         window.gameState.socket.emit('vote', {
             duelId: duelId,
-            choice: choice
+            choice: serverChoice
         });
         
         return true;
@@ -472,11 +513,18 @@ const SocketManager = {
     
     createChatLink: function(data) {
         if (!window.gameState.socket || !window.gameState.isConnected) {
+            console.error('❌ Socket ulanmagan');
             return false;
         }
         
         console.log('🔗 Chat link yaratilmoqda:', data);
-        window.gameState.socket.emit('create_chat_link', data);
+        
+        window.gameState.socket.emit('create_chat_link', {
+            partnerId: data.partnerId,
+            partnerName: data.partnerName,
+            type: 'mutual_match'
+        });
+        
         return true;
     },
     

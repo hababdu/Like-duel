@@ -82,7 +82,7 @@ window.initializeElements = function() {
         duelStatus: document.getElementById('duelStatus'),
         voteButtons: document.getElementById('voteButtons'),
         opponentInfo: document.getElementById('opponentInfo'),
-        duelContainer: document.getElementById('duelContainer'),
+        duelContainer: document.getElementById('duelContainer') || document.querySelector('.duel-container'),
         
         // Opponent ma'lumotlari
         opponentAvatar: document.getElementById('opponentAvatar'),
@@ -113,7 +113,7 @@ window.initializeElements = function() {
         // Vote tugmalari
         likeBtn: document.getElementById('likeBtn'),
         superLikeBtn: document.getElementById('superLikeBtn'),
-        passBtn: document.getElementById('passBtn')
+        passBtn: document.getElementById('passBtn') || document.getElementById('noBtn')
     };
     
     console.log('✅ UI elementlari topildi');
@@ -133,21 +133,6 @@ window.setupEventListeners = function() {
     
     if (window.gameState.elements.passBtn) {
         window.gameState.elements.passBtn.addEventListener('click', () => window.handleVote('pass'));
-    }
-    
-    // Chat uchun event listener'lar
-    if (window.gameState.elements.chatSendBtn) {
-        window.gameState.elements.chatSendBtn.addEventListener('click', () => window.sendChatMessage());
-    }
-    
-    if (window.gameState.elements.chatInput) {
-        window.gameState.elements.chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') window.sendChatMessage();
-        });
-    }
-    
-    if (window.gameState.elements.backToDuelsBtn) {
-        window.gameState.elements.backToDuelsBtn.addEventListener('click', () => window.proceedToNextDuel());
     }
     
     console.log('✅ Event listenerlar o\'rnatildi');
@@ -206,7 +191,7 @@ window.handleVote = function(choice) {
 };
 
 window.disableVoteButtons = function() {
-    ['likeBtn', 'superLikeBtn', 'passBtn'].forEach(btnId => {
+    ['likeBtn', 'superLikeBtn', 'passBtn', 'noBtn'].forEach(btnId => {
         const btn = document.getElementById(btnId);
         if (btn) {
             btn.disabled = true;
@@ -217,7 +202,7 @@ window.disableVoteButtons = function() {
 };
 
 window.enableVoteButtons = function() {
-    ['likeBtn', 'superLikeBtn', 'passBtn'].forEach(btnId => {
+    ['likeBtn', 'superLikeBtn', 'passBtn', 'noBtn'].forEach(btnId => {
         const btn = document.getElementById(btnId);
         if (btn) {
             btn.disabled = false;
@@ -232,6 +217,7 @@ window.getChoiceText = function(choice) {
         case 'like': return '❤️ LIKE';
         case 'superLike': return '💖 SUPER LIKE';
         case 'pass': return '✖ PASS';
+        case 'skip': return '✖ SKIP';
         default: return choice;
     }
 };
@@ -244,7 +230,7 @@ window.handleMatch = function(data) {
     // 1. O'yin holatini yangilash
     window.gameState.isInDuel = false;
     window.gameState.matchCompleted = true;
-    window.gameState.isWaitingForMatchAction = true; // ✅ ENG MUHIM QISMI
+    window.gameState.isWaitingForMatchAction = true;
     
     // 2. Taymerlarni to'xtatish
     this.stopAllTimers();
@@ -252,7 +238,7 @@ window.handleMatch = function(data) {
     // 3. UI elementlarini yashirish
     this.hideDuelUI();
     
-    // 4. Chat taklifi tugmalarini KO'RSATISH (ASOSIY QISMI)
+    // 4. Chat taklifi tugmalarini KO'RSATISH
     this.showChatInviteButtons(data);
     
     // 5. Status yangilash
@@ -286,15 +272,22 @@ window.hideDuelUI = function() {
     // Duel statusni yangilash
     if (window.gameState.elements.duelStatus) {
         window.gameState.elements.duelStatus.textContent = '🎉 MATCH!';
+        window.gameState.elements.duelStatus.style.color = '#2ecc71';
+        window.gameState.elements.duelStatus.style.fontWeight = 'bold';
+        window.gameState.elements.duelStatus.style.fontSize = '1.5rem';
     }
 };
 
 window.showChatInviteButtons = function(data) {
     console.log('💬 Chat taklifi tugmalari ko\'rsatilmoqda...');
     
-    if (!window.gameState.elements.duelContainer) {
-        console.error('❌ Duel container topilmadi');
-        return;
+    let duelContainer = window.gameState.elements.duelContainer;
+    if (!duelContainer) {
+        duelContainer = document.querySelector('.duel-container');
+        if (!duelContainer) {
+            console.error('❌ Duel container topilmadi');
+            return;
+        }
     }
     
     // 1. Avvalgi chat taklifi elementlarini o'chirish
@@ -306,6 +299,7 @@ window.showChatInviteButtons = function(data) {
     // 2. Yangi chat taklifi container yaratish
     const chatInviteContainer = document.createElement('div');
     chatInviteContainer.id = 'chatInviteContainer';
+    chatInviteContainer.className = 'chat-invite-container';
     chatInviteContainer.style.cssText = `
         position: relative;
         text-align: center;
@@ -317,153 +311,83 @@ window.showChatInviteButtons = function(data) {
     `;
     
     // 3. Partner ma'lumotlarini tayyorlash
-    const partnerName = data.partnerName || 'Foydalanuvchi';
-    const partnerUsername = data.partnerUsername || '';
-    const partnerPhoto = data.partnerPhoto || 
+    const partnerName = data.partner?.name || data.opponent?.name || data.partnerName || 'Foydalanuvchi';
+    const partnerUsername = data.partner?.username || data.opponent?.username || data.partnerUsername || '';
+    const partnerPhoto = data.partner?.photo || data.opponent?.photo || data.partnerPhoto || 
         `https://ui-avatars.com/api/?name=${encodeURIComponent(partnerName)}&background=667eea&color=fff`;
+    const partnerRating = data.partner?.rating || data.opponent?.rating || 1500;
+    const partnerWins = data.partner?.wins || data.opponent?.wins || 0;
     
     // 4. HTML yaratish
     chatInviteContainer.innerHTML = `
-        <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 25px;
-            padding: 30px;
-            color: white;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            border: 3px solid rgba(255,255,255,0.2);
-            position: relative;
-            overflow: hidden;
-        ">
+        <div class="match-celebration-card">
             <!-- Background decoration -->
-            <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; 
-                        background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-            <div style="position: absolute; bottom: -50px; left: -50px; width: 150px; height: 150px; 
-                        background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+            <div class="match-bg-circle top-right"></div>
+            <div class="match-bg-circle bottom-left"></div>
             
             <!-- Match celebration -->
-            <div style="margin-bottom: 25px;">
-                <div style="font-size: 70px; margin-bottom: 15px; animation: bounce 1s infinite;">🎉</div>
-                <h3 style="margin: 0 0 10px 0; font-size: 32px; font-weight: bold;">MATCH!</h3>
-                <p style="margin: 0 0 25px 0; font-size: 18px; opacity: 0.9;">
+            <div class="match-celebration-header">
+                <div class="match-emoji">🎉</div>
+                <h3 class="match-title">MATCH!</h3>
+                <p class="match-message">
                     ${partnerName} bilan o'zaro like bosdingiz!
                 </p>
             </div>
             
             <!-- Partner info -->
-            <div style="
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 20px;
-                margin-bottom: 30px;
-                background: rgba(255,255,255,0.1);
-                padding: 20px;
-                border-radius: 20px;
-                backdrop-filter: blur(10px);
-            ">
-                <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; 
-                            border: 4px solid white; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">
+            <div class="partner-info-card">
+                <div class="partner-avatar-container">
                     <img src="${partnerPhoto}" 
-                         style="width: 100%; height: 100%; object-fit: cover;"
+                         class="partner-avatar"
                          onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(partnerName)}&background=667eea&color=fff'">
                 </div>
-                <div style="text-align: left;">
-                    <div style="font-weight: bold; font-size: 22px; margin-bottom: 5px;">${partnerName}</div>
-                    <div style="font-size: 16px; opacity: 0.8;">@${partnerUsername || 'foydalanuvchi'}</div>
-                    <div style="font-size: 14px; opacity: 0.7; margin-top: 5px;">
-                        <span>⭐ ${data.partnerRating || 1500}</span>
-                        <span style="margin-left: 15px;">🏆 ${data.partnerWins || 0}</span>
+                <div class="partner-details">
+                    <div class="partner-name">${partnerName}</div>
+                    <div class="partner-username">@${partnerUsername || 'foydalanuvchi'}</div>
+                    <div class="partner-stats">
+                        <span class="partner-stat"><i class="fas fa-trophy"></i> ${partnerRating}</span>
+                        <span class="partner-stat"><i class="fas fa-crown"></i> ${partnerWins}</span>
                     </div>
                 </div>
             </div>
             
             <!-- Action buttons -->
-            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 30px;">
-                <button id="acceptChatBtn" 
-                        style="
-                            padding: 18px;
-                            background: linear-gradient(to right, #2ecc71, #27ae60);
-                            color: white;
-                            border: none;
-                            border-radius: 15px;
-                            font-size: 20px;
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: all 0.3s;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 10px;
-                            box-shadow: 0 8px 20px rgba(46, 204, 113, 0.4);
-                        "
-                        onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 12px 25px rgba(46, 204, 113, 0.6)';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(46, 204, 113, 0.4)';">
-                    <span style="font-size: 24px;">💬</span>
-                    CHAT QILISH
+            <div class="match-action-buttons">
+                <button id="acceptChatBtn" class="match-action-btn accept-btn">
+                    <span class="btn-icon">💬</span>
+                    <span class="btn-text">CHAT QILISH</span>
                 </button>
                 
-                <button id="rejectChatBtn" 
-                        style="
-                            padding: 18px;
-                            background: linear-gradient(to right, #e74c3c, #c0392b);
-                            color: white;
-                            border: none;
-                            border-radius: 15px;
-                            font-size: 20px;
-                            font-weight: bold;
-                            cursor: pointer;
-                            transition: all 0.3s;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 10px;
-                            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
-                        "
-                        onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 12px 25px rgba(231, 76, 60, 0.6)';"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(231, 76, 60, 0.4)';">
-                    <span style="font-size: 24px;">⏭️</span>
-                    KEYINGI DUEL
+                <button id="rejectChatBtn" class="match-action-btn reject-btn">
+                    <span class="btn-icon">⏭️</span>
+                    <span class="btn-text">KEYINGI DUEL</span>
                 </button>
             </div>
             
             <!-- Timer -->
-            <div style="margin-top: 25px;">
-                <div style="
-                    width: 100%;
-                    height: 8px;
-                    background: rgba(255,255,255,0.2);
-                    border-radius: 4px;
-                    overflow: hidden;
-                    margin-bottom: 10px;
-                ">
-                    <div id="matchActionTimerBar" 
-                         style="
-                            width: 100%;
-                            height: 100%;
-                            background: linear-gradient(to right, #2ecc71, #f39c12, #e74c3c);
-                            border-radius: 4px;
-                            transition: width 1s linear;
-                         "></div>
+            <div class="match-timer-container">
+                <div class="timer-bar-bg">
+                    <div id="matchActionTimerBar" class="timer-bar-fill"></div>
                 </div>
-                <div style="font-size: 16px; opacity: 0.8;">
-                    Qaror qabul qilish uchun: <span id="matchActionTime" style="font-weight: bold;">30</span> soniya
+                <div class="timer-text">
+                    Qaror qabul qilish uchun: <span id="matchActionTime" class="timer-count">30</span> soniya
                 </div>
             </div>
             
             <!-- Stats info -->
-            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
-                <div style="display: flex; justify-content: space-around; font-size: 14px; opacity: 0.7;">
-                    <div>
-                        <div style="font-weight: bold;">🏆 G'alaba</div>
-                        <div>+${data.ratingChange || 15} rating</div>
+            <div class="match-stats-info">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">🏆 G'alaba</div>
+                        <div class="stat-value">+${data.ratingChange || 15} rating</div>
                     </div>
-                    <div>
-                        <div style="font-weight: bold;">💰 Mukofot</div>
-                        <div>+${data.coinsEarned || 25} tanga</div>
+                    <div class="stat-item">
+                        <div class="stat-label">💰 Mukofot</div>
+                        <div class="stat-value">+${data.coinsEarned || 25} tanga</div>
                     </div>
-                    <div>
-                        <div style="font-weight: bold;">🤝 Match</div>
-                        <div>#${window.userState.matches + 1}</div>
+                    <div class="stat-item">
+                        <div class="stat-label">🤝 Match</div>
+                        <div class="stat-value">#${window.userState.matches + 1}</div>
                     </div>
                 </div>
             </div>
@@ -471,7 +395,7 @@ window.showChatInviteButtons = function(data) {
     `;
     
     // 5. Container'ni qo'shish
-    window.gameState.elements.duelContainer.appendChild(chatInviteContainer);
+    duelContainer.appendChild(chatInviteContainer);
     
     // 6. Event listener'larni qo'shish
     document.getElementById('acceptChatBtn').addEventListener('click', () => {
@@ -556,11 +480,29 @@ window.acceptChatInvite = function(data) {
         chatInviteContainer.style.display = 'none';
     }
     
-    // 4. Chat boshlash
-    this.startChatWithPartner(data);
+    // 4. Partner ma'lumotlarini saqlash
+    const partnerData = {
+        id: data.partner?.id || data.opponent?.id || data.partnerId,
+        name: data.partner?.name || data.opponent?.name || data.partnerName || 'Foydalanuvchi',
+        username: data.partner?.username || data.opponent?.username || data.partnerUsername || '',
+        photo: data.partner?.photo || data.opponent?.photo || data.partnerPhoto,
+        isMutual: true
+    };
     
-    // 5. Notification
-    window.showNotification?.('🎉 Chat', `${data.partnerName} bilan chat boshlanmoqda...`);
+    // 5. Chat modalini ochish
+    if (window.openChat) {
+        window.openChat(partnerData);
+    } else if (window.modalManager?.showChatModal) {
+        window.modalManager.showChatModal(partnerData);
+    }
+    
+    // 6. Socket orqali chat link yaratish
+    if (window.socketManager && window.socketManager.createChatLink) {
+        window.socketManager.createChatLink({
+            partnerId: partnerData.id,
+            partnerName: partnerData.name
+        });
+    }
 };
 
 window.rejectChatInvite = function() {
@@ -684,6 +626,7 @@ window.proceedToNextDuel = function() {
     window.gameState.isWaitingForMatchAction = false;
     window.gameState.matchCompleted = false;
     window.gameState.currentDuelId = null;
+    window.gameState.currentPartner = null;
     
     // 3. UI ni tozalash
     this.resetDuelUI();
@@ -798,111 +741,25 @@ window.stopAllTimers = function() {
     window.gameState.matchActionTimerInterval = null;
 };
 
-// ==================== CHAT FUNCTIONS ====================
-
-window.startChatWithPartner = function(data) {
-    console.log('💬 Chat boshlanmoqda:', data);
-    
-    // Chat ekraniga o'tish
-    window.showScreen?.('chat');
-    
-    // Partner ma'lumotlarini ko'rsatish
-    if (window.gameState.elements.chatPartnerName) {
-        window.gameState.elements.chatPartnerName.textContent = data.partnerName;
-    }
-    
-    if (window.gameState.elements.chatPartnerAvatar) {
-        window.gameState.elements.chatPartnerAvatar.src = data.partnerPhoto || 
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(data.partnerName)}&background=667eea&color=fff`;
-    }
-    
-    if (window.gameState.elements.chatPartnerUsername) {
-        window.gameState.elements.chatPartnerUsername.textContent = `@${data.partnerUsername || 'foydalanuvchi'}`;
-    }
-    
-    // Chat xabarlarini tozalash
-    if (window.gameState.elements.chatMessages) {
-        window.gameState.elements.chatMessages.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px; color: #666;">
-                <div style="font-size: 48px; margin-bottom: 20px;">💬</div>
-                <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">Chat boshlandi</div>
-                <div style="font-size: 16px; opacity: 0.8;">
-                    ${data.partnerName} bilan suhbat boshlang!<br>
-                    Bir-biringizni tanishing
-                </div>
-            </div>
-        `;
-    }
-    
-    // Chat inputni faollashtirish
-    if (window.gameState.elements.chatInput) {
-        window.gameState.elements.chatInput.disabled = false;
-        window.gameState.elements.chatInput.placeholder = "Xabar yozing...";
-        window.gameState.elements.chatInput.focus();
-    }
-    
-    if (window.gameState.elements.chatSendBtn) {
-        window.gameState.elements.chatSendBtn.disabled = false;
-    }
-    
-    // Socket orqali chat link yaratish
-    if (window.socketManager && window.socketManager.createChatLink) {
-        window.socketManager.createChatLink({
-            partnerId: data.partnerId,
-            partnerName: data.partnerName
-        });
-    }
-};
-
-window.sendChatMessage = function() {
-    const chatInput = window.gameState.elements.chatInput;
-    if (!chatInput || !chatInput.value.trim()) return;
-    
-    const message = chatInput.value.trim();
-    console.log('📤 Chat xabari:', message);
-    
-    // Xabarni chatga qo'shish
-    if (window.gameState.elements.chatMessages) {
-        const messageDiv = document.createElement('div');
-        messageDiv.style.cssText = `
-            background: #667eea;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 15px 15px 5px 15px;
-            margin: 10px 0 10px auto;
-            max-width: 70%;
-            text-align: right;
-        `;
-        messageDiv.textContent = message;
-        window.gameState.elements.chatMessages.appendChild(messageDiv);
-        
-        // Scroll pastga
-        window.gameState.elements.chatMessages.scrollTop = window.gameState.elements.chatMessages.scrollHeight;
-    }
-    
-    // Inputni tozalash
-    chatInput.value = '';
-    chatInput.focus();
-};
-
 // ==================== STATS FUNCTIONS ====================
 
 window.updateMatchStats = function(data) {
     console.log('📊 Match stats yangilanmoqda');
     
     // User stats yangilash
-    if (data.coins !== undefined) {
-        window.userState.coins = (window.userState.coins || 0) + (data.coins || 25);
+    if (data.coinsEarned !== undefined) {
+        window.userState.coins = (window.userState.coins || 0) + (data.coinsEarned || 25);
     }
     
-    if (data.rating !== undefined) {
-        window.userState.rating = (window.userState.rating || 1500) + (data.rating || 15);
+    if (data.ratingChange !== undefined) {
+        window.userState.rating = (window.userState.rating || 1500) + (data.ratingChange || 15);
     }
     
     window.userState.matches = (window.userState.matches || 0) + 1;
     window.userState.duels = (window.userState.duels || 0) + 1;
     window.userState.wins = (window.userState.wins || 0) + 1;
     window.userState.totalLikes = (window.userState.totalLikes || 0) + 1;
+    window.userState.mutualMatchesCount = (window.userState.mutualMatchesCount || 0) + 1;
     
     // Game stats yangilash
     window.gameState.gameStats.matches++;
@@ -929,6 +786,7 @@ window.updateStats = function(data) {
         if (data.duels !== undefined) window.userState.duels = data.duels;
         if (data.wins !== undefined) window.userState.wins = data.wins;
         if (data.totalLikes !== undefined) window.userState.totalLikes = data.totalLikes;
+        if (data.mutualMatchesCount !== undefined) window.userState.mutualMatchesCount = data.mutualMatchesCount;
     }
     
     // Game stats yangilash
@@ -993,7 +851,9 @@ window.showNotification = function(title, message) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM yuklandi, Game Logic ishga tushmoqda...');
     setTimeout(() => {
-        window.initGameLogic?.();
+        if (window.initGameLogic) {
+            window.initGameLogic();
+        }
     }, 1000);
 });
 

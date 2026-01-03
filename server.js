@@ -1,5 +1,4 @@
-// ==================== SERVER INDEX.JS ====================
-
+// server.js - Like Duel Server (Complete Version)
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -21,7 +20,7 @@ const io = new Server(server, {
 
 // ==================== CORS SOZLAMALARI ====================
 app.use(cors({
-    origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500"],
+    origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"],
     credentials: true
 }));
 
@@ -65,7 +64,7 @@ app.get('/utils.js', (req, res) => {
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'online',
-        message: 'Like Duel Server is running on Render',
+        message: 'Like Duel Server is running',
         timestamp: new Date().toISOString(),
         platform: 'Render.com',
         websocket: 'Active',
@@ -86,7 +85,7 @@ app.get('/api/stats', (req, res) => {
     
     res.json({
         status: 'online',
-        server: 'Render.com',
+        server: 'Like Duel Server',
         totalUsers,
         onlineUsers,
         offlineUsers: totalUsers - onlineUsers,
@@ -95,11 +94,12 @@ app.get('/api/stats', (req, res) => {
         genderStats: {
             male: maleUsers,
             female: femaleUsers,
-            all: Object.values(users).filter(u => u.gender === 'not_specified').length
+            not_specified: Object.values(users).filter(u => u.gender === 'not_specified').length
         },
         waitingQueue: queue.length,
         activeDuels: Object.keys(activeDuels).length,
-        totalMutualMatches: Object.keys(mutualMatches).length
+        totalMutualMatches: Object.keys(mutualMatches).length,
+        chatRequests: Object.keys(chatRequests).length
     });
 });
 
@@ -111,8 +111,13 @@ app.get('/api/users', (req, res) => {
         gender: user.gender,
         rating: user.rating,
         matches: user.matches,
+        duels: user.duels,
+        wins: user.wins,
+        coins: user.coins,
         online: user.connected,
-        lastActive: user.lastActive
+        lastActive: user.lastActive,
+        hasSelectedGender: user.hasSelectedGender,
+        filter: user.filter
     }));
     
     res.json({
@@ -132,7 +137,8 @@ app.get('/api/queue', (req, res) => {
             gender: user.gender,
             filter: user.filter,
             online: user.connected,
-            waitingSince: user.lastActive
+            waitingSince: user.lastActive,
+            rating: user.rating
         } : null;
     }).filter(item => item !== null);
     
@@ -156,16 +162,20 @@ app.get('/api/duels', (req, res) => {
             player1: player1 ? {
                 id: player1.id,
                 name: player1.firstName,
+                gender: player1.gender,
                 online: player1.connected,
                 vote: duel.votes[player1.id] || 'waiting'
             } : null,
             player2: player2 ? {
                 id: player2.id,
                 name: player2.firstName,
+                gender: player2.gender,
                 online: player2.connected,
                 vote: duel.votes[player2.id] || 'waiting'
             } : null,
-            ended: duel.ended
+            ended: duel.ended,
+            isMatch: (duel.votes[duel.player1] === 'like' || duel.votes[duel.player1] === 'super_like') && 
+                    (duel.votes[duel.player2] === 'like' || duel.votes[duel.player2] === 'super_like')
         };
     });
     
@@ -177,9 +187,27 @@ app.get('/api/duels', (req, res) => {
 });
 
 app.get('/api/matches', (req, res) => {
+    const mutualMatchesList = Object.entries(mutualMatches).map(([userId, friends]) => {
+        const user = users[userId];
+        return {
+            userId,
+            userName: user?.firstName || 'Unknown',
+            friendsCount: friends.length,
+            friends: friends.map(friendId => {
+                const friend = users[friendId];
+                return friend ? {
+                    id: friend.id,
+                    name: friend.firstName,
+                    username: friend.username,
+                    online: friend.connected
+                } : { id: friendId, name: 'Unknown' };
+            })
+        };
+    });
+    
     res.json({
         totalMutualMatches: Object.keys(mutualMatches).length,
-        mutualMatches: mutualMatches
+        mutualMatches: mutualMatchesList
     });
 });
 
@@ -311,7 +339,7 @@ function updateWaitingCount() {
 // ==================== MUTUAL MATCH FUNKSIYALARI ====================
 
 /**
- * O'zaro match qo'shish
+ * O'zaro match qo'shish va AVTOMATIK chat taklifi yuborish
  */
 function addMutualMatch(userId1, userId2) {
     console.log(`🤝 O'zaro match qo'shilmoqda: ${userId1} <-> ${userId2}`);
@@ -346,6 +374,9 @@ function addMutualMatch(userId1, userId2) {
     }
     
     console.log(`✅ O'zaro match qo'shildi: ${userId1} (${mutualMatches[userId1]?.length}) <-> ${userId2} (${mutualMatches[userId2]?.length})`);
+    
+    // AVTOMATIK CHAT TAKLIFI YUBORISH
+    createChatRequest(userId1, userId2);
     
     // Har ikki foydalanuvchiga xabar yuborish
     notifyMutualMatchAdded(userId1, userId2);
@@ -494,9 +525,6 @@ function acceptChatRequest(requestId, userId) {
             console.log(`✅ ${toUser.firstName} ga chat_accepted xabari yuborildi`);
         }
     }
-    
-    // O'zaro match qo'shish
-    addMutualMatch(request.from, request.to);
     
     return true;
 }
@@ -720,21 +748,27 @@ function processDuelResult(duelId) {
         // Mukofotlar
         let player1Reward = 50;
         let player2Reward = 50;
+        let player1RatingChange = 25;
+        let player2RatingChange = 25;
         
         if (player1Vote === 'super_like') {
             player1Reward += 20;
-            console.log(`   ${player1?.firstName} SUPER LIKE uchun +20 coin`);
+            player1RatingChange += 5;
+            console.log(`   ${player1?.firstName} SUPER LIKE uchun +20 coin, +5 rating`);
         }
         if (player2Vote === 'super_like') {
             player2Reward += 20;
-            console.log(`   ${player2?.firstName} SUPER LIKE uchun +20 coin`);
+            player2RatingChange += 5;
+            console.log(`   ${player2?.firstName} SUPER LIKE uchun +20 coin, +5 rating`);
         }
         
         player1.coins += player1Reward;
         player2.coins += player2Reward;
+        player1.rating += player1RatingChange;
+        player2.rating += player2RatingChange;
         
-        // O'ZARO MATCH QO'SHISH
-        console.log(`🤝 O'zaro match qo'shilmoqda...`);
+        // O'ZARO MATCH QO'SHISH (AVTOMATIK CHAT TAKLIFI BILAN)
+        console.log(`🤝 O'zaro match qo'shilmoqda (avtomatik chat taklifi bilan)...`);
         addMutualMatch(duel.player1, duel.player2);
         addMatchHistory(duel.player1, duel.player2);
         
@@ -748,23 +782,33 @@ function processDuelResult(duelId) {
                     username: player2.username,
                     photo: player2.photoUrl,
                     gender: player2.gender,
+                    rating: player2.rating,
+                    wins: player2.wins,
+                    online: player2.connected
+                },
+                opponent: {
+                    id: duel.player2,
+                    name: player2.firstName,
+                    username: player2.username,
+                    photo: player2.photoUrl,
+                    gender: player2.gender,
+                    rating: player2.rating,
+                    matches: player2.matches,
+                    level: player2.level,
                     online: player2.connected
                 },
                 rewards: {
                     coins: player1Reward,
                     xp: 30
                 },
-                newRating: player1.rating + 25,
+                newRating: player1.rating,
+                coinsEarned: player1Reward,
+                ratingChange: player1RatingChange,
                 isMutual: true,
-                chatInviteEnabled: true, // Chat taklifini yoqish
+                chatInviteEnabled: true,
                 message: `${player2.firstName} bilan o'zaro match! Endi siz do'st bo'ldingiz. Chat qilishni xohlaysizmi?`
             });
             console.log(`   ✅ ${player1.firstName} ga match xabari yuborildi (chat taklifi bilan)`);
-            
-            // Avtomatik chat taklifi yuborish
-            if (player2.connected) {
-                createChatRequest(duel.player1, duel.player2);
-            }
         }
         
         // Player2 ga xabar
@@ -777,15 +821,30 @@ function processDuelResult(duelId) {
                     username: player1.username,
                     photo: player1.photoUrl,
                     gender: player1.gender,
+                    rating: player1.rating,
+                    wins: player1.wins,
+                    online: player1.connected
+                },
+                opponent: {
+                    id: duel.player1,
+                    name: player1.firstName,
+                    username: player1.username,
+                    photo: player1.photoUrl,
+                    gender: player1.gender,
+                    rating: player1.rating,
+                    matches: player1.matches,
+                    level: player1.level,
                     online: player1.connected
                 },
                 rewards: {
                     coins: player2Reward,
                     xp: 30
                 },
-                newRating: player2.rating + 25,
+                newRating: player2.rating,
+                coinsEarned: player2Reward,
+                ratingChange: player2RatingChange,
                 isMutual: true,
-                chatInviteEnabled: true, // Chat taklifini yoqish
+                chatInviteEnabled: true,
                 message: `${player1.firstName} bilan o'zaro match! Endi siz do'st bo'ldingiz. Chat qilishni xohlaysizmi?`
             });
             console.log(`   ✅ ${player2.firstName} ga match xabari yuborildi (chat taklifi bilan)`);
@@ -867,13 +926,23 @@ function processDuelResult(duelId) {
     
     // Ratinglarni yangilash
     if (player1) {
-        const ratingChange = (player1Vote === 'like' || player1Vote === 'super_like') ? 10 : -5;
+        let ratingChange = 0;
+        if (player1Vote === 'like' || player1Vote === 'super_like') {
+            ratingChange = 10;
+        } else if (player1Vote === 'pass') {
+            ratingChange = -5;
+        }
         player1.rating = Math.max(1000, player1.rating + ratingChange);
         console.log(`   ${player1.firstName} rating: ${player1.rating} (${ratingChange > 0 ? '+' : ''}${ratingChange})`);
     }
     
     if (player2) {
-        const ratingChange = (player2Vote === 'like' || player2Vote === 'super_like') ? 10 : -5;
+        let ratingChange = 0;
+        if (player2Vote === 'like' || player2Vote === 'super_like') {
+            ratingChange = 10;
+        } else if (player2Vote === 'pass') {
+            ratingChange = -5;
+        }
         player2.rating = Math.max(1000, player2.rating + ratingChange);
         console.log(`   ${player2.firstName} rating: ${player2.rating} (${ratingChange > 0 ? '+' : ''}${ratingChange})`);
     }
@@ -1303,6 +1372,58 @@ io.on('connection', (socket) => {
         }
     });
     
+    // ==================== CREATE CHAT LINK ====================
+    socket.on('create_chat_link', (data) => {
+        const userId = socket.userId;
+        const { partnerId, partnerName, type } = data;
+        
+        if (!userId || !partnerId || !users[userId] || !users[partnerId]) {
+            console.log(`❌ Chat link yaratish: foydalanuvchilar topilmadi`);
+            socket.emit('error', { message: 'Chat link yaratishda xatolik' });
+            return;
+        }
+        
+        console.log(`🔗 Chat link yaratish so'rovi: ${users[userId].firstName} -> ${users[partnerId].firstName}`);
+        
+        // Foydalanuvchi online emas bo'lsa
+        if (!users[userId].connected) {
+            console.log(`❌ ${users[userId].firstName} offline, chat link yarata olmaydi`);
+            socket.emit('error', { message: 'Siz offline ekansiz. Chat uchun internet aloqangizni tekshiring.' });
+            return;
+        }
+        
+        // Raqib online emas bo'lsa
+        if (!users[partnerId].connected) {
+            console.log(`❌ ${users[partnerId].firstName} offline, chat link yaratib bo'lmaydi`);
+            socket.emit('error', { message: 'Raqib hozir offline. Chat ochish mumkin emas.' });
+            return;
+        }
+        
+        // Telegram username borligini tekshirish
+        const partnerUsername = users[partnerId].username;
+        if (!partnerUsername) {
+            console.log(`❌ ${users[partnerId].firstName} ning Telegram username'i yo'q`);
+            socket.emit('chat_link_error', {
+                message: `${users[partnerId].firstName} ning Telegram username'i mavjud emas. Chat ochib bo'lmaydi.`,
+                partnerName: users[partnerId].firstName
+            });
+            return;
+        }
+        
+        // Telegram chat linkini yaratish
+        const chatLink = `https://t.me/${partnerUsername}`;
+        
+        console.log(`✅ Telegram chat linki yaratildi: ${chatLink}`);
+        
+        socket.emit('chat_link_created', {
+            chatLink: chatLink,
+            partnerId: partnerId,
+            partnerName: users[partnerId].firstName,
+            partnerUsername: partnerUsername,
+            message: `${users[partnerId].firstName} bilan Telegram chat ochildi. Chatga o'tish uchun linkni bosing.`
+        });
+    });
+    
     // ==================== PROFILE MANAGEMENT ====================
     socket.on('update_profile', (data) => {
         const userId = socket.userId;
@@ -1426,8 +1547,7 @@ io.on('connection', (socket) => {
             return;
         }
         
-          
-            // Foydalanuvchi online emas bo'lsa
+        // Foydalanuvchi online emas bo'lsa
         if (!users[userId].connected) {
             console.log(`❌ ${users[userId].firstName} offline, rematch so'ra olmaydi`);
             return;
@@ -1550,7 +1670,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('='.repeat(70));
     console.log(`📍 Server ishga tushdi: http://0.0.0.0:${PORT}`);
     console.log(`📊 Health check: http://0.0.0.0:${PORT}/api/health`);
-    console.log('🌐 WebSocket URL: wss://like-duel.onrender.com');
+    console.log('🌐 WebSocket URL: ws://0.0.0.0:${PORT}');
     console.log('='.repeat(70));
     console.log('✅ O\'zaro Match tizimi faollashtirildi');
     console.log('✅ Do\'stlar ro\'yxati avtomatik yangilanadi');
@@ -1600,7 +1720,8 @@ setInterval(() => {
     Onlayn foydalanuvchilar: ${onlineUsers} ta
     Navbatdagilar (online): ${onlineInQueue}/${queue.length} ta
     Faol Duellar: ${Object.keys(activeDuels).length} ta
-    O'zaro Matchlar: ${Object.keys(mutualMatches).length} ta`);
+    O'zaro Matchlar: ${Object.keys(mutualMatches).length} ta
+    Chat So'rovlari: ${Object.keys(chatRequests).length} ta`);
     
     // Online foydalanuvchilar ro'yxati
     const onlineList = Object.values(users)
@@ -1627,6 +1748,11 @@ setInterval(() => {
             const index = queue.indexOf(userId);
             if (index > -1) {
                 queue.splice(index, 1);
+            }
+            
+            // Mutual matches dan olib tashlash
+            if (mutualMatches[userId]) {
+                delete mutualMatches[userId];
             }
             
             removedCount++;
@@ -1680,3 +1806,25 @@ setInterval(() => {
         updateWaitingCount();
     }
 }, 10000); // Har 10 soniyada
+
+// Eski chat so'rovlarini tozalash (1 soatdan keyin)
+setInterval(() => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    let removedCount = 0;
+    
+    Object.keys(chatRequests).forEach(requestId => {
+        const request = chatRequests[requestId];
+        if (request.timestamp < oneHourAgo && request.status === 'pending') {
+            delete chatRequests[requestId];
+            removedCount++;
+        }
+    });
+    
+    if (removedCount > 0) {
+        console.log(`🗑️ ${removedCount} ta eski (1 soat) chat so'rovi tozalandi`);
+    }
+}, 1800000); // Har 30 daqiqa
+
+console.log('\n✅ Server background tasklari ishga tushdi');
+console.log('📊 Automatik monitoring aktiv');
+console.log('🎮 Like Duel Server to\'liq tayyor!\n');

@@ -222,7 +222,7 @@ window.handleMatch = function(data) {
             window.gameState.isWaitingForMatchAction = false;
             window.proceedToNextDuel?.();
         }
-    }, 30000); // 30 soniya
+    }, 300000); // 30 soniya
     
     // Stats yangilash
     window.updateStats?.(data);

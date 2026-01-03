@@ -1619,28 +1619,39 @@ input:disabled, textarea:disabled, select:disabled {
     0% { left: -100%; }
     100% { left: 100%; }
 }
+/* Animatsiyalar */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 
-/* Match action timer bar animation */
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
 @keyframes pulse {
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
-.chat-action-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+/* Match celebration styles */
+.match-celebration {
+    animation: fadeIn 0.8s ease-out;
 }
 
-.chat-action-btn:active {
-    transform: translateY(0);
+/* Timer pulse */
+.timer-pulse {
+    animation: pulse 0.5s infinite;
 }
 
-.system-message {
-    animation: fadeIn 0.5s ease-out;
+/* Chat invitation styles */
+.chat-invitation-container {
+    animation: slideIn 0.5s ease-out;
 }

@@ -276,6 +276,9 @@ function initEventListeners() {
 /**
  * Start the game - UPDATED VERSION
  */
+/**
+ * Start the game - FIXED VERSION
+ */
 function startGame() {
     console.log('🎮 O\'yinni boshlash tugmasi bosildi');
     
@@ -287,22 +290,16 @@ function startGame() {
         return;
     }
     
-    console.log('✅ Gender tanlangan, duel boshlanmoqda...');
+    console.log('✅ Gender tanlangan, oyin boshlanmoqda...');
     
-    // 2. O'yin holatini yangilash
-    window.gameState.isInQueue = false;
-    window.gameState.isInDuel = false;
-    window.gameState.matchCompleted = false;
-    window.gameState.isWaitingForMatchAction = false;
-    
-    // 3. Socket manager ishlayotganligini tekshirish
+    // 2. Socket manager ishlayotganligini tekshirish
     if (!window.socketManager) {
         console.error('❌ Socket manager topilmadi');
-        window.utils?.showNotification('Xato', 'Serverga ulanib bo\'lmadi');
+        window.utils?.showNotification('Xato', 'Tizimda xatolik yuz berdi');
         return;
     }
     
-    // 4. Agar socket ulanmagan bo'lsa, ulanish
+    // 3. Agar socket ulanmagan bo'lsa, ulanish
     if (!window.gameState.socket || !window.gameState.isConnected) {
         console.log('🔄 Socket ulanmagan, ulanish...');
         const connected = window.socketManager.connectToServer();
@@ -315,17 +312,33 @@ function startGame() {
         // Ulanish kutish
         setTimeout(() => {
             if (window.gameState.isConnected) {
-                window.startDuelFlow?.();
+                // Ulanganidan keyin queue ga kirish
+                window.gameState.isInQueue = true;
+                window.showScreen?.('queue');
+                window.updateQueueStatus?.('Navbatga kiritilmoqda...');
+                
+                // Navbatga kirish
+                setTimeout(() => {
+                    window.socketManager?.enterQueue?.();
+                }, 1000);
             } else {
                 window.utils?.showNotification('Xato', 'Serverga ulanib bo\'lmadi');
+                window.showScreen?.('welcome');
             }
-        }, 1000);
+        }, 2000);
     } else {
         // Socket allaqachon ulangan, darhol navbatga kirish
-        window.startDuelFlow?.();
+        console.log('✅ Socket allaqachon ulangan, navbatga kirilmoqda...');
+        window.gameState.isInQueue = true;
+        window.showScreen?.('queue');
+        window.updateQueueStatus?.('Navbatga kiritilmoqda...');
+        
+        // Navbatga kirish
+        setTimeout(() => {
+            window.socketManager?.enterQueue?.();
+        }, 500);
     }
 }
-
 /**
  * Leave the queue
  */

@@ -858,6 +858,91 @@ window.showMatchScreen = function(data) {
     }
 };
 
+// ==================== MANUAL GAME START ====================
+
+window.startDuelFlow = function() {
+    console.log('🎮 Duel boshlash funksiyasi ishga tushdi');
+    
+    // 1. Gender tekshirish
+    if (!window.userState.hasSelectedGender) {
+        console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
+        window.modalManager?.showGenderModal?.(true);
+        window.utils?.showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+        return false;
+    }
+    
+    // 2. Socket manager ishlayotganligini tekshirish
+    if (!window.socketManager) {
+        console.error('❌ Socket manager topilmadi');
+        window.utils?.showNotification('Xato', 'Tizimda xatolik yuz berdi');
+        return false;
+    }
+    
+    // 3. Agar socket ulanmagan bo'lsa, ulanish
+    if (!window.gameState.socket || !window.gameState.isConnected) {
+        console.log('🔄 Socket ulanmagan, ulanish...');
+        window.socketManager?.connectToServer?.();
+        
+        // Ulanish kutish
+        setTimeout(() => {
+            if (window.gameState.isConnected) {
+                // Ulanganidan keyin queue ga kirish
+                window.gameState.isInQueue = true;
+                window.showScreen?.('queue');
+                window.updateQueueStatus?.('Navbatga kiritilmoqda...');
+                
+                // Navbatga kirish
+                setTimeout(() => {
+                    window.socketManager?.enterQueue?.();
+                }, 1000);
+            }
+        }, 2000);
+        
+        return true;
+    } else {
+        // Socket allaqachon ulangan, darhol navbatga kirish
+        console.log('✅ Socket allaqachon ulangan, navbatga kirilmoqda...');
+        window.gameState.isInQueue = true;
+        window.showScreen?.('queue');
+        window.updateQueueStatus?.('Navbatga kiritilmoqda...');
+        
+        // Navbatga kirish
+        setTimeout(() => {
+            window.socketManager?.enterQueue?.();
+        }, 500);
+        
+        return true;
+    }
+};
+
+// ==================== START BUTTON BINDING ====================
+
+window.bindStartButton = function() {
+    const startBtn = document.getElementById('startBtn');
+    if (startBtn) {
+        // Avvalgi event listenerlarni o'chirish
+        startBtn.removeEventListener('click', window.startGame);
+        startBtn.removeEventListener('click', window.startDuelFlow);
+        
+        // Yangi event listener qo'shish
+        startBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🎮 Start button bosildi (GameLogic dan)');
+            window.startDuelFlow();
+        });
+        
+        console.log('✅ Start button GameLogic ga bog\'landi');
+    }
+};
+
+// Auto bind start button
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        window.bindStartButton?.();
+    }, 2000);
+});
+
 // ==================== FRIENDS MANAGEMENT ====================
 
 window.addFriend = function(friendData) {

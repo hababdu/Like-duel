@@ -159,6 +159,10 @@ const SocketManager = {
             this.handleOpponentLeft();
         });
         
+        socket.on('chat_link_created', (data) => {
+            this.handleChatLinkCreated(data);
+        });
+        
         socket.on('error', (data) => {
             this.handleError(data);
         });
@@ -294,6 +298,12 @@ const SocketManager = {
     handleDuelStarted: function(data) {
         console.log('⚔️ Duel boshlandi yoki davom etmoqda:', data);
         
+        // ✅ Agar biz match action kutayotgan bo'lsak, yangi duel boshlanmasin
+        if (window.gameState.isWaitingForMatchAction) {
+            console.log('⚠️ Match action kutilyapti, yangi duel boshlanmaydi');
+            return;
+        }
+        
         // Agar duel allaqachon boshlandi bo'lsa, bu raqib ovoz bergani degani
         if (window.gameState.isInDuel && window.gameState.currentDuelId === data.duelId) {
             console.log('⚠️ Duel davom etmoqda, raqib ovoz berdi');
@@ -412,6 +422,23 @@ const SocketManager = {
     },
     
     /**
+     * Handle chat link created
+     */
+    handleChatLinkCreated: function(data) {
+        console.log('🔗 Chat link yaratildi:', data);
+        
+        if (data.chatLink) {
+            window.utils?.showNotification('💬 Chat link', 
+                'Chat link yaratildi! Telegram orqali chatga ulanishingiz mumkin.');
+            
+            // Agar Web App bo'lsa, linkni ochish
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.openLink(data.chatLink);
+            }
+        }
+    },
+    
+    /**
      * Handle friends list
      */
     handleFriendsList: function(data) {
@@ -495,6 +522,7 @@ const SocketManager = {
         window.gameState.isConnected = false;
         window.gameState.isInQueue = false;
         window.gameState.isInDuel = false;
+        window.gameState.isWaitingForMatchAction = false;
         
         if (reason === 'io server disconnect') {
             window.updateQueueStatus?.('Server tomonidan uzildi. Qayta ulanmoqda...');
@@ -575,6 +603,18 @@ const SocketManager = {
         }
         
         window.gameState.socket.emit('get_friends_list');
+        return true;
+    },
+    
+    /**
+     * Create chat link
+     */
+    createChatLink: function(data) {
+        if (!window.gameState.socket || !window.gameState.isConnected) {
+            return false;
+        }
+        
+        window.gameState.socket.emit('create_chat_link', data);
         return true;
     },
     

@@ -1619,3 +1619,28 @@ input:disabled, textarea:disabled, select:disabled {
     0% { left: -100%; }
     100% { left: 100%; }
 }
+
+/* Match action timer bar animation */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.chat-action-btn:active {
+    transform: translateY(0);
+}
+
+.system-message {
+    animation: fadeIn 0.5s ease-out;
+}

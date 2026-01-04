@@ -1,11 +1,14 @@
-// Socket.js - To'liq yangilangan versiya
+// ==================== SOCKET MANAGER ====================
 
 const SocketManager = {
+    
+    // ==================== CONNECTION ====================
     
     connectToServer: function() {
         console.log('🔗 Serverga ulanmoqda...');
         
         try {
+            // Server URL ni aniqlash
             const isLocalhost = window.location.hostname === 'localhost' || 
                                window.location.hostname === '127.0.0.1';
             
@@ -15,18 +18,23 @@ const SocketManager = {
             
             console.log('🌐 Socket URL:', socketUrl);
             
+            // Avvalgi socketni yopish
             if (window.gameState.socket) {
                 window.gameState.socket.disconnect();
                 window.gameState.socket = null;
             }
             
+            // Yangi socket yaratish
             window.gameState.socket = io(socketUrl, {
                 transports: ['websocket', 'polling'],
-                reconnection: false,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
                 timeout: 20000,
                 forceNew: true
             });
             
+            // Event listener'larni o'rnatish
             this.setupEventListeners();
             
             return true;
@@ -36,6 +44,8 @@ const SocketManager = {
             return false;
         }
     },
+    
+    // ==================== EVENT LISTENERS ====================
     
     setupEventListeners: function() {
         const socket = window.gameState.socket;
@@ -52,6 +62,7 @@ const SocketManager = {
             console.log('✅ Serverga ulandi, Socket ID:', socket.id);
             window.gameState.isConnected = true;
             
+            // Auth ma'lumotlarini tayyorlash
             const tgUser = window.tgUserGlobal || {};
             const authData = {
                 userId: tgUser.id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -79,12 +90,14 @@ const SocketManager = {
             console.log('🔐 Auth ma\'lumotlari yuborilmoqda:', authData);
             socket.emit('auth', authData);
             
+            // UI yangilash
             window.updateQueueStatus?.('Serverga ulandi...');
         });
         
         socket.on('connect_error', (error) => {
             console.error('❌ Ulanish xatosi:', error);
             window.gameState.isConnected = false;
+            
             window.utils?.showNotification('Ulanish xatosi', 'Serverga ulanib bo\'lmadi');
             window.showScreen?.('welcome');
         });
@@ -94,7 +107,11 @@ const SocketManager = {
             window.gameState.isConnected = false;
             window.gameState.isInQueue = false;
             window.gameState.isInDuel = false;
+            
+            // Welcome screen ga qaytish
             window.showScreen?.('welcome');
+            
+            // Notification
             window.utils?.showNotification('Uzildi', 'Server bilan aloqa uzildi');
         });
         
@@ -110,6 +127,10 @@ const SocketManager = {
         socket.on('show_gender_selection', (data) => {
             console.log('⚠️ Gender tanlash kerak:', data);
             window.showGenderModal?.(true);
+            
+            if (data.message) {
+                window.utils?.showNotification('Diqqat', data.message);
+            }
         });
         
         socket.on('gender_selected', (data) => {
@@ -134,8 +155,9 @@ const SocketManager = {
         socket.on('duel_started', (data) => {
             console.log('⚔️ Duel boshlandi:', data);
             
-            if (window.gameState.waitingForChatResponse) {
-                console.log('⚠️ Chat taklifi kutilyapti, yangi duel e\'tiborga olinmaydi');
+            // Match action kutayotgan bo'lsak, yangi duel boshlanmasin
+            if (window.gameState.isWaitingForMatchAction) {
+                console.log('⚠️ Match action kutilyapti, yangi duel e\'tiborga olinmaydi');
                 return;
             }
             
@@ -147,23 +169,9 @@ const SocketManager = {
         socket.on('match', (data) => {
             console.log('🎉🎉🎉 SERVERDAN MATCH KELDI:', data);
             
-            const matchData = {
-                ...data,
-                partnerName: data.partner?.name || data.opponent?.name || 'Foydalanuvchi',
-                partnerUsername: data.partner?.username || data.opponent?.username || '',
-                partnerPhoto: data.partner?.photo || data.opponent?.photo || '',
-                partnerId: data.partner?.id || data.opponent?.userId,
-                partnerRating: data.partner?.rating || data.opponent?.rating || 1500,
-                partnerWins: data.partner?.wins || data.opponent?.wins || 0,
-                partnerGender: data.partner?.gender || data.opponent?.gender || 'not_specified',
-                coinsEarned: data.rewards?.coins || data.coinsEarned || 25,
-                ratingChange: data.newRating || data.ratingChange || 15,
-                isMatch: true,
-                isMutual: true
-            };
-            
+            // GameLogic ga yuborish
             if (window.gameLogic && window.gameLogic.handleMatch) {
-                window.gameLogic.handleMatch(matchData);
+                window.gameLogic.handleMatch(data);
             }
         });
         
@@ -188,6 +196,13 @@ const SocketManager = {
             }
         });
         
+        socket.on('mutual_super_like', (data) => {
+            console.log('💖💖 O\'zaro SUPER LIKE:', data);
+            if (window.gameLogic && window.gameLogic.handleSuperLikeGiven) {
+                window.gameLogic.handleSuperLikeGiven(data);
+            }
+        });
+        
         // ============ CHAT EVENTS ============
         
         socket.on('chat_invite', (data) => {
@@ -204,16 +219,12 @@ const SocketManager = {
         
         socket.on('chat_accepted', (data) => {
             console.log('✅ Chat taklifi qabul qilindi:', data);
-            if (window.gameLogic && window.gameLogic.handleChatAccepted) {
-                window.gameLogic.handleChatAccepted(data);
-            }
+            this.handleChatAccepted(data);
         });
         
         socket.on('chat_rejected', (data) => {
             console.log('❌ Chat taklifi rad etildi:', data);
-            if (window.gameLogic && window.gameLogic.handleChatRejected) {
-                window.gameLogic.handleChatRejected(data);
-            }
+            window.utils?.showNotification('Chat rad etildi', data.message || 'Chat taklifi rad etildi');
         });
         
         socket.on('chat_link_created', (data) => {
@@ -259,6 +270,7 @@ const SocketManager = {
     handleAuthOk: function(data) {
         console.log('🔑 Auth OK:', data);
         
+        // User state yangilash
         Object.assign(window.userState, {
             currentGender: data.gender || window.userState.currentGender,
             hasSelectedGender: data.hasSelectedGender !== undefined ? data.hasSelectedGender : window.userState.hasSelectedGender,
@@ -276,14 +288,16 @@ const SocketManager = {
             friendsCount: data.friendsCount || window.userState.friendsCount
         });
         
-        if (window.updateStats) {
-            window.updateStats(data);
-        }
-        
+        // UI yangilash
         window.updateUIFromUserState?.();
+        
+        // Welcome screen ga o'tish
         window.showScreen?.('welcome');
+        
+        // Notification
         window.utils?.showNotification('Serverga ulandi', 'Endi "O\'yinni Boshlash" tugmasini bosing!');
         
+        // Agar gender tanlanmagan bo'lsa, eslatma
         if (!window.userState.hasSelectedGender) {
             setTimeout(() => {
                 window.utils?.showNotification('Gender tanlash', 'O\'yinni boshlash uchun gender tanlashingiz kerak!');
@@ -294,6 +308,7 @@ const SocketManager = {
     handleGenderSelected: function(data) {
         console.log('✅ Gender tanlandi:', data);
         
+        // User state yangilash
         if (data.gender) {
             window.userState.currentGender = data.gender;
         }
@@ -302,30 +317,37 @@ const SocketManager = {
             window.userState.hasSelectedGender = data.hasSelectedGender;
         }
         
+        // UI yangilash
         window.updateUIFromUserState?.();
         
-        if (data.message) {
-            window.utils?.showNotification('Gender tanlandi', data.message);
-        }
-        
-        window.showScreen?.('welcome');
-        
+        // Start tugmasini faollashtirish
         if (window.elements?.startBtn) {
             window.elements.startBtn.disabled = false;
             window.elements.startBtn.style.opacity = '1';
             window.elements.startBtn.textContent = '🎮 O\'yinni Boshlash';
         }
+        
+        // Notification
+        if (data.message) {
+            window.utils?.showNotification('Gender tanlandi', data.message);
+        }
+        
+        // Welcome screen ga qaytish
+        window.showScreen?.('welcome');
     },
     
     handleQueueJoined: function(data) {
         console.log('✅ Navbatga kirdingiz:', data);
         
+        // Game state yangilash
         window.gameState.isInQueue = true;
         
+        // UI yangilash
         if (window.updateQueueStatus) {
             window.updateQueueStatus(`Navbatdasiz. O'rningiz: ${data.position}/${data.total}`);
         }
         
+        // Position va waiting count yangilash
         if (window.elements?.position) {
             window.elements.position.textContent = data.position || '-';
         }
@@ -338,6 +360,7 @@ const SocketManager = {
     handleWaitingCount: function(data) {
         console.log('📊 Navbat yangilandi:', data);
         
+        // UI elementlarini yangilash
         if (window.elements?.waitingCount && data.count !== undefined) {
             window.elements.waitingCount.textContent = data.count;
         }
@@ -346,11 +369,13 @@ const SocketManager = {
             window.elements.position.textContent = data.position;
         }
         
+        // Position info yangilash
         if (window.elements?.positionInfo && data.position !== undefined && data.count !== undefined) {
             window.elements.positionInfo.innerHTML = 
                 `Sizning o'rningiz: <span style="font-weight:bold;color:#fff">${data.position}</span> / ${data.count}`;
         }
         
+        // Queue status yangilash
         if (data.count > 0) {
             window.updateQueueStatus?.(`Raqib izlanmoqda... ${data.position ? `(O'rningiz: ${data.position})` : ''}`);
         } else {
@@ -361,23 +386,29 @@ const SocketManager = {
     handleDuelStarted: function(data) {
         console.log('⚔️ Duel boshlanmoqda:', data);
         
+        // Game state yangilash
         window.gameState.currentDuelId = data.duelId;
         window.gameState.isInDuel = true;
         window.gameState.matchCompleted = false;
         window.gameState.waitingForChatResponse = false;
         
+        // Duel screen ga o'tish
         window.showScreen?.('duel');
         
+        // Opponent ma'lumotlarini yangilash
         if (data.opponent) {
             this.updateOpponentInfo(data.opponent);
         }
         
+        // Timer boshlash
         if (window.gameLogic && window.gameLogic.startTimer) {
             window.gameLogic.startTimer();
         }
         
+        // Duel status yangilash
         window.updateDuelStatus?.('Raqibingizni baholang...');
         
+        // Vote tugmalarini faollashtirish
         if (window.gameLogic && window.gameLogic.enableVoteButtons) {
             window.gameLogic.enableVoteButtons();
         }
@@ -386,12 +417,14 @@ const SocketManager = {
     updateOpponentInfo: function(opponent) {
         console.log('👤 Opponent ma\'lumotlari:', opponent);
         
+        // Avatar yangilash
         if (window.elements?.opponentAvatar) {
             window.elements.opponentAvatar.src = opponent.photo || 
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(opponent.name || 'O')}&background=${opponent.gender === 'female' ? 'f5576c' : '667eea'}&color=fff`;
             window.elements.opponentAvatar.style.borderColor = opponent.gender === 'female' ? '#f5576c' : '#667eea';
         }
         
+        // Ism yangilash
         if (window.elements?.opponentName) {
             window.elements.opponentName.innerHTML = opponent.name || 'Foydalanuvchi';
             if (window.addGenderBadge && opponent.gender) {
@@ -399,26 +432,40 @@ const SocketManager = {
             }
         }
         
+        // Username yangilash
         if (window.elements?.opponentUsername) {
             window.elements.opponentUsername.textContent = opponent.username ? '@' + opponent.username : '';
         }
         
+        // Rating yangilash
         if (window.elements?.opponentRating) {
             window.elements.opponentRating.textContent = opponent.rating || 1500;
         }
         
+        // Matchlar soni
         if (window.elements?.opponentMatches) {
             window.elements.opponentMatches.textContent = opponent.matches || 0;
         }
         
+        // Level yangilash
         if (window.elements?.opponentLevel) {
             window.elements.opponentLevel.textContent = opponent.level || 1;
+        }
+    },
+    
+    handleChatAccepted: function(data) {
+        console.log('✅ Chat taklifi qabul qilindi:', data);
+        
+        // GameLogic ga yuborish
+        if (window.gameLogic && window.gameLogic.handleChatAccepted) {
+            window.gameLogic.handleChatAccepted(data);
         }
     },
     
     handleProfileUpdated: function(data) {
         console.log('📊 Profil yangilandi:', data);
         
+        // User state yangilash
         Object.assign(window.userState, {
             bio: data.bio !== undefined ? data.bio : window.userState.bio,
             gender: data.gender !== undefined ? data.gender : window.userState.currentGender,
@@ -428,19 +475,25 @@ const SocketManager = {
             friendsCount: data.friendsCount !== undefined ? data.friendsCount : window.userState.friendsCount
         });
         
+        // UI yangilash
         window.updateUIFromUserState?.();
+        
+        // Notification
         window.utils?.showNotification('✅ Profil yangilandi', 'O\'zgarishlar saqlandi');
     },
     
     handleFriendsList: function(data) {
         console.log('👥 Do\'stlar ro\'yxati:', data);
         
+        // Friends list yangilash
         window.gameState.friendsList = data.friends || [];
         
+        // UI yangilash
         if (window.uiManager && window.uiManager.updateFriendsListUI) {
             window.uiManager.updateFriendsListUI(data);
         }
         
+        // Friends count yangilash
         if (data.total !== undefined) {
             window.userState.friendsCount = data.total;
             window.updateUIFromUserState?.();
@@ -450,11 +503,14 @@ const SocketManager = {
     handleOpponentLeft: function() {
         console.log('🚪 Raqib chiqib ketdi');
         
+        // Game state yangilash
         window.gameState.isInDuel = false;
         window.gameState.matchCompleted = true;
         
+        // Notification
         window.utils?.showNotification('🚪 Raqib chiqib ketdi', 'Keyingi duelga o\'tilmoqda...');
         
+        // Keyingi duelga o'tish
         setTimeout(() => {
             if (window.gameLogic && window.gameLogic.proceedToNextDuel) {
                 window.gameLogic.proceedToNextDuel();
@@ -465,10 +521,12 @@ const SocketManager = {
     handleError: function(data) {
         console.error('❌ Server xatosi:', data);
         
+        // Notification
         if (data.message) {
             window.utils?.showNotification('Xato', data.message);
         }
         
+        // Agar gender kerak bo'lsa, modal ochish
         if (data.code === 'GENDER_REQUIRED') {
             window.showGenderModal?.(true);
         }
@@ -657,6 +715,8 @@ const SocketManager = {
         }
     },
     
+    // ==================== UTILITY METHODS ====================
+    
     disconnect: function() {
         console.log('🔌 Socket uzilmoqda...');
         
@@ -669,15 +729,67 @@ const SocketManager = {
         }
     },
     
+    reconnect: function() {
+        console.log('🔄 Qayta ulanmoqda...');
+        this.disconnect();
+        this.connectToServer();
+    },
+    
+    isConnected: function() {
+        return window.gameState.socket && window.gameState.socket.connected;
+    },
+    
+    getSocketId: function() {
+        return window.gameState.socket?.id || null;
+    },
+    
+    // ==================== INITIALIZATION ====================
+    
     init: function() {
         console.log('🔌 Socket Manager initializing...');
         
+        // Socket.IO library mavjudligini tekshirish
         if (typeof io === 'undefined') {
             console.error('❌ Socket.IO library topilmadi!');
             window.utils?.showNotification('Xato', 'Socket.IO library yuklanmadi');
             return false;
         }
         
+        // GameState mavjudligini tekshirish
+        if (!window.gameState) {
+            console.warn('⚠️ GameState mavjud emas, yaratilmoqda...');
+            window.gameState = {
+                socket: null,
+                isConnected: false,
+                isInQueue: false,
+                isInDuel: false,
+                currentDuelId: null,
+                matchCompleted: false,
+                isWaitingForMatchAction: false,
+                waitingForChatResponse: false,
+                friendsList: []
+            };
+        }
+        
+        // UserState mavjudligini tekshirish
+        if (!window.userState) {
+            console.warn('⚠️ UserState mavjud emas, yaratilmoqda...');
+            window.userState = {
+                currentGender: 'not_specified',
+                hasSelectedGender: false,
+                coins: 100,
+                rating: 1500,
+                matches: 0,
+                duels: 0,
+                wins: 0,
+                totalLikes: 0,
+                mutualMatchesCount: 0,
+                friendsCount: 0,
+                dailySuperLikes: 3
+            };
+        }
+        
+        console.log('✅ Socket Manager initialized');
         return true;
     }
 };

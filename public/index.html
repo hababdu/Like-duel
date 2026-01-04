@@ -12,6 +12,32 @@
 <meta property="og:url" content="https://likeduel.uz">
 <meta name="twitter:card" content="summary_large_image">
     <title>❤️ Like Duel - O'zaro Match va Do'stlar Tizimi</title>
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registered:', registration);
+                }).catch(error => {
+                    console.log('ServiceWorker registration failed:', error);
+                });
+            });
+        }
+    </script>
+    
+    <!-- New CSS files -->
+    <link rel="stylesheet" href="enhanced-styles.css">
+    
+    <!-- New JS files (add to existing scripts) -->
+    <script src="quests.js"></script>
+    <script src="achievements.js"></script>
+    <script src="chat.js"></script>
+    <script src="stateManager.js"></script>
+    <script src="gameLogicImproved.js"></script>
+    <script src="socketManagerImproved.js"></script>
+    <script src="app.js"></script>
     
     <!-- CDN kutubxonalari -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

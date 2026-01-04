@@ -1,0 +1,188 @@
+// quests.js faylini yarating
+class QuestSystem {
+    constructor() {
+        this.quests = [
+            { id: 1, type: 'duels', target: 3, reward: { coins: 50, xp: 20 }, title: "3 ta duel o'ynash", icon: "🎮", progress: 0 },
+            { id: 2, type: 'likes', target: 5, reward: { coins: 30, xp: 15 }, title: "5 ta like berish", icon: "❤️", progress: 0 },
+            { id: 3, type: 'superlikes', target: 2, reward: { coins: 100, xp: 30 }, title: "2 ta Super Like", icon: "💎", progress: 0 },
+            { id: 4, type: 'matches', target: 1, reward: { coins: 80, xp: 25 }, title: "1 ta Match qilish", icon: "✨", progress: 0 },
+            { id: 5, type: 'friends', target: 1, reward: { coins: 150, xp: 40 }, title: "1 ta do'st qo'shish", icon: "🤝", progress: 0 }
+        ];
+        this.dailyStreak = parseInt(localStorage.getItem('daily_streak')) || 0;
+        this.lastLogin = localStorage.getItem('last_login');
+        this.checkDailyReset();
+    }
+
+    checkDailyReset() {
+        const today = new Date().toDateString();
+        
+        if (this.lastLogin !== today) {
+            // Kunlik reset
+            this.resetDailyQuests();
+            this.checkDailyLogin();
+            localStorage.setItem('last_login', today);
+        }
+    }
+
+    resetDailyQuests() {
+        this.quests.forEach(quest => quest.progress = 0);
+        this.saveQuests();
+    }
+
+    checkDailyLogin() {
+        const now = new Date();
+        const lastLogin = this.lastLogin ? new Date(this.lastLogin) : null;
+        
+        if (lastLogin) {
+            const diffDays = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+                // Ketma-ket login
+                this.dailyStreak++;
+            } else if (diffDays > 1) {
+                // Streak uzildi
+                this.dailyStreak = 1;
+            }
+        } else {
+            this.dailyStreak = 1;
+        }
+        
+        localStorage.setItem('daily_streak', this.dailyStreak);
+        
+        // Streak mukofoti
+        const streakRewards = {
+            3: { coins: 100, xp: 50 },
+            7: { coins: 300, xp: 150 },
+            14: { coins: 700, xp: 350 },
+            30: { coins: 2000, xp: 1000 }
+        };
+        
+        if (streakRewards[this.dailyStreak]) {
+            this.giveStreakReward(streakRewards[this.dailyStreak]);
+        }
+    }
+
+    updateProgress(type, amount = 1) {
+        this.quests.forEach(quest => {
+            if (quest.type === type) {
+                quest.progress += amount;
+                
+                if (quest.progress >= quest.target) {
+                    this.completeQuest(quest);
+                }
+            }
+        });
+        
+        this.saveQuests();
+        this.updateUI();
+    }
+
+    completeQuest(quest) {
+        // Reward berish
+        window.userState.coins += quest.reward.coins;
+        window.userState.xp += quest.reward.xp;
+        
+        // Level up tekshirish
+        this.checkLevelUp();
+        
+        // Notification
+        window.showNotification?.("✅ Vazifa bajarildi!", 
+            `${quest.title} - ${quest.reward.coins} tanga va ${quest.reward.xp} XP qo'shildi`);
+        
+        // Confetti efekti
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+        
+        // Yangi vazifa
+        quest.progress = 0;
+    }
+
+    checkLevelUp() {
+        const neededXP = window.userState.level * 100;
+        
+        if (window.userState.xp >= neededXP) {
+            window.userState.level++;
+            window.userState.xp -= neededXP;
+            
+            window.showNotification?.("🎉 Level up!", 
+                `Endi siz ${window.userState.level}-leveldasiz! +200 tanga bonus`);
+            
+            window.userState.coins += 200;
+            
+            // Level up confetti
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { y: 0.3 }
+            });
+        }
+    }
+
+    updateUI() {
+        const container = document.getElementById('profileQuestsList');
+        if (!container) return;
+        
+        container.innerHTML = this.quests.map(quest => `
+            <div class="quest-card ${quest.progress >= quest.target ? 'completed' : ''}">
+                <div class="quest-header">
+                    <div class="quest-icon">${quest.icon}</div>
+                    <div class="quest-info">
+                        <div class="quest-title">${quest.title}</div>
+                        <div class="quest-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${(quest.progress / quest.target) * 100}%"></div>
+                            </div>
+                            <span class="progress-text">${quest.progress}/${quest.target}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <div class="reward-coins">
+                        <i class="fas fa-coins"></i> ${quest.reward.coins}
+                    </div>
+                    <div class="reward-xp">
+                        <i class="fas fa-star"></i> ${quest.reward.xp} XP
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Streak UI
+        const streakElement = document.getElementById('streakCounter');
+        if (streakElement) {
+            streakElement.innerHTML = `
+                <div class="streak-container">
+                    <div class="streak-icon">🔥</div>
+                    <div class="streak-info">
+                        <div class="streak-count">${this.dailyStreak} kun</div>
+                        <div class="streak-label">Ketma-ket login</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    saveQuests() {
+        localStorage.setItem('user_quests', JSON.stringify(this.quests));
+    }
+
+    loadQuests() {
+        const saved = localStorage.getItem('user_quests');
+        if (saved) {
+            this.quests = JSON.parse(saved);
+        }
+    }
+
+    giveStreakReward(reward) {
+        window.userState.coins += reward.coins;
+        window.userState.xp += reward.xp;
+        
+        window.showNotification?.("🔥 Streak mukofoti!", 
+            `${this.dailyStreak} kun ketma-ket login! ${reward.coins} tanga va ${reward.xp} XP`);
+    }
+}
+
+window.questSystem = new QuestSystem();

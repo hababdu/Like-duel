@@ -1,0 +1,93 @@
+{
+    "name": "Like Duel - O'zaro Match",
+    "short_name": "Like Duel",
+    "description": "O'zaro like berish orqali yangi do'stlar toping!",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#667eea",
+    "orientation": "portrait",
+    "icons": [
+      {
+        "src": "/icon-72x72.png",
+        "sizes": "72x72",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-96x96.png",
+        "sizes": "96x96",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-128x128.png",
+        "sizes": "128x128",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-144x144.png",
+        "sizes": "144x144",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-152x152.png",
+        "sizes": "152x152",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-384x384.png",
+        "sizes": "384x384",
+        "type": "image/png"
+      },
+      {
+        "src": "/icon-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ],
+    "categories": ["social", "games", "entertainment"],
+    "lang": "uz",
+    "dir": "ltr",
+    "prefer_related_applications": false,
+    "related_applications": [],
+    "shortcuts": [
+      {
+        "name": "Yangi Duel",
+        "short_name": "Duel",
+        "description": "Yangi duel boshlash",
+        "url": "/?start=duel"
+      },
+      {
+        "name": "Do'stlar",
+        "short_name": "Do'stlar",
+        "description": "Do'stlar ro'yxatini ko'rish",
+        "url": "/?tab=friends"
+      },
+      {
+        "name": "Profil",
+        "short_name": "Profil",
+        "description": "Profilni ko'rish",
+        "url": "/?tab=profile"
+      }
+    ],
+    "screenshots": [
+      {
+        "src": "/screenshot1.png",
+        "sizes": "1280x720",
+        "type": "image/png",
+        "platform": "wide",
+        "label": "Like Duel main screen"
+      },
+      {
+        "src": "/screenshot2.png",
+        "sizes": "750x1334",
+        "type": "image/png",
+        "platform": "narrow",
+        "label": "Mobile view"
+      }
+    ]
+  }

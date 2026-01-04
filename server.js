@@ -1,82 +1,76 @@
-// server.js - Like Duel Server (Complete Version)
+// ==================== LIKE DUEL SERVER - MUTUAL MATCH SYSTEM ====================
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 
+// Create Express app
 const app = express();
 const server = http.createServer(app);
+
+// Configure Socket.IO with CORS
 const io = new Server(server, {
     cors: {
-        origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"],
+        origin: [
+            'https://like-duel.onrender.com',
+            'http://localhost:3000',
+            'http://localhost:5500',
+            'http://127.0.0.1:5500',
+            'http://localhost:8080',
+            'http://127.0.0.1:8080'
+        ],
         methods: ["GET", "POST"],
         credentials: true
     },
     transports: ['websocket', 'polling'],
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    connectionStateRecovery: {
+        maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+        skipMiddlewares: true
+    }
 });
 
-// ==================== CORS CONFIGURATION ====================
+// ==================== MIDDLEWARE ====================
 app.use(cors({
-    origin: ["https://like-duel.onrender.com", "http://localhost:3000", "http://localhost:5500", "http://127.0.0.1:5500"],
+    origin: [
+        'https://like-duel.onrender.com',
+        'http://localhost:3000',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500'
+    ],
     credentials: true
 }));
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, './public')));
+app.use(express.static('public'));
 
-// ==================== STATIC FILES ====================
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'index.html'));
-});
-
-app.get('/main.js', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'main.js'));
-});
-
-app.get('/style.css', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'style.css'));
-});
-
-app.get('/ui.js', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'ui.js'));
-});
-
-app.get('/socket.js', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'socket.js'));
-});
-
-app.get('/gameLogic.js', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'gameLogic.js'));
-});
-
-app.get('/storage.js', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'storage.js'));
-});
-
-app.get('/utils.js', (req, res) => {
-    res.sendFile(path.join(__dirname, './public', 'utils.js'));
-});
-
-// ==================== API ENDPOINTS ====================
+// ==================== ROUTES ====================
+// Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({
+    const stats = {
         status: 'online',
-        message: 'Like Duel Server is running',
         timestamp: new Date().toISOString(),
-        platform: 'Render.com',
-        websocket: 'Active',
-        users: Object.keys(users).length,
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        platform: process.platform,
+        nodeVersion: process.version,
+        serverTime: new Date().toLocaleString('uz-UZ'),
+        
+        // Game statistics
+        totalUsers: Object.keys(users).length,
         onlineUsers: Object.values(users).filter(u => u.connected).length,
-        queue: queue.length,
+        inQueue: queue.length,
         activeDuels: Object.keys(activeDuels).length,
-        mutualMatches: Object.keys(mutualMatches).length,
-        chatRequests: Object.keys(chatRequests).length
-    });
+        totalMatches: Object.keys(mutualMatches).length,
+        pendingChatRequests: Object.values(chatRequests).filter(r => r.status === 'pending').length
+    };
+    
+    res.json(stats);
 });
 
+// Server statistics
 app.get('/api/stats', (req, res) => {
     const totalUsers = Object.keys(users).length;
     const onlineUsers = Object.values(users).filter(u => u.connected).length;
@@ -100,10 +94,12 @@ app.get('/api/stats', (req, res) => {
         waitingQueue: queue.length,
         activeDuels: Object.keys(activeDuels).length,
         totalMutualMatches: Object.keys(mutualMatches).length,
-        chatRequests: Object.keys(chatRequests).length
+        chatRequests: Object.keys(chatRequests).length,
+        serverUptime: Math.floor(process.uptime() / 60) + ' minutes'
     });
 });
 
+// Get user list
 app.get('/api/users', (req, res) => {
     const usersList = Object.values(users).map(user => ({
         id: user.id,
@@ -118,7 +114,8 @@ app.get('/api/users', (req, res) => {
         online: user.connected,
         lastActive: user.lastActive,
         hasSelectedGender: user.hasSelectedGender,
-        filter: user.filter
+        filter: user.filter,
+        socketId: user.socketId?.substring(0, 8) + '...'
     }));
     
     res.json({
@@ -128,10 +125,13 @@ app.get('/api/users', (req, res) => {
     });
 });
 
+// Get queue status
 app.get('/api/queue', (req, res) => {
     const queueInfo = queue.map((userId, index) => {
         const user = users[userId];
-        return user ? {
+        if (!user) return null;
+        
+        return {
             position: index + 1,
             userId: user.id,
             name: user.firstName,
@@ -139,18 +139,20 @@ app.get('/api/queue', (req, res) => {
             filter: user.filter,
             online: user.connected,
             waitingSince: user.lastActive,
-            rating: user.rating
-        } : null;
+            rating: user.rating,
+            estimatedWait: (index + 1) * 10 + ' seconds'
+        };
     }).filter(item => item !== null);
     
     res.json({
-        count: queue.length,
+        count: queueInfo.length,
         onlineInQueue: queueInfo.filter(q => q.online).length,
-        estimatedWait: queue.length * 10,
+        estimatedWait: queueInfo.length * 10 + ' seconds',
         queue: queueInfo
     });
 });
 
+// Get active duels
 app.get('/api/duels', (req, res) => {
     const duelsList = Object.values(activeDuels).map(duel => {
         const player1 = users[duel.player1];
@@ -159,7 +161,7 @@ app.get('/api/duels', (req, res) => {
         return {
             id: duel.id,
             started: duel.startTime,
-            duration: Math.floor((new Date() - duel.startTime) / 1000),
+            duration: Math.floor((new Date() - duel.startTime) / 1000) + ' seconds',
             player1: player1 ? {
                 id: player1.id,
                 name: player1.firstName,
@@ -176,7 +178,8 @@ app.get('/api/duels', (req, res) => {
             } : null,
             ended: duel.ended,
             isMatch: (duel.votes[duel.player1] === 'like' || duel.votes[duel.player1] === 'super_like') && 
-                    (duel.votes[duel.player2] === 'like' || duel.votes[duel.player2] === 'super_like')
+                    (duel.votes[duel.player2] === 'like' || duel.votes[duel.player2] === 'super_like'),
+            timeLeft: 20 - Math.floor((new Date() - duel.startTime) / 1000)
         };
     });
     
@@ -187,6 +190,7 @@ app.get('/api/duels', (req, res) => {
     });
 });
 
+// Get mutual matches
 app.get('/api/matches', (req, res) => {
     const mutualMatchesList = Object.entries(mutualMatches).map(([userId, friends]) => {
         const user = users[userId];
@@ -200,16 +204,47 @@ app.get('/api/matches', (req, res) => {
                     id: friend.id,
                     name: friend.firstName,
                     username: friend.username,
-                    online: friend.connected
+                    online: friend.connected,
+                    gender: friend.gender,
+                    rating: friend.rating
                 } : { id: friendId, name: 'Unknown' };
             })
         };
     });
     
     res.json({
-        totalMutualMatches: Object.keys(mutualMatches).length,
+        totalMutualMatches: mutualMatchesList.length,
         mutualMatches: mutualMatchesList
     });
+});
+
+// Test endpoint
+app.get('/api/test', (req, res) => {
+    res.json({
+        message: 'Like Duel Server is working!',
+        timestamp: new Date().toISOString(),
+        endpoints: [
+            '/api/health',
+            '/api/stats',
+            '/api/users',
+            '/api/queue',
+            '/api/duels',
+            '/api/matches'
+        ]
+    });
+});
+
+// Serve static files
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('*', (req, res) => {
+    if (req.path.endsWith('.js') || req.path.endsWith('.css') || req.path.endsWith('.html')) {
+        res.sendFile(path.join(__dirname, 'public', req.path));
+    } else {
+        res.status(404).json({ error: 'Not found' });
+    }
 });
 
 // ==================== GLOBAL VARIABLES ====================
@@ -217,27 +252,26 @@ const users = {};          // All users {userId: userObject}
 const queue = [];         // Users in queue [userId1, userId2, ...]
 const activeDuels = {};   // Active duels {duelId: duelObject}
 const mutualMatches = {}; // Mutual matches {userId: [friendId1, friendId2, ...]}
+const chatRequests = {};  // Chat requests {requestId: requestObject}
 const matchHistory = {};  // Match history {userId: [match1, match2, ...]}
-const chatRequests = {};  // Chat requests {requestId: {from, to, status}}
 
 // ==================== HELPER FUNCTIONS ====================
-
 /**
- * Generate Duel ID
+ * Generate unique Duel ID
  */
 function generateDuelId() {
     return 'duel_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 /**
- * Generate Request ID
+ * Generate unique Request ID
  */
 function generateRequestId() {
     return 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
 /**
- * Check gender compatibility
+ * Check if two users are gender compatible
  */
 function checkGenderCompatibility(user1, user2) {
     if (!user1?.gender || !user2?.gender) return false;
@@ -246,13 +280,13 @@ function checkGenderCompatibility(user1, user2) {
 }
 
 /**
- * Check filter compatibility
+ * Check if user's filter allows opponent
  */
 function checkFilterCompatibility(user, opponent) {
     const userFilter = user.filter || 'not_specified';
     const opponentFilter = opponent.filter || 'not_specified';
     
-    // Check user's filter
+    // Check user's filter against opponent's gender
     if (userFilter === 'male') {
         return opponent.gender === 'male';
     }
@@ -269,30 +303,26 @@ function checkFilterCompatibility(user, opponent) {
 }
 
 /**
- * Find opponent from queue (ONLY ONLINE USERS)
+ * Find opponent for user (only ONLINE users)
  */
 function findOpponentFor(userId) {
     const user = users[userId];
-    if (!user || !user.hasSelectedGender || !user.gender) return null;
-    
-    // If user is offline, remove from queue
-    if (!user.connected) {
-        const index = queue.indexOf(userId);
-        if (index > -1) {
-            queue.splice(index, 1);
-            console.log(`⚠️ ${user.firstName} removed from queue (offline)`);
-        }
+    if (!user || !user.connected || !user.hasSelectedGender || !user.gender) {
         return null;
     }
     
-    // Search only ONLINE users
-    for (let i = 0; i < queue.length; i++) {
+    // Remove offline users from queue
+    for (let i = queue.length - 1; i >= 0; i--) {
         const opponentId = queue[i];
         if (opponentId === userId) continue;
         
         const opponent = users[opponentId];
-        if (!opponent || !opponent.connected) continue; // Skip OFFLINE opponents
+        if (!opponent || !opponent.connected) {
+            queue.splice(i, 1);
+            continue;
+        }
         
+        // Check basic requirements
         if (!opponent.hasSelectedGender || !opponent.gender) continue;
         
         // Check gender compatibility
@@ -304,7 +334,7 @@ function findOpponentFor(userId) {
         // Check opponent's filter
         if (!checkFilterCompatibility(opponent, user)) continue;
         
-        console.log(`🔍 Opponent found: ${user.firstName} <-> ${opponent.firstName} (both online)`);
+        // Found compatible opponent
         return opponentId;
     }
     
@@ -312,7 +342,7 @@ function findOpponentFor(userId) {
 }
 
 /**
- * Update waiting count
+ * Update waiting count for all in queue
  */
 function updateWaitingCount() {
     const count = queue.length;
@@ -337,55 +367,45 @@ function updateWaitingCount() {
     });
 }
 
-// ==================== MUTUAL MATCH FUNCTIONS ====================
-
+// ==================== MATCH MANAGEMENT ====================
 /**
- * Add mutual match (WITHOUT automatic chat invite)
+ * Add mutual match between two users
  */
 function addMutualMatch(userId1, userId2) {
-    console.log(`🤝 Mutual match added: ${userId1} <-> ${userId2}`);
+    console.log(`🤝 Adding mutual match: ${userId1} <-> ${userId2}`);
     
-    // For first user
-    if (!mutualMatches[userId1]) {
-        mutualMatches[userId1] = [];
-    }
+    // Add to first user's mutual matches
+    if (!mutualMatches[userId1]) mutualMatches[userId1] = [];
     if (!mutualMatches[userId1].includes(userId2)) {
         mutualMatches[userId1].push(userId2);
-        console.log(`✅ ${userId2} added to ${userId1}'s friends`);
+        if (users[userId1]) {
+            users[userId1].mutualMatchesCount = mutualMatches[userId1].length;
+            users[userId1].friendsCount = mutualMatches[userId1].length;
+        }
     }
     
-    // For second user
-    if (!mutualMatches[userId2]) {
-        mutualMatches[userId2] = [];
-    }
+    // Add to second user's mutual matches
+    if (!mutualMatches[userId2]) mutualMatches[userId2] = [];
     if (!mutualMatches[userId2].includes(userId1)) {
         mutualMatches[userId2].push(userId1);
-        console.log(`✅ ${userId1} added to ${userId2}'s friends`);
+        if (users[userId2]) {
+            users[userId2].mutualMatchesCount = mutualMatches[userId2].length;
+            users[userId2].friendsCount = mutualMatches[userId2].length;
+        }
     }
     
-    // Update friends count
-    if (users[userId1]) {
-        users[userId1].mutualMatchesCount = mutualMatches[userId1].length;
-        users[userId1].friendsCount = mutualMatches[userId1].length;
-    }
-    
-    if (users[userId2]) {
-        users[userId2].mutualMatchesCount = mutualMatches[userId2].length;
-        users[userId2].friendsCount = mutualMatches[userId2].length;
-    }
-    
-    console.log(`✅ Mutual match added: ${userId1} (${mutualMatches[userId1]?.length}) <-> ${userId2} (${mutualMatches[userId2]?.length})`);
+    console.log(`✅ Mutual match added. ${userId1}: ${mutualMatches[userId1]?.length} friends, ${userId2}: ${mutualMatches[userId2]?.length} friends`);
 }
 
 /**
- * Get mutual matches
+ * Get mutual matches for user
  */
 function getMutualMatches(userId) {
     return mutualMatches[userId] || [];
 }
 
 /**
- * Add match history
+ * Add match to history
  */
 function addMatchHistory(userId1, userId2) {
     const matchId = `match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -407,8 +427,7 @@ function addMatchHistory(userId1, userId2) {
     });
 }
 
-// ==================== CHAT REQUEST FUNCTIONS ====================
-
+// ==================== CHAT REQUEST MANAGEMENT ====================
 /**
  * Create chat request
  */
@@ -419,17 +438,17 @@ function createChatRequest(fromUserId, toUserId) {
         id: requestId,
         from: fromUserId,
         to: toUserId,
-        status: 'pending', // 'pending', 'accepted', 'rejected', 'cancelled', 'timeout'
+        status: 'pending',
         timestamp: new Date(),
         createdAt: new Date()
     };
     
     console.log(`💬 Chat request created: ${requestId} (${fromUserId} -> ${toUserId})`);
     
-    // Send chat invite to opponent
     const toUser = users[toUserId];
     const fromUser = users[fromUserId];
     
+    // Send chat invite to opponent
     if (toUser && toUser.connected && fromUser) {
         const socket = io.sockets.sockets.get(toUser.socketId);
         if (socket) {
@@ -438,15 +457,16 @@ function createChatRequest(fromUserId, toUserId) {
                 fromUserId: fromUserId,
                 fromUserName: fromUser.firstName,
                 fromUserPhoto: fromUser.photoUrl,
-                message: `${fromUser.firstName} wants to chat with you!`
+                message: `${fromUser.firstName} siz bilan chat qilishni xohlaydi!`
             });
             console.log(`✅ Chat invite sent to ${toUser.firstName}`);
             
-            // Start timeout timer (30 seconds)
+            // Set timeout for chat request (30 seconds)
             setTimeout(() => {
-                if (chatRequests[requestId] && chatRequests[requestId].status === 'pending') {
+                const request = chatRequests[requestId];
+                if (request && request.status === 'pending') {
                     console.log(`⏰ Chat request ${requestId} timed out`);
-                    chatRequests[requestId].status = 'timeout';
+                    request.status = 'timeout';
                     
                     // Notify both users
                     const fromSocket = io.sockets.sockets.get(fromUser.socketId);
@@ -456,7 +476,7 @@ function createChatRequest(fromUserId, toUserId) {
                         fromSocket.emit('chat_timeout', {
                             requestId: requestId,
                             partnerName: toUser.firstName,
-                            message: `${toUser.firstName} didn't respond to your chat invite.`
+                            message: `${toUser.firstName} chat taklifiga javob bermadi.`
                         });
                     }
                     
@@ -464,14 +484,14 @@ function createChatRequest(fromUserId, toUserId) {
                         toSocket.emit('chat_timeout', {
                             requestId: requestId,
                             partnerName: fromUser.firstName,
-                            message: `Chat invite from ${fromUser.firstName} has expired.`
+                            message: `${fromUser.firstName} ning chat taklifi muddati tugadi.`
                         });
                     }
                 }
-            }, 30000); // 30 seconds timeout
+            }, 30000); // 30 seconds
         }
     } else {
-        console.log(`⚠️ ${toUser?.firstName || 'User'} is offline, can't send chat invite`);
+        console.log(`⚠️ ${toUser?.firstName || 'User'} is offline, cannot send chat invite`);
         chatRequests[requestId].status = 'cancelled';
     }
     
@@ -499,7 +519,7 @@ function acceptChatRequest(requestId, userId) {
     const fromUser = users[request.from];
     const toUser = users[request.to];
     
-    // Add mutual match if not already added
+    // Add mutual match if not already friends
     if (!mutualMatches[request.from]?.includes(request.to)) {
         addMutualMatch(request.from, request.to);
     }
@@ -514,13 +534,13 @@ function acceptChatRequest(requestId, userId) {
                 partnerName: toUser.firstName,
                 partnerUsername: toUser.username,
                 partnerPhoto: toUser.photoUrl,
-                message: `${toUser.firstName} accepted your chat invite! You can now chat.`
+                message: `${toUser.firstName} sizning chat taklifingizni qabul qildi! Endi suhbatlashingiz mumkin.`
             });
             console.log(`✅ ${fromUser.firstName} notified about chat acceptance`);
         }
     }
     
-    // Notify the user who accepted the invite
+    // Notify the user who accepted
     if (toUser && toUser.connected) {
         const toSocket = io.sockets.sockets.get(toUser.socketId);
         if (toSocket) {
@@ -530,7 +550,7 @@ function acceptChatRequest(requestId, userId) {
                 partnerName: fromUser.firstName,
                 partnerUsername: fromUser.username,
                 partnerPhoto: fromUser.photoUrl,
-                message: `You accepted chat invite from ${fromUser.firstName}! You can now chat.`
+                message: `Siz ${fromUser.firstName} ning chat taklifini qabul qildingiz! Endi suhbatlashingiz mumkin.`
             });
             console.log(`✅ ${toUser.firstName} notified about chat acceptance`);
         }
@@ -567,7 +587,7 @@ function rejectChatRequest(requestId, userId) {
             socket.emit('chat_rejected', {
                 requestId: requestId,
                 partnerName: toUser.firstName,
-                message: `${toUser.firstName} rejected your chat invite.`
+                message: `${toUser.firstName} sizning chat taklifingizni rad etdi.`
             });
             console.log(`✅ ${fromUser.firstName} notified about chat rejection`);
         }
@@ -609,7 +629,7 @@ function cancelChatRequest(requestId, userId) {
             socket.emit('chat_cancelled', {
                 requestId: requestId,
                 partnerName: fromUser.firstName,
-                message: `${fromUser.firstName} cancelled the chat invite.`
+                message: `${fromUser.firstName} chat taklifini bekor qildi.`
             });
             console.log(`✅ ${toUser.firstName} notified about chat cancellation`);
         }
@@ -629,7 +649,7 @@ function cancelAllPendingChatRequests(userId) {
             request.status = 'cancelled';
             cancelledCount++;
             
-            // Notify the other user if online
+            // Notify the other user
             const otherUserId = request.from === userId ? request.to : request.from;
             const otherUser = users[otherUserId];
             
@@ -639,7 +659,7 @@ function cancelAllPendingChatRequests(userId) {
                     socket.emit('chat_cancelled', {
                         requestId: request.id,
                         partnerName: users[userId]?.firstName,
-                        message: `${users[userId]?.firstName} cancelled the chat invite.`
+                        message: `${users[userId]?.firstName} chat taklifini bekor qildi.`
                     });
                 }
             }
@@ -650,13 +670,12 @@ function cancelAllPendingChatRequests(userId) {
     return cancelledCount;
 }
 
-// ==================== DUEL FINDING AND STARTING ====================
-
+// ==================== DUEL MANAGEMENT ====================
 /**
- * Find and start duels (ONLY ONLINE USERS)
+ * Find and start duels for online users
  */
 function findAndStartDuels() {
-    // First remove offline users from queue
+    // Remove offline users from queue first
     for (let i = queue.length - 1; i >= 0; i--) {
         const userId = queue[i];
         const user = users[userId];
@@ -687,7 +706,7 @@ function findAndStartDuels() {
             if (userIndex > -1) queue.splice(userIndex, 1);
             if (opponentIndex > -1) queue.splice(opponentIndex, 1);
             
-            console.log(`⚔️ Starting duel: ${userId} vs ${opponentId} (both online)`);
+            console.log(`⚔️ Starting duel: ${userId} vs ${opponentId}`);
             startDuel(userId, opponentId);
             updateWaitingCount();
             break;
@@ -696,7 +715,7 @@ function findAndStartDuels() {
 }
 
 /**
- * Start duel
+ * Start duel between two players
  */
 function startDuel(player1Id, player2Id) {
     const duelId = generateDuelId();
@@ -708,7 +727,7 @@ function startDuel(player1Id, player2Id) {
         return;
     }
     
-    // If users are not online
+    // Check if both are online
     if (!player1.connected || !player2.connected) {
         console.error(`❌ Users not online for duel: 
             ${player1.firstName}: ${player1.connected ? 'online' : 'offline'}
@@ -725,6 +744,7 @@ function startDuel(player1Id, player2Id) {
         return;
     }
     
+    // Create duel object
     activeDuels[duelId] = {
         id: duelId,
         player1: player1Id,
@@ -741,7 +761,7 @@ function startDuel(player1Id, player2Id) {
     console.log(`   Player 1: ${player1.firstName} (${player1.gender}) - ${player1.connected ? 'online ✅' : 'offline ❌'}`);
     console.log(`   Player 2: ${player2.firstName} (${player2.gender}) - ${player2.connected ? 'online ✅' : 'offline ❌'}`);
     
-    // Send data to Player1
+    // Send duel started event to Player 1
     const player1Socket = io.sockets.sockets.get(player1.socketId);
     if (player1Socket) {
         player1Socket.emit('duel_started', {
@@ -762,7 +782,7 @@ function startDuel(player1Id, player2Id) {
         console.log(`   ✅ Data sent to ${player1.firstName}`);
     }
     
-    // Send data to Player2
+    // Send duel started event to Player 2
     const player2Socket = io.sockets.sockets.get(player2.socketId);
     if (player2Socket) {
         player2Socket.emit('duel_started', {
@@ -783,7 +803,7 @@ function startDuel(player1Id, player2Id) {
         console.log(`   ✅ Data sent to ${player2.firstName}`);
     }
     
-    // 20 second timer
+    // Set duel timeout (20 seconds)
     setTimeout(() => {
         if (activeDuels[duelId] && !activeDuels[duelId].ended) {
             console.log(`⏰ Duel ${duelId} time expired`);
@@ -793,7 +813,7 @@ function startDuel(player1Id, player2Id) {
 }
 
 /**
- * Process duel result
+ * Process duel result when both have voted
  */
 function processDuelResult(duelId) {
     const duel = activeDuels[duelId];
@@ -815,7 +835,7 @@ function processDuelResult(duelId) {
     console.log(`   ${player1?.firstName}: ${player1Vote || 'no vote'}`);
     console.log(`   ${player2?.firstName}: ${player2Vote || 'no vote'}`);
     
-    // MATCH - BOTH LIKED (LIKE or SUPER_LIKE)
+    // CASE 1: MUTUAL MATCH (both liked)
     if ((player1Vote === 'like' || player1Vote === 'super_like') && 
         (player2Vote === 'like' || player2Vote === 'super_like')) {
         
@@ -829,12 +849,13 @@ function processDuelResult(duelId) {
         player1.wins++;
         player2.wins++;
         
-        // Rewards
+        // Calculate rewards
         let player1Reward = 50;
         let player2Reward = 50;
         let player1RatingChange = 25;
         let player2RatingChange = 25;
         
+        // Super like bonus
         if (player1Vote === 'super_like') {
             player1Reward += 20;
             player1RatingChange += 5;
@@ -851,15 +872,15 @@ function processDuelResult(duelId) {
         player1.rating += player1RatingChange;
         player2.rating += player2RatingChange;
         
-        // Add mutual match (WITHOUT automatic chat invite)
-        console.log(`🤝 Adding mutual match (no auto chat invite)...`);
+        // Add mutual match (but NO automatic chat invite)
         addMutualMatch(duel.player1, duel.player2);
         addMatchHistory(duel.player1, duel.player2);
         
-        // Send match data to Player1 (NO AUTO CHAT INVITE)
+        // Send match result to Player 1
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
-            player1Socket.emit('match', {
+            player1Socket.emit('match_result', {
+                result: 'match',
                 partner: {
                     id: duel.player2,
                     name: player2.firstName,
@@ -889,15 +910,16 @@ function processDuelResult(duelId) {
                 coinsEarned: player1Reward,
                 ratingChange: player1RatingChange,
                 isMutual: true,
-                message: `${player2.firstName} bilan o'zaro match! Endi siz do'st bo'ldingiz. Chat qilishni xohlaysizmi?`
+                message: `${player2.firstName} bilan o'zaro match! Endi siz do'st bo'ldingiz.`
             });
             console.log(`   ✅ ${player1.firstName} notified about match`);
         }
         
-        // Send match data to Player2
+        // Send match result to Player 2
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
-            player2Socket.emit('match', {
+            player2Socket.emit('match_result', {
+                result: 'match',
                 partner: {
                     id: duel.player1,
                     name: player1.firstName,
@@ -927,13 +949,14 @@ function processDuelResult(duelId) {
                 coinsEarned: player2Reward,
                 ratingChange: player2RatingChange,
                 isMutual: true,
-                message: `${player1.firstName} bilan o'zaro match! Endi siz do'st bo'ldingiz. Chat qilishni xohlaysizmi?`
+                message: `${player1.firstName} bilan o'zaro match! Endi siz do'st bo'ldingiz.`
             });
             console.log(`   ✅ ${player2.firstName} notified about match`);
         }
         
-    } else if (player1Vote === 'like' || player1Vote === 'super_like') {
-        // Only player1 liked
+    } 
+    // CASE 2: Only player1 liked
+    else if (player1Vote === 'like' || player1Vote === 'super_like') {
         console.log(`❤️ Only ${player1?.firstName} liked`);
         
         player1.duels++;
@@ -943,6 +966,7 @@ function processDuelResult(duelId) {
         
         console.log(`   ${player1?.firstName} +${coins} coins`);
         
+        // Send liked_only to player1
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
             player1Socket.emit('liked_only', {
@@ -953,14 +977,16 @@ function processDuelResult(duelId) {
             console.log(`   ✅ ${player1.firstName} notified about liked_only`);
         }
         
+        // Send no_match to player2
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
             player2Socket.emit('no_match', {});
             console.log(`   ✅ ${player2.firstName} notified about no_match`);
         }
         
-    } else if (player2Vote === 'like' || player2Vote === 'super_like') {
-        // Only player2 liked
+    } 
+    // CASE 3: Only player2 liked
+    else if (player2Vote === 'like' || player2Vote === 'super_like') {
         console.log(`❤️ Only ${player2?.firstName} liked`);
         
         player2.duels++;
@@ -970,6 +996,7 @@ function processDuelResult(duelId) {
         
         console.log(`   ${player2?.firstName} +${coins} coins`);
         
+        // Send liked_only to player2
         const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
             player2Socket.emit('liked_only', {
@@ -980,38 +1007,42 @@ function processDuelResult(duelId) {
             console.log(`   ✅ ${player2.firstName} notified about liked_only`);
         }
         
+        // Send no_match to player1
         const player1Socket = io.sockets.sockets.get(player1.socketId);
         if (player1Socket) {
             player1Socket.emit('no_match', {});
             console.log(`   ✅ ${player1.firstName} notified about no_match`);
         }
         
-    } else {
-        // No one liked
+    } 
+    // CASE 4: No one liked
+    else {
         console.log(`❌ No one liked`);
         
         player1.duels++;
         player2.duels++;
         
+        // Send no_match to both
         const player1Socket = io.sockets.sockets.get(player1.socketId);
+        const player2Socket = io.sockets.sockets.get(player2.socketId);
+        
         if (player1Socket) {
             player1Socket.emit('no_match', {});
             console.log(`   ✅ ${player1.firstName} notified about no_match`);
         }
         
-        const player2Socket = io.sockets.sockets.get(player2.socketId);
         if (player2Socket) {
             player2Socket.emit('no_match', {});
             console.log(`   ✅ ${player2.firstName} notified about no_match`);
         }
     }
     
-    // Update ratings
+    // Update ratings based on votes
     if (player1) {
         let ratingChange = 0;
         if (player1Vote === 'like' || player1Vote === 'super_like') {
             ratingChange = 10;
-        } else if (player1Vote === 'pass') {
+        } else if (player1Vote === 'skip' || player1Vote === 'pass') {
             ratingChange = -5;
         }
         player1.rating = Math.max(1000, player1.rating + ratingChange);
@@ -1022,15 +1053,14 @@ function processDuelResult(duelId) {
         let ratingChange = 0;
         if (player2Vote === 'like' || player2Vote === 'super_like') {
             ratingChange = 10;
-        } else if (player2Vote === 'pass') {
+        } else if (player2Vote === 'skip' || player2Vote === 'pass') {
             ratingChange = -5;
         }
         player2.rating = Math.max(1000, player2.rating + ratingChange);
         console.log(`   ${player2.firstName} rating: ${player2.rating} (${ratingChange > 0 ? '+' : ''}${ratingChange})`);
     }
     
-    // Return players to queue
-    console.log(`🔄 Returning players to queue...`);
+    // Return players to queue (if online)
     setTimeout(() => {
         returnPlayersToQueue(duel.player1, duel.player2);
         delete activeDuels[duelId];
@@ -1077,13 +1107,13 @@ function handleDuelTimeout(duelId) {
  * Return players to queue (only if online)
  */
 function returnPlayersToQueue(player1Id, player2Id) {
-    console.log(`🔄 Returning players to queue (online only): ${player1Id}, ${player2Id}`);
+    console.log(`🔄 Returning players to queue: ${player1Id}, ${player2Id}`);
     
     [player1Id, player2Id].forEach(playerId => {
         const player = users[playerId];
         if (player && player.connected && player.hasSelectedGender && !queue.includes(playerId)) {
             queue.push(playerId);
-            console.log(`   ✅ ${player.firstName} added to queue (online)`);
+            console.log(`   ✅ ${player.firstName} added to queue`);
         }
     });
     
@@ -1091,8 +1121,7 @@ function returnPlayersToQueue(player1Id, player2Id) {
     setTimeout(findAndStartDuels, 1000);
 }
 
-// ==================== SOCKET.IO HANDLERS ====================
-
+// ==================== SOCKET.IO EVENT HANDLERS ====================
 io.on('connection', (socket) => {
     console.log('✅ New connection:', socket.id);
     
@@ -1101,6 +1130,7 @@ io.on('connection', (socket) => {
         const userId = data.userId;
         console.log(`🔐 Authentication: ${userId} (${data.firstName})`);
         
+        // Create or update user
         if (!users[userId]) {
             // New user
             users[userId] = {
@@ -1112,14 +1142,14 @@ io.on('connection', (socket) => {
                 hasSelectedGender: data.hasSelectedGender || false,
                 bio: data.bio || '',
                 filter: data.filter || 'not_specified',
-                rating: 1500,
-                coins: 100,
-                level: 1,
+                rating: data.rating || 1500,
+                coins: data.coins || 100,
+                level: data.level || 1,
                 xp: 0,
-                matches: 0,
-                duels: 0,
-                wins: 0,
-                totalLikes: 0,
+                matches: data.matches || 0,
+                duels: data.duels || 0,
+                wins: data.wins || 0,
+                totalLikes: data.totalLikes || 0,
                 mutualMatchesCount: getMutualMatches(userId)?.length || 0,
                 friendsCount: getMutualMatches(userId)?.length || 0,
                 dailySuperLikes: 3,
@@ -1130,12 +1160,12 @@ io.on('connection', (socket) => {
             };
             console.log(`   👤 New user created: ${data.firstName}`);
         } else {
-            // Existing user - update online status
+            // Existing user - update
             users[userId].socketId = socket.id;
             users[userId].connected = true;
             users[userId].lastActive = new Date();
             
-            // Update data
+            // Update data if provided
             if (data.gender) users[userId].gender = data.gender;
             if (data.hasSelectedGender !== undefined) users[userId].hasSelectedGender = data.hasSelectedGender;
             if (data.bio !== undefined) users[userId].bio = data.bio;
@@ -1159,7 +1189,7 @@ io.on('connection', (socket) => {
                             fromUserId: request.from,
                             fromUserName: fromUser.firstName,
                             fromUserPhoto: fromUser.photoUrl,
-                            message: `${fromUser.firstName} wants to chat with you!`
+                            message: `${fromUser.firstName} siz bilan chat qilishni xohlaydi!`
                         });
                     }
                 }
@@ -1176,27 +1206,27 @@ io.on('connection', (socket) => {
             console.log(`   🔄 Daily SUPER LIKES reset for ${users[userId].firstName}`);
         }
         
-        // Send data to client
+        // Send auth success
         socket.emit('auth_ok', {
             ...users[userId],
             winRate: users[userId].duels > 0 ? 
                 Math.round((users[userId].wins / users[userId].duels) * 100) : 0
         });
         
-        console.log(`   ✅ ${users[userId].firstName} received auth_ok`);
+        console.log(`   ✅ ${users[userId].firstName} authenticated`);
         
         // If gender selected, add to queue
         if (users[userId].hasSelectedGender) {
             if (!queue.includes(userId)) {
                 queue.push(userId);
-                console.log(`   📝 ${users[userId].firstName} added to queue (online)`);
+                console.log(`   📝 ${users[userId].firstName} added to queue`);
             }
         } else {
             console.log(`   ⚠️ ${users[userId].firstName} gender not selected`);
             setTimeout(() => {
                 socket.emit('show_gender_selection', {
                     mandatory: true,
-                    message: 'You must select gender to duel!'
+                    message: 'Iltimos, avval gender tanlang!'
                 });
             }, 500);
         }
@@ -1222,22 +1252,24 @@ io.on('connection', (socket) => {
         
         users[userId].gender = gender;
         users[userId].hasSelectedGender = true;
+        users[userId].filter = gender === 'all' ? 'not_specified' : gender;
         
         socket.emit('gender_selected', {
             gender: gender,
             hasSelectedGender: true,
-            message: `Gender selected! ${
-                gender === 'male' ? 'Only duel with females' :
-                gender === 'female' ? 'Only duel with males' :
-                'Duel with everyone'
+            message: `Gender tanlandi! ${
+                gender === 'male' ? 'Faqat ayollar bilan duel' :
+                gender === 'female' ? 'Faqat erkaklar bilan duel' :
+                'Hamma bilan duel'
             }`
         });
         
-        console.log(`   ✅ ${users[userId].firstName} received gender_selected`);
+        console.log(`   ✅ ${users[userId].firstName} gender selected`);
         
+        // Add to queue if not already
         if (!queue.includes(userId)) {
             queue.push(userId);
-            console.log(`   📝 ${users[userId].firstName} added to queue (online)`);
+            console.log(`   📝 ${users[userId].firstName} added to queue`);
         }
         
         updateWaitingCount();
@@ -1250,7 +1282,7 @@ io.on('connection', (socket) => {
         
         if (!userId || !users[userId]) {
             console.log(`❌ Enter queue: user not found`);
-            socket.emit('error', { message: 'Authenticate first' });
+            socket.emit('error', { message: 'Avval autentifikatsiya qiling' });
             return;
         }
         
@@ -1258,7 +1290,7 @@ io.on('connection', (socket) => {
         
         if (!users[userId].connected) {
             console.log(`   ❌ ${users[userId].firstName} offline, cannot enter queue`);
-            socket.emit('error', { message: 'You are offline. Check your internet connection.' });
+            socket.emit('error', { message: 'Siz offline turib queue ga kira olmaysiz' });
             return;
         }
         
@@ -1266,7 +1298,7 @@ io.on('connection', (socket) => {
             console.log(`   ⚠️ ${users[userId].firstName} gender not selected`);
             socket.emit('show_gender_selection', {
                 mandatory: true,
-                message: 'You must select gender to enter queue!'
+                message: 'Queue ga kirish uchun gender tanlashingiz kerak!'
             });
             return;
         }
@@ -1319,32 +1351,33 @@ io.on('connection', (socket) => {
         
         if (!activeDuels[duelId] || activeDuels[duelId].ended) {
             console.log(`   ❌ Duel ${duelId} ended or not found`);
-            socket.emit('error', { message: 'This duel has ended' });
+            socket.emit('error', { message: 'Bu duel tugagan' });
             return;
         }
         
         const duel = activeDuels[duelId];
         if (duel.player1 !== userId && duel.player2 !== userId) {
             console.log(`   ❌ User ${userId} not in this duel`);
-            socket.emit('error', { message: 'You are not in this duel' });
+            socket.emit('error', { message: 'Siz bu duelda emassiz' });
             return;
         }
         
         // Check if user is online
         if (!users[userId]?.connected) {
             console.log(`   ❌ ${users[userId]?.firstName} offline, cannot vote`);
-            socket.emit('error', { message: 'You are offline. Check your internet connection.' });
+            socket.emit('error', { message: 'Siz offline turib ovoz bera olmaysiz' });
             return;
         }
         
         duel.votes[userId] = choice;
         console.log(`   ✅ ${users[userId]?.firstName} voted: ${choice}`);
         
+        // Super like handling
         if (choice === 'super_like') {
             const user = users[userId];
             if (user.dailySuperLikes <= 0) {
                 console.log(`   ⚠️ ${users[userId]?.firstName} no SUPER LIKES left`);
-                socket.emit('error', { message: 'Daily SUPER LIKE limit reached' });
+                socket.emit('error', { message: 'Kunlik SUPER LIKE limitiga yetdingiz' });
                 delete duel.votes[userId];
                 return;
             }
@@ -1362,7 +1395,7 @@ io.on('connection', (socket) => {
             console.log(`   📊 Both players voted in duel ${duelId}`);
             processDuelResult(duelId);
         } else {
-            // Send waiting response to other player
+            // Notify other player about waiting
             const waitingPlayerId = duel.player1 === userId ? duel.player2 : duel.player1;
             const waitingPlayer = users[waitingPlayerId];
             
@@ -1383,34 +1416,33 @@ io.on('connection', (socket) => {
         
         if (!userId || !partnerId || !users[userId] || !users[partnerId]) {
             console.log(`❌ Chat invite: users not found`);
-            socket.emit('error', { message: 'Error sending chat invite' });
+            socket.emit('error', { message: 'Chat taklifini yuborib bo\'lmadi' });
             return;
         }
         
         console.log(`💬 Chat invite: ${users[userId].firstName} -> ${users[partnerId].firstName}`);
         
-        // Check if user is online
+        // Check if both are online
         if (!users[userId].connected) {
-            console.log(`❌ ${users[userId]?.firstName} offline, cannot send chat invite`);
-            socket.emit('error', { message: 'You are offline. Check your internet connection.' });
+            console.log(`❌ ${users[userId].firstName} offline, cannot send chat invite`);
+            socket.emit('error', { message: 'Siz offline turib chat taklifi yubora olmaysiz' });
             return;
         }
         
-        // Check if opponent is online
         if (!users[partnerId].connected) {
-            console.log(`❌ ${users[partnerId]?.firstName} offline, cannot send chat invite`);
-            socket.emit('error', { message: 'Opponent is offline. Cannot send chat invite.' });
+            console.log(`❌ ${users[partnerId].firstName} offline, cannot send chat invite`);
+            socket.emit('error', { message: 'Raqibingiz offline, chat taklifi yuborib bo\'lmaydi' });
             return;
         }
         
-        // Check if they are already friends
+        // Check if already friends
         if (mutualMatches[userId]?.includes(partnerId)) {
             console.log(`ℹ️ ${users[userId].firstName} and ${users[partnerId].firstName} are already friends`);
-            socket.emit('error', { message: 'You are already friends with this user!' });
+            socket.emit('error', { message: 'Siz bu foydalanuvchi bilan allaqachon do\'stsiz!' });
             return;
         }
         
-        // Check if there's already a pending request
+        // Check for existing pending request
         const existingRequest = Object.values(chatRequests).find(
             req => (req.from === userId && req.to === partnerId && req.status === 'pending') ||
                    (req.from === partnerId && req.to === userId && req.status === 'pending')
@@ -1418,7 +1450,7 @@ io.on('connection', (socket) => {
         
         if (existingRequest) {
             console.log(`ℹ️ There is already a pending chat request between these users`);
-            socket.emit('error', { message: 'There is already a pending chat request' });
+            socket.emit('error', { message: 'Bu foydalanuvchiga chat taklifi allaqachon yuborilgan' });
             return;
         }
         
@@ -1428,7 +1460,7 @@ io.on('connection', (socket) => {
         socket.emit('chat_invite_sent', {
             requestId: requestId,
             partnerName: users[partnerId].firstName,
-            message: `${users[partnerId].firstName} ga chat taklifi yuborildi. Ikkalangiz ham rozilik bersangiz, chat ochiladi.`
+            message: `${users[partnerId].firstName} ga chat taklifi yuborildi.`
         });
     });
     
@@ -1443,12 +1475,11 @@ io.on('connection', (socket) => {
         
         console.log(`✅ Accept chat invite: ${users[userId]?.firstName} -> ${requestId}`);
         
-        // Accept chat request
         const accepted = acceptChatRequest(requestId, userId);
         
         if (accepted) {
             socket.emit('chat_invite_accepted', {
-                message: 'Chat taklifini qabul qildingiz! Endi suhbatlashingiz mumkin.'
+                message: 'Chat taklifini qabul qildingiz!'
             });
         }
     });
@@ -1464,7 +1495,6 @@ io.on('connection', (socket) => {
         
         console.log(`❌ Reject chat invite: ${users[userId]?.firstName} -> ${requestId}`);
         
-        // Reject chat request
         const rejected = rejectChatRequest(requestId, userId);
         
         if (rejected) {
@@ -1484,7 +1514,6 @@ io.on('connection', (socket) => {
         
         console.log(`❌ Cancel chat invite: ${users[userId]?.firstName}`);
         
-        // Cancel all pending chat requests
         const cancelledCount = cancelAllPendingChatRequests(userId);
         
         socket.emit('chat_invite_cancelled', {
@@ -1493,30 +1522,28 @@ io.on('connection', (socket) => {
         });
     });
     
-    // ==================== CREATE CHAT LINK ====================
     socket.on('create_chat_link', (data) => {
         const userId = socket.userId;
         const { partnerId, partnerName, type } = data;
         
         if (!userId || !partnerId || !users[userId] || !users[partnerId]) {
             console.log(`❌ Create chat link: users not found`);
-            socket.emit('error', { message: 'Error creating chat link' });
+            socket.emit('error', { message: 'Chat link yaratib bo\'lmadi' });
             return;
         }
         
         console.log(`🔗 Create chat link request: ${users[userId].firstName} -> ${users[partnerId].firstName}`);
         
-        // Check if user is online
+        // Check if both are online
         if (!users[userId].connected) {
             console.log(`❌ ${users[userId].firstName} offline, cannot create chat link`);
-            socket.emit('error', { message: 'You are offline. Check your internet connection.' });
+            socket.emit('error', { message: 'Siz offline turib chat link yaratolmaysiz' });
             return;
         }
         
-        // Check if opponent is online
         if (!users[partnerId].connected) {
             console.log(`❌ ${users[partnerId].firstName} offline, cannot create chat link`);
-            socket.emit('error', { message: 'Opponent is offline. Cannot create chat.' });
+            socket.emit('error', { message: 'Raqibingiz offline, chat link yaratib bo\'lmaydi' });
             return;
         }
         
@@ -1535,7 +1562,7 @@ io.on('connection', (socket) => {
         if (!partnerUsername) {
             console.log(`❌ ${users[partnerId].firstName} has no Telegram username`);
             socket.emit('chat_link_error', {
-                message: `${users[partnerId].firstName} ning Telegram username'i mavjud emas. Chat ochib bo'lmaydi.`,
+                message: `${users[partnerId].firstName} ning Telegram username'i mavjud emas.`,
                 partnerName: users[partnerId].firstName
             });
             return;
@@ -1551,7 +1578,7 @@ io.on('connection', (socket) => {
             partnerId: partnerId,
             partnerName: users[partnerId].firstName,
             partnerUsername: partnerUsername,
-            message: `${users[partnerId].firstName} bilan Telegram chat ochildi. Chatga o'tish uchun linkni bosing.`
+            message: `${users[partnerId].firstName} bilan Telegram chat ochildi.`
         });
     });
     
@@ -1627,7 +1654,6 @@ io.on('connection', (socket) => {
         console.log(`   ✅ ${users[userId].firstName} profile updated`);
     });
     
-    // ==================== FRIENDS MANAGEMENT ====================
     socket.on('get_friends_list', () => {
         const userId = socket.userId;
         if (!userId || !users[userId]) {
@@ -1668,7 +1694,7 @@ io.on('connection', (socket) => {
         console.log(`   ✅ ${users[userId].firstName} received friends list`);
     });
     
-    // ==================== REMATCH REQUEST ====================
+    // ==================== REMATCH ====================
     socket.on('request_rematch', (data) => {
         const userId = socket.userId;
         const opponentId = data.opponentId;
@@ -1680,16 +1706,15 @@ io.on('connection', (socket) => {
         
         console.log(`🔄 Rematch request: ${users[userId].firstName} -> ${users[opponentId].firstName}`);
         
-        // Check if user is online
+        // Check if both are online
         if (!users[userId].connected) {
             console.log(`❌ ${users[userId].firstName} offline, cannot request rematch`);
             return;
         }
         
-        // Check if opponent is online
         if (!users[opponentId].connected) {
             console.log(`❌ ${users[opponentId].firstName} offline, cannot request rematch`);
-            socket.emit('error', { message: 'Opponent is offline. Cannot request rematch.' });
+            socket.emit('error', { message: 'Raqibingiz offline, rematch so\'rab bo\'lmaydi' });
             return;
         }
         
@@ -1716,7 +1741,7 @@ io.on('connection', (socket) => {
         // Both must be online
         if (!users[userId].connected || !users[opponentId].connected) {
             console.log(`❌ Accept rematch: one of the users is offline`);
-            socket.emit('error', { message: 'Both players must be online for rematch.' });
+            socket.emit('error', { message: 'Ikkala o\'yinchi ham online bo\'lishi kerak' });
             return;
         }
         
@@ -1731,7 +1756,7 @@ io.on('connection', (socket) => {
         startDuel(userId, opponentId);
     });
     
-    // ==================== PING/PONG - ONLINE STATUS ====================
+    // ==================== PING/PONG ====================
     socket.on('ping', () => {
         const userId = socket.userId;
         if (userId && users[userId]) {
@@ -1779,7 +1804,7 @@ io.on('connection', (socket) => {
                 }
             }
             
-            // Update chat requests
+            // Cancel pending chat requests
             Object.values(chatRequests).forEach(request => {
                 if (request.from === userId || request.to === userId) {
                     if (request.status === 'pending') {
@@ -1797,11 +1822,11 @@ const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log('\n' + '='.repeat(70));
-    console.log('🚀 LIKE DUEL SERVER - MUTUAL MATCH AND CHAT SYSTEM');
+    console.log('🚀 LIKE DUEL SERVER - MUTUAL MATCH SYSTEM');
     console.log('='.repeat(70));
     console.log(`📍 Server started: http://0.0.0.0:${PORT}`);
     console.log(`📊 Health check: http://0.0.0.0:${PORT}/api/health`);
-    console.log('🌐 WebSocket URL: ws://0.0.0.0:${PORT}');
+    console.log('🌐 WebSocket URL: ws://0.0.0.0:' + PORT);
     console.log('='.repeat(70));
     console.log('✅ Mutual Match system activated');
     console.log('✅ Friends list automatically updates');
@@ -1855,7 +1880,7 @@ setInterval(() => {
     Mutual Matches: ${Object.keys(mutualMatches).length}
     Chat Requests: ${Object.keys(chatRequests).length}`);
     
-    // Online users list
+    // Show online users (first 5)
     const onlineList = Object.values(users)
         .filter(u => u.connected)
         .map(u => u.firstName)
@@ -1866,7 +1891,7 @@ setInterval(() => {
     }
 }, 30000); // Every 30 seconds
 
-// Clean old users (after 24 hours)
+// Clean old users (after 24 hours offline)
 setInterval(() => {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     let removedCount = 0;
@@ -1897,7 +1922,7 @@ setInterval(() => {
     }
 }, 3600000); // Every hour
 
-// Queue monitoring (only online users)
+// Queue monitoring
 setInterval(() => {
     const onlineInQueue = queue.filter(userId => {
         const user = users[userId];
@@ -1916,7 +1941,7 @@ setInterval(() => {
     }
 }, 60000); // Every minute
 
-// Automatic duel starting (only online users)
+// Automatic duel starting
 setInterval(() => {
     findAndStartDuels();
 }, 5000); // Search for duels every 5 seconds

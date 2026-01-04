@@ -1,431 +1,247 @@
-// ==================== MODAL MANAGEMENT ====================
-
-const ModalManager = {
-    // ==================== GENDER MODAL ====================
+// ==================== MODAL MANAGER ====================
+window.modalManager = {
+    /**
+     * Initialize all modals
+     */
+    initAllModals: function() {
+        console.log('🎯 Modal manager initializing...');
+        
+        // Gender modal
+        this.initGenderModal();
+        
+        // Profile edit modal
+        this.initProfileEditModal();
+        
+        // Chat modal
+        this.initChatModal();
+        
+        // Dynamic modal container
+        this.initModalContainer();
+        
+        console.log('✅ Modal manager initialized');
+    },
     
     /**
-     * Initialize gender modal event listeners
+     * Initialize gender modal
      */
     initGenderModal: function() {
-        console.log('🎯 Gender modal event listenerlar o\'rnatilmoqda...');
+        console.log('🎯 Gender modal initializing...');
         
-        // Gender tanlash tugmalari
-        const genderButtons = {
-            male: document.getElementById('selectMaleBtn'),
-            female: document.getElementById('selectFemaleBtn'),
-            all: document.getElementById('selectAllBtn')
-        };
+        const genderModal = document.getElementById('genderModal');
+        if (!genderModal) {
+            console.error('❌ Gender modal element not found');
+            return;
+        }
         
-        // Tugmalarga click event qo'shish
-        Object.entries(genderButtons).forEach(([gender, button]) => {
-            if (button) {
-                button.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log(`🎯 Gender tanlash: ${gender}`);
-                    this.selectGender(gender);
-                });
-            } else {
-                console.error(`❌ Gender tugmasi topilmadi: ${gender}`);
-            }
+        // Gender options
+        const genderOptions = document.querySelectorAll('.gender-option');
+        genderOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove active class from all options
+                genderOptions.forEach(opt => opt.classList.remove('active'));
+                
+                // Add active class to clicked option
+                option.classList.add('active');
+                
+                const gender = option.getAttribute('data-gender');
+                console.log(`🎯 Gender selected: ${gender}`);
+                
+                // Update UI immediately
+                option.querySelector('.gender-check').style.opacity = '1';
+            });
         });
         
-        // Queue ekranidagi gender tanlash tugmasi
-        const selectGenderNowBtn = document.getElementById('selectGenderNowBtn');
-        if (selectGenderNowBtn) {
-            selectGenderNowBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('🎯 Queue ekranida gender tanlash tugmasi bosildi');
+        // Gender modal open/close (if opened from somewhere else)
+        const genderWarning = document.getElementById('genderWarning');
+        if (genderWarning) {
+            genderWarning.addEventListener('click', () => {
                 this.showGenderModal(true);
             });
-        } else {
-            console.error('❌ selectGenderNowBtn topilmadi');
         }
         
-        console.log('✅ Gender modal event listenerlar o\'rnatildi');
-    },
-    
-    /**
-     * Select gender
-     */
-    selectGender: function(gender) {
-        console.log(`🎯 Gender tanlash: ${gender}`);
-        
-        // Convert gender to server format
-        let serverGender = gender;
-        if (gender === 'all') {
-            serverGender = 'not_specified';
-        }
-        
-        // Update user state
-        window.userState.currentGender = serverGender;
-        window.userState.hasSelectedGender = true;
-        window.userState.filter = this.getFilterFromGender(serverGender);
-        
-        // Save to storage
-        window.storage?.saveUserState?.();
-        
-        // Update UI
-        window.uiManager?.updateUIFromUserState?.();
-        
-        // Hide modal
-        this.hideGenderModal();
-        
-        // Send to server
-        if (window.gameState?.socket && window.gameState?.isConnected) {
-            window.gameState.socket.emit('select_gender', { 
-                gender: serverGender 
+        // Select gender now button
+        const selectGenderNowBtn = document.getElementById('selectGenderNowBtn');
+        if (selectGenderNowBtn) {
+            selectGenderNowBtn.addEventListener('click', () => {
+                this.showGenderModal(true);
             });
-        } else {
-            console.log('⚠️ Socket ulanmagan, gender tanlash serverga yuborilmadi');
         }
         
-        // Show notification
-        window.utils?.showNotification('🎉 Jins tanlandi', 
-            serverGender === 'male' ? 'Faqat ayollar bilan duel!' : 
-            serverGender === 'female' ? 'Faqat erkaklar bilan duel!' : 
-            'Hamma bilan duel!');
-        
-        // Auto connect to queue
-        setTimeout(() => {
-            if (window.gameState?.socket && window.gameState?.isConnected) {
-                window.gameState.isInQueue = true;
-                window.gameState.socket.emit('enter_queue');
-                window.uiManager?.showScreen?.('queue');
-                console.log('🔄 Gender tanlagandan keyin avtomatik navbatga kirdi');
-            }
-        }, 1000);
-    },
-    
-    /**
-     * Get filter from gender
-     */
-    getFilterFromGender: function(gender) {
-        if (gender === 'male') {
-            return 'female'; // Erkak faqat ayollar bilan
-        } else if (gender === 'female') {
-            return 'male'; // Ayol faqat erkaklar bilan
-        } else {
-            return 'not_specified'; // Hammasi
-        }
+        console.log('✅ Gender modal initialized');
     },
     
     /**
      * Show gender modal
      */
-    showGenderModal: function(mandatory = true) {
-        console.log(`🎯 Gender modali ko'rsatilmoqda (majburiy: ${mandatory})`);
+    showGenderModal: function(mandatory = false) {
+        console.log(`🎯 Gender modal ko'rsatilmoqda (mandatory: ${mandatory})`);
         
-        const modal = document.getElementById('genderModal');
-        const warning = document.getElementById('genderWarning');
-        
-        if (!modal) {
-            console.error('❌ Gender modal elementi topilmadi');
+        const genderModal = document.getElementById('genderModal');
+        if (!genderModal) {
+            console.error('❌ Gender modal element not found');
             return;
         }
         
-        modal.classList.add('active');
-        document.body.classList.add('modal-open'); // Scrollni block qilish
+        // Show modal
+        genderModal.classList.add('active');
+        document.body.classList.add('modal-open');
         
-        if (mandatory && warning) {
-            warning.classList.remove('hidden');
+        // If mandatory, disable close on background click
+        if (mandatory) {
+            const modalContent = genderModal.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.style.pointerEvents = 'auto';
+            }
         }
         
-        // Background click yopish uchun event listener qo'shamiz
-        modal.addEventListener('click', this.handleModalBackgroundClick);
-        
-        // Escape key yopish
-        const escapeHandler = (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                if (!mandatory || window.userState.hasSelectedGender) {
-                    this.hideGenderModal();
-                    document.removeEventListener('keydown', escapeHandler);
-                }
+        // Background click handler
+        const closeOnBackground = (e) => {
+            if (e.target === genderModal && !mandatory) {
+                this.hideGenderModal();
             }
         };
-        document.addEventListener('keydown', escapeHandler);
         
-        console.log('✅ Gender modal ko\'rsatildi');
-    },
-    
-    /**
-     * Handle modal background click
-     */
-    handleModalBackgroundClick: function(e) {
-        console.log('🎯 Modal background click');
+        genderModal.addEventListener('click', closeOnBackground);
         
-        if (e.target.id === 'genderModal' || e.target.classList.contains('gender-modal')) {
-            console.log('🎯 Gender modal background bosildi');
-            
-            if (window.userState.hasSelectedGender) {
-                window.modalManager?.hideGenderModal?.();
-            } else {
-                window.utils?.showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
+        // Escape key handler
+        const closeOnEscape = (e) => {
+            if (e.key === 'Escape' && !mandatory) {
+                this.hideGenderModal();
             }
-        }
+        };
+        
+        document.addEventListener('keydown', closeOnEscape);
+        
+        console.log('✅ Gender modal shown');
     },
     
     /**
      * Hide gender modal
      */
     hideGenderModal: function() {
-        console.log('🎯 Gender modali yopilmoqda');
+        console.log('🎯 Gender modal yopilmoqda');
         
-        const modal = document.getElementById('genderModal');
-        const warning = document.getElementById('genderWarning');
-        
-        if (modal) {
-            modal.classList.remove('active');
-            document.body.classList.remove('modal-open'); // Scrollni qayta yoqish
-            modal.removeEventListener('click', this.handleModalBackgroundClick);
-            console.log('✅ Gender modal yopildi');
-        } else {
-            console.error('❌ Gender modal elementi topilmadi yopishda');
-        }
-        
-        if (warning) {
-            warning.classList.add('hidden');
-        }
-        
-        // Enable start button if needed
-        const startBtn = document.getElementById('startBtn');
-        if (startBtn && window.userState.hasSelectedGender) {
-            startBtn.disabled = false;
-            startBtn.textContent = '🎮 O\'yinni Boshlash';
-            startBtn.classList.remove('disabled');
-        }
-    },
-    
-    // ==================== CHAT MODAL ====================
-    
-    /**
-     * Initialize chat modal event listeners
-     */
-    initChatModal: function() {
-        console.log('🎯 Chat modal event listenerlar o\'rnatilmoqda...');
-        
-        const closeChatBtn = document.getElementById('closeChatBtn');
-        if (closeChatBtn) {
-            closeChatBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.hideChatModal();
-            });
-        } else {
-            console.error('❌ closeChatBtn topilmadi');
-        }
-        
-        const chatOpenTelegramBtn = document.getElementById('chatOpenTelegramBtn');
-        if (chatOpenTelegramBtn) {
-            chatOpenTelegramBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.openTelegramChatFromModal();
-            });
-        } else {
-            console.error('❌ chatOpenTelegramBtn topilmadi');
-        }
-        
-        console.log('✅ Chat modal event listenerlar o\'rnatildi');
-    },
-    
-    /**
-     * Show chat modal
-     */
-    showChatModal: function(partner) {
-        if (!partner) {
-            console.error('❌ Chat modal uchun partner ma\'lumotlari yo\'q');
-            return;
-        }
-        
-        console.log('🎯 Chat modali ko\'rsatilmoqda:', partner.name);
-        
-        window.gameState.isChatModalOpen = true;
-        
-        const modal = document.getElementById('chatModal');
-        const avatar = document.getElementById('chatPartnerAvatar');
-        const name = document.getElementById('chatPartnerName');
-        const username = document.getElementById('chatUsername');
-        const title = document.getElementById('chatTitle');
-        
-        if (modal) {
-            modal.classList.add('active');
-            document.body.classList.add('modal-open'); // Scrollni block qilish
-            
-            // Background click yopish
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal || e.target.classList.contains('chat-modal')) {
-                    console.log('🎯 Chat modal background bosildi');
-                    this.hideChatModal();
-                }
-            });
-            
-            // Escape key yopish
-            const escapeHandler = (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('active')) {
-                    this.hideChatModal();
-                    document.removeEventListener('keydown', escapeHandler);
-                }
-            };
-            document.addEventListener('keydown', escapeHandler);
-        }
-        
-        if (avatar) avatar.src = partner.photo || 
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=3498db&color=fff`;
-        if (name) name.textContent = partner.name;
-        if (username) username.textContent = partner.username ? `@${partner.username}` : '';
-        if (title) title.textContent = `${partner.name} bilan chat`;
-        
-        console.log('✅ Chat modal ko\'rsatildi');
-    },
-    
-    /**
-     * Hide chat modal
-     */
-    hideChatModal: function() {
-        console.log('🎯 Chat modali yopilmoqda');
-        
-        window.gameState.isChatModalOpen = false;
-        const modal = document.getElementById('chatModal');
-        if (modal) {
-            modal.classList.remove('active');
-            document.body.classList.remove('modal-open'); // Scrollni qayta yoqish
-            console.log('✅ Chat modal yopildi');
-        } else {
-            console.error('❌ Chat modal elementi topilmadi yopishda');
-        }
-        
-        // Return to appropriate screen
-        if (window.gameState.currentPartner) {
-            window.uiManager?.showScreen?.('match');
-        } else {
-            window.uiManager?.showScreen?.('welcome');
+        const genderModal = document.getElementById('genderModal');
+        if (genderModal) {
+            genderModal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            console.log('✅ Gender modal hidden');
         }
     },
     
     /**
-     * Open Telegram chat from modal
+     * Select gender (called from UI)
      */
-    openTelegramChatFromModal: function() {
-        const username = document.getElementById('chatUsername')?.textContent?.replace('@', '');
+    selectGender: function(gender) {
+        console.log(`🎯 Gender tanlash funksiyasi: ${gender}`);
         
-        if (username && username !== '') {
-            const telegramUrl = `https://t.me/${username}`;
-            
-            if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-                Telegram.WebApp.openTelegramLink(telegramUrl);
-            } else {
-                window.open(telegramUrl, '_blank');
+        // Hide modal
+        this.hideGenderModal();
+        
+        // Update UI selection
+        const genderOptions = document.querySelectorAll('.gender-option');
+        genderOptions.forEach(option => {
+            option.classList.remove('active');
+            if (option.getAttribute('data-gender') === gender) {
+                option.classList.add('active');
             }
-            
-            // Chatni yopish
-            setTimeout(() => {
-                this.hideChatModal();
-            }, 500);
-        } else {
-            window.utils?.showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
+        });
+        
+        // Call UI manager to save gender
+        if (window.uiManager && window.uiManager.selectGender) {
+            window.uiManager.selectGender(gender);
         }
+        
+        // Show notification
+        window.utils?.showNotification?.('Gender Tanlandi', 
+            gender === 'male' ? 'Siz erkak sifatida qayd etildingiz' :
+            gender === 'female' ? 'Siz ayol sifatida qayd etildingiz' :
+            'Siz hamma bilan duel qilishingiz mumkin');
+        
+        console.log(`✅ Gender selected: ${gender}`);
     },
-    
-    // ==================== PROFILE EDIT MODAL ====================
     
     /**
      * Initialize profile edit modal
      */
     initProfileEditModal: function() {
-        console.log('🎯 Profile edit modal event listenerlar o\'rnatilmoqda...');
+        console.log('🎯 Profile edit modal initializing...');
         
         const editProfileBtn = document.getElementById('editProfileBtn');
         const closeProfileEditBtn = document.getElementById('closeProfileEditBtn');
         const saveProfileBtn = document.getElementById('saveProfileBtn');
+        const profileEditModal = document.getElementById('profileEditModal');
         
-        if (editProfileBtn) {
-            editProfileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.showProfileEditModal();
-            });
-        } else {
-            console.error('❌ editProfileBtn topilmadi');
+        if (!editProfileBtn || !profileEditModal) {
+            console.error('❌ Profile edit modal elements not found');
+            return;
         }
         
+        // Open modal
+        editProfileBtn.addEventListener('click', () => {
+            this.showProfileEditModal();
+        });
+        
+        // Close modal
         if (closeProfileEditBtn) {
-            closeProfileEditBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            closeProfileEditBtn.addEventListener('click', () => {
                 this.hideProfileEditModal();
             });
-        } else {
-            console.error('❌ closeProfileEditBtn topilmadi');
         }
         
+        // Save profile
         if (saveProfileBtn) {
-            saveProfileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            saveProfileBtn.addEventListener('click', () => {
                 this.saveProfile();
             });
-        } else {
-            console.error('❌ saveProfileBtn topilmadi');
         }
         
-        console.log('✅ Profile edit modal event listenerlar o\'rnatildi');
+        // Background click to close
+        profileEditModal.addEventListener('click', (e) => {
+            if (e.target === profileEditModal) {
+                this.hideProfileEditModal();
+            }
+        });
+        
+        console.log('✅ Profile edit modal initialized');
     },
     
     /**
      * Show profile edit modal
      */
     showProfileEditModal: function() {
-        console.log('🎯 Profile edit modali ko\'rsatilmoqda');
+        console.log('🎯 Profile edit modal ko\'rsatilmoqda');
         
-        const modal = document.getElementById('profileEditModal');
-        const bio = document.getElementById('editBio');
-        const gender = document.getElementById('editGender');
-        const filter = document.getElementById('editFilter');
+        const profileEditModal = document.getElementById('profileEditModal');
+        if (!profileEditModal) return;
         
-        if (modal) {
-            modal.classList.add('active');
-            document.body.classList.add('modal-open'); // Scrollni block qilish
-            
-            // Background click yopish
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal || e.target.classList.contains('chat-modal')) {
-                    console.log('🎯 Profile edit modal background bosildi');
-                    this.hideProfileEditModal();
-                }
-            });
-            
-            // Escape key yopish
-            const escapeHandler = (e) => {
-                if (e.key === 'Escape' && modal.classList.contains('active')) {
-                    this.hideProfileEditModal();
-                    document.removeEventListener('keydown', escapeHandler);
-                }
-            };
-            document.addEventListener('keydown', escapeHandler);
-        }
+        // Load current data
+        const editBio = document.getElementById('editBio');
+        const editGender = document.getElementById('editGender');
+        const editFilter = document.getElementById('editFilter');
         
-        if (bio) bio.value = window.userState.bio || '';
-        if (gender) gender.value = window.userState.currentGender || 'not_specified';
-        if (filter) filter.value = window.userState.filter || 'not_specified';
+        if (editBio) editBio.value = window.userState.bio || '';
+        if (editGender) editGender.value = window.userState.currentGender || 'not_specified';
+        if (editFilter) editFilter.value = window.userState.filter || 'not_specified';
         
-        console.log('✅ Profile edit modal ko\'rsatildi');
+        // Show modal
+        profileEditModal.classList.add('active');
+        document.body.classList.add('modal-open');
+        
+        console.log('✅ Profile edit modal shown');
     },
     
     /**
      * Hide profile edit modal
      */
     hideProfileEditModal: function() {
-        console.log('🎯 Profile edit modali yopilmoqda');
+        console.log('🎯 Profile edit modal yopilmoqda');
         
-        const modal = document.getElementById('profileEditModal');
-        if (modal) {
-            modal.classList.remove('active');
-            document.body.classList.remove('modal-open'); // Scrollni qayta yoqish
-            console.log('✅ Profile edit modal yopildi');
-        } else {
-            console.error('❌ Profile edit modal elementi topilmadi yopishda');
+        const profileEditModal = document.getElementById('profileEditModal');
+        if (profileEditModal) {
+            profileEditModal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            console.log('✅ Profile edit modal hidden');
         }
     },
     
@@ -433,87 +249,358 @@ const ModalManager = {
      * Save profile
      */
     saveProfile: function() {
-        console.log('🎯 Profil saqlanmoqda...');
+        console.log('💾 Profil saqlanmoqda...');
         
-        const bio = document.getElementById('editBio')?.value.trim() || '';
-        const gender = document.getElementById('editGender')?.value || 'not_specified';
-        const filter = document.getElementById('editFilter')?.value || 'not_specified';
+        const editBio = document.getElementById('editBio');
+        const editGender = document.getElementById('editGender');
+        const editFilter = document.getElementById('editFilter');
         
-        // Update user state
-        window.userState.bio = bio;
-        window.userState.currentGender = gender;
-        window.userState.filter = filter;
-        window.userState.hasSelectedGender = true; // Profilni tahrirlash gender tanlangan deb hisoblanadi
-        
-        // Save to storage
-        window.storage?.saveUserState?.();
-        
-        // Update UI
-        window.uiManager?.updateUIFromUserState?.();
-        
-        // Update specific elements
-        if (window.elements?.profileBio) {
-            window.elements.profileBio.textContent = bio || 'Bio kiritilmagan';
+        if (!editBio || !editGender || !editFilter) {
+            console.error('❌ Profile edit elements not found');
+            return;
         }
         
-        // Add gender badge
-        if (window.elements?.profileName && gender !== 'not_specified') {
-            window.uiManager?.addGenderBadge?.(window.elements.profileName, gender);
+        // Get values
+        const newBio = editBio.value.trim();
+        const newGender = editGender.value;
+        const newFilter = editFilter.value;
+        
+        // Update user state
+        window.userState.bio = newBio;
+        window.userState.currentGender = newGender;
+        window.userState.filter = newFilter;
+        
+        if (newGender !== 'not_specified') {
+            window.userState.hasSelectedGender = true;
+        }
+        
+        // Save to storage
+        if (window.storage && window.storage.saveUserState) {
+            window.storage.saveUserState();
         }
         
         // Send to server
-        if (window.gameState?.socket && window.gameState?.isConnected) {
-            window.gameState.socket.emit('update_profile', {
-                bio: bio,
-                gender: gender,
-                filter: filter
+        if (window.socketManager && window.socketManager.updateProfile) {
+            window.socketManager.updateProfile({
+                bio: newBio,
+                gender: newGender,
+                filter: newFilter
             });
         }
         
-        // Hide modal
+        // Update UI
+        if (window.uiManager && window.uiManager.updateUIFromUserState) {
+            window.uiManager.updateUIFromUserState();
+        }
+        
+        // Close modal
         this.hideProfileEditModal();
         
         // Show notification
-        window.utils?.showNotification('✅ Profil yangilandi', 'O\'zgarishlar muvaffaqiyatli saqlandi');
+        window.utils?.showNotification?.('Profil Yangilandi', 'Profil muvaffaqiyatli saqlandi');
+        
+        console.log('✅ Profile saved');
     },
     
-    // ==================== OTHER MODALS ====================
-    
     /**
-     * Hide all modals
+     * Initialize chat modal
      */
-    hideAllModals: function() {
-        console.log('🎯 Barcha modallar yopilmoqda');
+    initChatModal: function() {
+        console.log('🎯 Chat modal initializing...');
         
-        this.hideGenderModal();
-        this.hideChatModal();
-        this.hideProfileEditModal();
+        const chatModal = document.getElementById('chatModal');
+        const closeChatBtn = document.getElementById('closeChatBtn');
+        const chatOpenTelegramBtn = document.getElementById('chatOpenTelegramBtn');
         
-        // Hide other modals if they exist
-        const modals = document.querySelectorAll('.modal.active, .chat-modal.active');
-        modals.forEach(modal => {
-            modal.classList.remove('active');
+        if (!chatModal) {
+            console.error('❌ Chat modal element not found');
+            return;
+        }
+        
+        // Close modal button
+        if (closeChatBtn) {
+            closeChatBtn.addEventListener('click', () => {
+                this.closeChatModal();
+            });
+        }
+        
+        // Open Telegram button
+        if (chatOpenTelegramBtn) {
+            chatOpenTelegramBtn.addEventListener('click', () => {
+                const username = document.getElementById('chatUsername')?.textContent?.replace('@', '') || '';
+                if (username) {
+                    window.openTelegramChat?.(username);
+                }
+            });
+        }
+        
+        // Background click to close
+        chatModal.addEventListener('click', (e) => {
+            if (e.target === chatModal) {
+                this.closeChatModal();
+            }
         });
         
-        // Restore scroll
-        document.body.classList.remove('modal-open');
-        
-        console.log('✅ Barcha modallar yopildi');
+        console.log('✅ Chat modal initialized');
     },
     
     /**
-     * Initialize all modals
+     * Show chat modal
      */
-    initAllModals: function() {
-        console.log('🎯 Barcha modallar o\'rnatilmoqda...');
+    showChatModal: function(partner) {
+        console.log('💬 Chat modal ko\'rsatilmoqda:', partner);
         
-        this.initGenderModal();
-        this.initChatModal();
-        this.initProfileEditModal();
+        const chatModal = document.getElementById('chatModal');
+        if (!chatModal) {
+            console.error('❌ Chat modal element not found');
+            return;
+        }
         
-        console.log('✅ Barcha modallar o\'rnatildi');
+        // Update modal content
+        const chatPartnerAvatar = document.getElementById('chatPartnerAvatar');
+        const chatPartnerName = document.getElementById('chatPartnerName');
+        const chatUsername = document.getElementById('chatUsername');
+        const chatTitle = document.getElementById('chatTitle');
+        
+        if (chatPartnerAvatar) {
+            chatPartnerAvatar.src = partner.photo || 
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=667eea&color=fff`;
+            chatPartnerAvatar.onerror = function() {
+                this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=667eea&color=fff`;
+            };
+        }
+        
+        if (chatPartnerName) {
+            chatPartnerName.textContent = partner.name || 'Foydalanuvchi';
+        }
+        
+        if (chatUsername) {
+            chatUsername.textContent = '@' + (partner.username || 'username');
+        }
+        
+        if (chatTitle) {
+            chatTitle.textContent = `${partner.name} bilan chat`;
+        }
+        
+        // Store partner data for later use
+        window.gameState.currentPartner = partner;
+        
+        // Show modal
+        chatModal.classList.add('active');
+        document.body.classList.add('modal-open');
+        
+        console.log('✅ Chat modal shown');
+    },
+    
+    /**
+     * Close chat modal
+     */
+    closeChatModal: function() {
+        console.log('❌ Chat modal yopilmoqda');
+        
+        const chatModal = document.getElementById('chatModal');
+        if (chatModal) {
+            chatModal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            console.log('✅ Chat modal closed');
+        }
+    },
+    
+    /**
+     * Initialize modal container (for dynamic modals)
+     */
+    initModalContainer: function() {
+        console.log('🎯 Dynamic modal container initializing...');
+        
+        // Create modal container if it doesn't exist
+        let modalContainer = document.getElementById('modalContainer');
+        if (!modalContainer) {
+            modalContainer = document.createElement('div');
+            modalContainer.id = 'modalContainer';
+            modalContainer.style.position = 'fixed';
+            modalContainer.style.top = '0';
+            modalContainer.style.left = '0';
+            modalContainer.style.right = '0';
+            modalContainer.style.bottom = '0';
+            modalContainer.style.zIndex = '2000';
+            modalContainer.style.display = 'none';
+            document.body.appendChild(modalContainer);
+        }
+        
+        console.log('✅ Dynamic modal container initialized');
+    },
+    
+    /**
+     * Show custom modal
+     */
+    showCustomModal: function(title, message, buttons = []) {
+        console.log('🎯 Custom modal ko\'rsatilmoqda:', title);
+        
+        const modalContainer = document.getElementById('modalContainer');
+        if (!modalContainer) {
+            console.error('❌ Modal container not found');
+            return;
+        }
+        
+        // Create modal HTML
+        let buttonsHTML = '';
+        buttons.forEach((btn, index) => {
+            buttonsHTML += `
+                <button class="modal-btn ${btn.class || ''}" 
+                        onclick="${btn.onclick || 'window.modalManager.hideCustomModal()'}"
+                        style="${btn.style || ''}">
+                    ${btn.icon ? `<i class="${btn.icon}"></i>` : ''}
+                    ${btn.text}
+                </button>
+            `;
+        });
+        
+        const modalHTML = `
+            <div class="modal active">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 style="color: #fff;">${title}</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="color: #ccc;">${message}</p>
+                    </div>
+                    <div class="modal-footer">
+                        ${buttonsHTML}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Show modal
+        modalContainer.innerHTML = modalHTML;
+        modalContainer.style.display = 'flex';
+        document.body.classList.add('modal-open');
+        
+        // Add background click handler
+        const modal = modalContainer.querySelector('.modal');
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideCustomModal();
+                }
+            });
+        }
+        
+        console.log('✅ Custom modal shown');
+    },
+    
+    /**
+     * Hide custom modal
+     */
+    hideCustomModal: function() {
+        console.log('🎯 Custom modal yopilmoqda');
+        
+        const modalContainer = document.getElementById('modalContainer');
+        if (modalContainer) {
+            modalContainer.style.display = 'none';
+            modalContainer.innerHTML = '';
+            document.body.classList.remove('modal-open');
+            console.log('✅ Custom modal hidden');
+        }
+    },
+    
+    /**
+     * Show confirmation modal
+     */
+    showConfirmModal: function(title, message, onConfirm, onCancel = null) {
+        console.log('🎯 Confirmation modal ko\'rsatilmoqda:', title);
+        
+        this.showCustomModal(title, message, [
+            {
+                text: 'Bekor qilish',
+                class: 'cancel-btn',
+                onclick: onCancel ? onCancel.name + '()' : 'window.modalManager.hideCustomModal()',
+                style: 'background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);'
+            },
+            {
+                text: 'Tasdiqlash',
+                class: 'confirm-btn',
+                onclick: onConfirm ? onConfirm.name + '()' : 'window.modalManager.hideCustomModal()',
+                style: 'background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);'
+            }
+        ]);
+    },
+    
+    /**
+     * Show error modal
+     */
+    showErrorModal: function(title, message) {
+        console.log('❌ Error modal ko\'rsatilmoqda:', title);
+        
+        this.showCustomModal(title, message, [
+            {
+                text: 'OK',
+                class: 'confirm-btn',
+                onclick: 'window.modalManager.hideCustomModal()',
+                style: 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);'
+            }
+        ]);
+    },
+    
+    /**
+     * Show success modal
+     */
+    showSuccessModal: function(title, message) {
+        console.log('✅ Success modal ko\'rsatilmoqda:', title);
+        
+        this.showCustomModal(title, message, [
+            {
+                text: 'OK',
+                class: 'confirm-btn',
+                onclick: 'window.modalManager.hideCustomModal()',
+                style: 'background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);'
+            }
+        ]);
+    },
+    
+    /**
+     * Show loading modal
+     */
+    showLoadingModal: function(message = 'Yuklanmoqda...') {
+        console.log('⏳ Loading modal ko\'rsatilmoqda');
+        
+        const modalContainer = document.getElementById('modalContainer');
+        if (!modalContainer) return;
+        
+        const modalHTML = `
+            <div class="modal active">
+                <div class="modal-content">
+                    <div class="modal-body" style="text-align: center; padding: 40px 20px;">
+                        <div class="loader" style="margin: 0 auto 20px;"></div>
+                        <p style="color: #ccc;">${message}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modalContainer.innerHTML = modalHTML;
+        modalContainer.style.display = 'flex';
+        document.body.classList.add('modal-open');
+    },
+    
+    /**
+     * Hide loading modal
+     */
+    hideLoadingModal: function() {
+        console.log('⏳ Loading modal yopilmoqda');
+        this.hideCustomModal();
     }
 };
 
-// Export to global scope
-window.modalManager = ModalManager;
+// ==================== INITIALIZATION ====================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM yuklandi, Modal Manager ishga tushmoqda...');
+    
+    // Delay to ensure all elements are loaded
+    setTimeout(() => {
+        if (window.modalManager && window.modalManager.initAllModals) {
+            window.modalManager.initAllModals();
+            console.log('✅ Modal Manager to\'liq ishga tushdi');
+        }
+    }, 1000);
+});

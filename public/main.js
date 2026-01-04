@@ -731,82 +731,48 @@ function exportGlobalFunctions() {
     
     console.log('✅ Barcha global funksiyalar export qilindi');
 }
-// main.js ga qo'shing
 
-// Lazy loading images
-const imageObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const img = entry.target;
-            img.src = img.dataset.src;
-            imageObserver.unobserve(img);
-        }
-    });
-});
-
-// Code splitting
-function loadModule(moduleName) {
-    return import(`./modules/${moduleName}.js`)
-        .then(module => module.default)
-        .catch(() => console.error(`Module ${moduleName} failed to load`));
-}
-
-// Memory management
-class MemoryManager {
-    static clearOldData() {
-        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const oldChats = storage.get('chat_history', []).filter(chat => 
-            chat.lastActivity > oneWeekAgo
-        );
-        storage.set('chat_history', oldChats);
-    }
-    
-    static compressImages(base64) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 150;
-                canvas.height = 150;
-                ctx.drawImage(img, 0, 0, 150, 150);
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
-            };
-            img.src = base64;
-        });
-    }
-}
 // ==================== INITIALIZATION ====================
 
 /**
  * Initialize the application
  */
+// main.js faylida initApplication funksiyasini yangilang:
+
 function initApplication() {
     console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
     
     // Initialize element references
     initElementReferences();
     
-    // Initialize modal manager (MUHIM!)
+    // Initialize modal manager
     if (window.modalManager) {
         window.modalManager.initAllModals();
         console.log('✅ Modal manager ishga tushirildi');
-    } else {
-        console.error('❌ Modal manager topilmadi');
     }
     
-    // Initialize user profile
+    // Initialize UI manager
     if (window.uiManager) {
         window.uiManager.initUserProfile();
+        window.uiManager.initTabNavigation();
         console.log('✅ UI manager ishga tushirildi');
-    } else {
-        console.error('❌ UI manager topilmadi');
     }
     
-    // Initialize tab navigation
-    if (window.uiManager) {
-        window.uiManager.initTabNavigation();
-        console.log('✅ Tab navigation ishga tushirildi');
+    // Initialize game logic
+    if (window.gameLogic) {
+        window.gameLogic.initGameLogic();
+        console.log('✅ Game logic ishga tushirildi');
+    }
+    
+    // Initialize socket manager
+    if (window.socketManager) {
+        // Socket event handlerlarni o'rnatish
+        setTimeout(() => {
+            if (window.gameLogic && window.gameLogic.handleSocketEvents) {
+                window.gameLogic.handleSocketEvents();
+            }
+        }, 1000);
+        console.log('✅ Socket manager ishga tushirildi');
     }
     
     // Initialize event listeners
@@ -824,6 +790,9 @@ function initApplication() {
         console.log('✅ Dastlabki ma\'lumotlar yuklandi');
     }
     
+    // Update UI
+    window.updateUIFromUserState?.();
+    
     console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
     
     // Auto show gender modal if not selected
@@ -834,7 +803,157 @@ function initApplication() {
         }
     }, 1500);
 }
+// main.js fayliga quyidagini qo'shing:
 
+/**
+ * Show specific screen
+ */
+window.showScreen = function(screenName) {
+    console.log(`🔄 Ekran o'zgartirilmoqda: ${screenName}`);
+    
+    // Barcha ekranlarni yashirish
+    const screens = ['welcomeScreen', 'queueScreen', 'duelScreen', 'matchScreen'];
+    screens.forEach(screen => {
+        const element = document.getElementById(screen);
+        if (element) element.classList.add('hidden');
+    });
+    
+    // Tanlangan ekranni ko'rsatish
+    const targetScreen = document.getElementById(screenName + 'Screen');
+    if (targetScreen) {
+        targetScreen.classList.remove('hidden');
+    } else {
+        console.error(`❌ Ekran topilmadi: ${screenName}`);
+    }
+    
+    // Navigation tab'larini yangilash
+    const navTabs = document.querySelectorAll('.nav-tab');
+    navTabs.forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    const activeTab = document.querySelector(`.nav-tab[data-tab="${window.gameState.currentTab}"]`);
+    if (activeTab) activeTab.classList.add('active');
+    
+    console.log(`✅ Ekran o'zgartirildi: ${screenName}`);
+};
+
+/**
+ * Update queue status message
+ */
+window.updateQueueStatus = function(message) {
+    console.log(`📝 Queue status: ${message}`);
+    const element = document.getElementById('queueStatus');
+    if (element) element.textContent = message;
+};
+
+/**
+ * Update duel status message
+ */
+window.updateDuelStatus = function(message) {
+    console.log(`📝 Duel status: ${message}`);
+    const element = document.getElementById('duelStatus');
+    if (element) element.textContent = message;
+};
+
+/**
+ * Update UI from user state
+ */
+window.updateUIFromUserState = function() {
+    console.log('🔄 UI user state bo\'yicha yangilanmoqda...');
+    
+    // Coins yangilash
+    const coinsElement = document.getElementById('coinsCount');
+    if (coinsElement) coinsElement.textContent = window.userState.coins || 100;
+    
+    // Level yangilash
+    const levelElement = document.getElementById('levelCount');
+    if (levelElement) levelElement.textContent = window.userState.level || 1;
+    
+    // Shop coins yangilash
+    const shopCoinsElement = document.getElementById('shopCoinsCount');
+    if (shopCoinsElement) shopCoinsElement.textContent = window.userState.coins || 100;
+    
+    // Super like count yangilash
+    const superLikeElement = document.getElementById('superLikeCount');
+    if (superLikeElement) superLikeElement.textContent = window.userState.dailySuperLikes || 3;
+    
+    // Profile stats yangilash
+    const profileStats = [
+        { id: 'myMatches', value: window.userState.matches || 0 },
+        { id: 'mutualMatchesCount', value: window.userState.mutualMatchesCount || 0 },
+        { id: 'myLikes', value: window.userState.totalLikes || 0 },
+        { id: 'statRating', value: window.userState.rating || 1500 },
+        { id: 'statMatches', value: window.userState.matches || 0 },
+        { id: 'statDuels', value: window.userState.duels || 0 },
+        { id: 'mutualMatchesProfile', value: window.userState.mutualMatchesCount || 0 },
+        { id: 'statFriends', value: window.userState.friendsCount || 0 }
+    ];
+    
+    profileStats.forEach(stat => {
+        const element = document.getElementById(stat.id);
+        if (element) element.textContent = stat.value;
+    });
+    
+    // Win rate hisoblash
+    const winRateElement = document.getElementById('statWinRate');
+    if (winRateElement && window.userState.duels > 0) {
+        const winRate = Math.round((window.userState.wins / window.userState.duels) * 100);
+        winRateElement.textContent = winRate + '%';
+    }
+    
+    console.log('✅ UI yangilandi');
+};
+
+
+// main.js faylida quyidagini qo'shing:
+
+/**
+ * Start match action timer
+ */
+window.startMatchActionTimer = function() {
+    console.log('⏰ Match action timer boshlanmoqda');
+    
+    // Avvalgi intervalni tozalash
+    if (window.gameState.matchActionTimerInterval) {
+        clearInterval(window.gameState.matchActionTimerInterval);
+    }
+    
+    let timeLeft = 30;
+    const timerBar = document.getElementById('matchActionTimerBar');
+    const timerText = document.getElementById('matchActionTime');
+    
+    if (!timerBar || !timerText) {
+        console.error('❌ Timer elementlari topilmadi');
+        return;
+    }
+    
+    window.gameState.matchActionTimerInterval = setInterval(() => {
+        timeLeft--;
+        
+        // Timer text yangilash
+        timerText.textContent = timeLeft;
+        
+        // Timer bar yangilash
+        const percent = (timeLeft / 30) * 100;
+        timerBar.style.width = percent + '%';
+        
+        // Rang o'zgartirish
+        if (timeLeft <= 10) {
+            timerBar.style.background = 'linear-gradient(to right, #e74c3c, #c0392b)';
+        } else if (timeLeft <= 20) {
+            timerBar.style.background = 'linear-gradient(to right, #f39c12, #e67e22)';
+        }
+        
+        // Vaqt tugaganda
+        if (timeLeft <= 0) {
+            clearInterval(window.gameState.matchActionTimerInterval);
+            console.log('⏰ Match action vaqti tugadi');
+        }
+    }, 1000);
+    
+    console.log('✅ Match action timer boshlandi');
+};
 // ==================== DOM READY ====================
 
 if (document.readyState === 'loading') {

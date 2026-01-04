@@ -687,6 +687,121 @@ setTimeout(() => {
     SocketManager.init();
 }, 1000);
 
+// socket.js (agar mavjud bo'lmasa):
+
+window.socketManager = {
+    socket: null,
+    isConnected: false,
+    
+    connectToServer: function() {
+        try {
+            console.log('🔌 Socket serverga ulanmoqda...');
+            
+            // Server URL (Render.com uchun)
+            const serverUrl = window.location.hostname.includes('localhost') 
+                ? 'http://localhost:3000' 
+                : 'https://like-duel.onrender.com';
+            
+            this.socket = io(serverUrl, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
+            
+            this.setupSocketEvents();
+            return true;
+        } catch (error) {
+            console.error('❌ Socket ulashda xato:', error);
+            return false;
+        }
+    },
+    
+    setupSocketEvents: function() {
+        if (!this.socket) return;
+        
+        this.socket.on('connect', () => {
+            console.log('✅ Socket serverga ulandi');
+            this.isConnected = true;
+            window.gameState.isConnected = true;
+            window.gameState.socket = this.socket;
+            
+            // Authenticate
+            this.authenticate();
+        });
+        
+        this.socket.on('disconnect', () => {
+            console.log('❌ Socket serverdan uzildi');
+            this.isConnected = false;
+            window.gameState.isConnected = false;
+        });
+        
+        this.socket.on('connect_error', (error) => {
+            console.error('❌ Socket ulanish xatosi:', error);
+        });
+    },
+    
+    authenticate: function() {
+        if (!this.socket) return;
+        
+        const userData = {
+            userId: window.tgUserGlobal?.id || 'user_' + Date.now(),
+            firstName: window.tgUserGlobal?.first_name || 'User',
+            username: window.tgUserGlobal?.username || '',
+            photoUrl: window.tgUserGlobal?.photo_url || '',
+            gender: window.userState?.currentGender || null,
+            hasSelectedGender: window.userState?.hasSelectedGender || false,
+            bio: window.userState?.bio || '',
+            filter: window.userState?.filter || 'not_specified'
+        };
+        
+        console.log('🔐 Authenticate qilinmoqda:', userData);
+        this.socket.emit('auth', userData);
+    },
+    
+    enterQueue: function() {
+        if (!this.socket || !this.isConnected) {
+            console.error('❌ Socket ulanmagan');
+            return false;
+        }
+        
+        console.log('📝 Navbatga kirilmoqda...');
+        this.socket.emit('enter_queue');
+        return true;
+    },
+    
+    leaveQueue: function() {
+        if (!this.socket || !this.isConnected) return;
+        
+        console.log('🚪 Navbatdan chiqilmoqda...');
+        this.socket.emit('leave_queue');
+    },
+    
+    sendVote: function(duelId, choice) {
+        if (!this.socket || !this.isConnected) {
+            console.error('❌ Socket ulanmagan');
+            return false;
+        }
+        
+        console.log('🗳️ Ovoz yuborilmoqda:', { duelId, choice });
+        this.socket.emit('vote', { duelId, choice });
+        return true;
+    },
+    
+    acceptChatInvite: function(requestId) {
+        if (!this.socket || !this.isConnected) return;
+        
+        console.log('✅ Chat taklifi qabul qilinmoqda:', requestId);
+        this.socket.emit('accept_chat_invite', { requestId });
+    },
+    
+    rejectChatInvite: function(requestId) {
+        if (!this.socket || !this.isConnected) return;
+        
+        console.log('❌ Chat taklifi rad etilmoqda:', requestId);
+        this.socket.emit('reject_chat_invite', { requestId });
+    }
+};
 // Global export
 window.socketManager = SocketManager;
 

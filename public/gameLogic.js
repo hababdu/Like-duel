@@ -144,41 +144,32 @@ window.startDuelFlow = function() {
 };
 
 // ==================== VOTE HANDLING ====================
+// gameLogic.js da handleVote ni yangilang
 window.handleVote = function(choice) {
-    console.log('🗳️ Ovoz berildi:', choice);
-    
     if (!window.gameState.isInDuel || !window.gameState.currentDuelId) {
-        console.error('❌ Siz duelda emassiz!');
-        window.showNotification?.('Xato', 'Siz duelda emassiz');
+        window.utils?.showNotification('Xato', 'Duelda emassiz');
         return;
     }
-    
-    // Tugmalarni disable qilish
+
+    // Tugmalarni darhol bloklash
     this.disableVoteButtons();
-    
-    // Status yangilash
-    const choiceText = this.getChoiceText(choice);
-    window.updateDuelStatus?.(`Siz ${choiceText} berdingiz. Kutish...`);
-    
-    // Super like hisobini yangilash
-    if (choice === 'super_like' && window.userState.dailySuperLikes > 0) {
+
+    // Super like cheklovi
+    if (choice === 'super_like') {
+        if (window.userState.dailySuperLikes <= 0) {
+            this.enableVoteButtons();
+            window.utils?.showNotification('SUPER LIKE tugadi', 'Kunlik limitdan oshdingiz');
+            return;
+        }
         window.userState.dailySuperLikes--;
         window.updateUIFromUserState?.();
-    } else if (choice === 'super_like' && window.userState.dailySuperLikes <= 0) {
-        this.enableVoteButtons();
-        window.utils?.showNotification('Xato', 'Kunlik SUPER LIKE tugadi!');
-        return;
     }
-    
+
     // Serverga yuborish
-    if (window.socketManager && window.socketManager.sendVote) {
-        const success = window.socketManager.sendVote(window.gameState.currentDuelId, choice);
-        
-        if (!success) {
-            console.error('❌ Ovoz yuborib bo\'lmadi');
-            this.enableVoteButtons();
-        }
-    }
+    window.socketManager?.sendVote(window.gameState.currentDuelId, choice);
+
+    // UI yangilash
+    window.updateDuelStatus?.(`Siz ${this.getChoiceText(choice)} berdingiz. Kutish...`);
 };
 
 window.disableVoteButtons = function() {
@@ -1109,24 +1100,30 @@ window.handleSocketEvents = function() {
     });
     
     // Match natijasi
-    socket.on('match_result', (data) => {
-        console.log('🎯 Match natijasi:', data);
-        
-        switch(data.result) {
-            case 'match':
-                window.gameLogic?.handleMatch?.(data);
-                break;
-            case 'liked_only':
-                window.gameLogic?.handleLikedOnly?.(data);
-                break;
-            case 'no_match':
-                window.gameLogic?.handleNoMatch?.(data);
-                break;
-            case 'timeout':
-                window.gameLogic?.handleTimeout?.(data);
-                break;
-        }
-    });
+ // match_result handler (handleSocketEvents ichida)
+socket.on('match_result', (data) => {
+    console.log('Match natijasi keldi:', data);
+
+    // Barcha timerlarni to'xtatish
+    window.gameLogic?.stopAllTimers();
+
+    switch(data.result) {
+        case 'match':
+            window.gameLogic?.handleMatch?.(data);
+            break;
+        case 'liked_only':
+            window.gameLogic?.handleLikedOnly?.(data);
+            break;
+        case 'no_match':
+            window.gameLogic?.handleNoMatch?.(data);
+            break;
+        case 'timeout':
+            window.gameLogic?.handleTimeout?.(data);
+            break;
+        default:
+            window.gameLogic?.proceedToNextDuel?.();
+    }
+});
     
     // Raqib ovoz berdi
     socket.on('opponent_voted', (data) => {

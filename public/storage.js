@@ -1,443 +1,259 @@
-// ==================== STORAGE MANAGER ====================
+// public/storage.js - To'liq funksionallik bilan LocalStorage boshqaruvi
+
 window.storage = {
+    // ==================== ASOSIY USER STATE ====================
     /**
-     * Save user state
+     * Foydalanuvchi ma'lumotlarini saqlash
      */
     saveUserState: function() {
         try {
-            const userState = {
-                currentGender: window.userState.currentGender,
-                hasSelectedGender: window.userState.hasSelectedGender,
-                coins: window.userState.coins,
-                level: window.userState.level,
-                rating: window.userState.rating,
-                matches: window.userState.matches,
-                duels: window.userState.duels,
-                wins: window.userState.wins,
-                totalLikes: window.userState.totalLikes,
-                dailySuperLikes: window.userState.dailySuperLikes,
-                bio: window.userState.bio,
-                filter: window.userState.filter,
-                mutualMatchesCount: window.userState.mutualMatchesCount,
-                friendsCount: window.userState.friendsCount
+            const userData = {
+                // Asosiy statistika
+                coins: window.userState.coins || 100,
+                level: window.userState.level || 1,
+                rating: window.userState.rating || 1500,
+                matches: window.userState.matches || 0,
+                duels: window.userState.duels || 0,
+                wins: window.userState.wins || 0,
+                totalLikes: window.userState.totalLikes || 0,
+                dailySuperLikes: window.userState.dailySuperLikes || 3,
+
+                // Profil ma'lumotlari
+                bio: window.userState.bio || '',
+                currentGender: window.userState.currentGender || null,
+                filter: window.userState.filter || 'not_specified',
+
+                // Flaglar
+                hasSelectedGender: window.userState.hasSelectedGender || false,
+
+                // Do'stlar va match soni
+                mutualMatchesCount: window.userState.mutualMatchesCount || 0,
+                friendsCount: window.userState.friendsCount || 0,
+
+                // Kunlik reset sanasi
+                lastResetDate: window.userState.lastResetDate || new Date().toDateString()
             };
-            
-            localStorage.setItem('likeDuelUserState', JSON.stringify(userState));
-            console.log('💾 User state saved');
-            return true;
+
+            localStorage.setItem('likeDuelUserState', JSON.stringify(userData));
+            console.log('💾 User state localStorage ga saqlandi');
         } catch (error) {
-            console.error('❌ Error saving user state:', error);
-            return false;
+            console.error('❌ User state saqlashda xatolik:', error);
         }
     },
-    
+
     /**
-     * Load user state
+     * Foydalanuvchi ma'lumotlarini yuklash
      */
     loadUserState: function() {
         try {
             const saved = localStorage.getItem('likeDuelUserState');
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                Object.assign(window.userState, parsed);
-                console.log('📦 User state loaded:', window.userState);
-                return true;
+            if (!saved) {
+                console.log('📄 Saqlangan user state topilmadi, yangi yaratilmoqda');
+                return false;
             }
-        } catch (error) {
-            console.error('❌ Error loading user state:', error);
-        }
-        return false;
-    },
-    
-    /**
-     * Clear all storage
-     */
-    clearAll: function() {
-        try {
-            localStorage.removeItem('likeDuelUserState');
-            localStorage.removeItem('userGender');
-            localStorage.removeItem('hasSelectedGender');
-            localStorage.removeItem('userFilter');
-            console.log('🗑️ All storage cleared');
+
+            const parsed = JSON.parse(saved);
+
+            // window.userState ga yuklash
+            Object.assign(window.userState, {
+                coins: parsed.coins ?? 100,
+                level: parsed.level ?? 1,
+                rating: parsed.rating ?? 1500,
+                matches: parsed.matches ?? 0,
+                duels: parsed.duels ?? 0,
+                wins: parsed.wins ?? 0,
+                totalLikes: parsed.totalLikes ?? 0,
+                dailySuperLikes: parsed.dailySuperLikes ?? 3,
+
+                bio: parsed.bio || '',
+                currentGender: parsed.currentGender || null,
+                filter: parsed.filter || 'not_specified',
+
+                hasSelectedGender: parsed.hasSelectedGender || false,
+
+                mutualMatchesCount: parsed.mutualMatchesCount || 0,
+                friendsCount: parsed.friendsCount || 0,
+
+                lastResetDate: parsed.lastResetDate || new Date().toDateString()
+            });
+
+            console.log('📥 User state localStorage dan muvaffaqiyatli yuklandi:', window.userState);
             return true;
         } catch (error) {
-            console.error('❌ Error clearing storage:', error);
+            console.error('❌ User state yuklashda xatolik:', error);
             return false;
         }
     },
-    
+
+    // ==================== DO'STLAR RO'YXATI ====================
     /**
-     * Save friends list
+     * Do'stlar ro'yxatini saqlash
      */
-    saveFriendsList: function(friendsList) {
+    saveFriendsList: function(friendsArray) {
         try {
-            localStorage.setItem('likeDuelFriends', JSON.stringify(friendsList));
-            console.log('💾 Friends list saved:', friendsList.length, 'friends');
+            if (!Array.isArray(friendsArray)) {
+                console.warn('⚠️ saveFriendsList: friendsArray array emas');
+                return false;
+            }
+
+            localStorage.setItem('likeDuelFriends', JSON.stringify(friendsArray));
+            console.log(`👥 ${friendsArray.length} ta do'st saqlandi`);
+
+            // User state dagi sonlarni yangilash
+            if (window.userState) {
+                window.userState.mutualMatchesCount = friendsArray.length;
+                window.userState.friendsCount = friendsArray.length;
+                window.uiManager?.updateUIFromUserState();
+            }
+
             return true;
         } catch (error) {
-            console.error('❌ Error saving friends list:', error);
+            console.error('❌ Do\'stlar saqlashda xatolik:', error);
             return false;
         }
     },
-    
+
     /**
-     * Load friends list
+     * Do'stlar ro'yxatini yuklash
      */
     loadFriendsList: function() {
         try {
             const saved = localStorage.getItem('likeDuelFriends');
-            if (saved) {
-                const friendsList = JSON.parse(saved);
-                console.log('📦 Friends list loaded:', friendsList.length, 'friends');
-                return friendsList;
+            if (!saved) {
+                console.log('📄 Saqlangan do\'stlar topilmadi');
+                return [];
             }
-        } catch (error) {
-            console.error('❌ Error loading friends list:', error);
-        }
-        return [];
-    },
-    
-    /**
-     * Add to friends list
-     */
-    addToFriendsList: function(friend) {
-        try {
-            const friendsList = this.loadFriendsList();
-            
-            // Check if friend already exists
-            const existingIndex = friendsList.findIndex(f => f.id === friend.id);
-            if (existingIndex === -1) {
-                friendsList.push({
-                    id: friend.id,
-                    name: friend.name || 'Foydalanuvchi',
-                    username: friend.username || '',
-                    photo: friend.photo || 
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name || 'User')}&background=3498db&color=fff`,
-                    gender: friend.gender || 'not_specified',
-                    rating: friend.rating || 1500,
-                    matches: friend.matches || 0,
-                    online: friend.online || false,
-                    lastActive: new Date(),
-                    isMutual: true,
-                    mutualMatchDate: new Date(),
-                    isSuperLikeMatch: friend.isSuperLikeMatch || false
-                });
-                
-                this.saveFriendsList(friendsList);
-                console.log('✅ Friend added:', friend.name);
-                return true;
+
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) {
+                console.warn('⚠️ Saqlangan do\'stlar formati noto\'g\'ri');
+                return [];
             }
-            
-            console.log('ℹ️ Friend already exists:', friend.name);
-            return false;
+
+            console.log(`👥 ${parsed.length} ta do'st yuklandi`);
+            return parsed;
         } catch (error) {
-            console.error('❌ Error adding friend:', error);
-            return false;
+            console.error('❌ Do\'stlar yuklashda xatolik:', error);
+            return [];
         }
     },
-    
+
+    // ==================== QO'SHIMCHA SAQLASH ====================
     /**
-     * Remove from friends list
+     * Har qanday ma'lumotni key bo'yicha saqlash
      */
-    removeFromFriendsList: function(friendId) {
+    setItem: function(key, value) {
         try {
-            const friendsList = this.loadFriendsList();
-            const filteredList = friendsList.filter(friend => friend.id !== friendId);
-            
-            if (filteredList.length !== friendsList.length) {
-                this.saveFriendsList(filteredList);
-                console.log('❌ Friend removed:', friendId);
-                return true;
+            if (typeof value === 'object') {
+                value = JSON.stringify(value);
             }
-            
-            return false;
-        } catch (error) {
-            console.error('❌ Error removing friend:', error);
-            return false;
-        }
-    },
-    
-    /**
-     * Save match history
-     */
-    saveMatchHistory: function(match) {
-        try {
-            const history = this.loadMatchHistory();
-            history.unshift({
-                ...match,
-                timestamp: new Date()
-            });
-            
-            // Keep only last 100 matches
-            const limitedHistory = history.slice(0, 100);
-            
-            localStorage.setItem('likeDuelMatchHistory', JSON.stringify(limitedHistory));
-            console.log('💾 Match history saved');
+            localStorage.setItem(key, value);
             return true;
         } catch (error) {
-            console.error('❌ Error saving match history:', error);
+            console.error(`❌ ${key} saqlashda xatolik:`, error);
             return false;
         }
     },
-    
+
     /**
-     * Load match history
+     * Key bo'yicha ma'lumot olish
      */
-    loadMatchHistory: function() {
+    getItem: function(key, defaultValue = null) {
         try {
-            const saved = localStorage.getItem('likeDuelMatchHistory');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-        } catch (error) {
-            console.error('❌ Error loading match history:', error);
-        }
-        return [];
-    },
-    
-    /**
-     * Save settings
-     */
-    saveSettings: function(settings) {
-        try {
-            localStorage.setItem('likeDuelSettings', JSON.stringify(settings));
-            console.log('💾 Settings saved');
-            return true;
-        } catch (error) {
-            console.error('❌ Error saving settings:', error);
-            return false;
-        }
-    },
-    
-    /**
-     * Load settings
-     */
-    loadSettings: function() {
-        try {
-            const saved = localStorage.getItem('likeDuelSettings');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-        } catch (error) {
-            console.error('❌ Error loading settings:', error);
-        }
-        return {
-            soundEnabled: true,
-            vibrationEnabled: true,
-            notificationsEnabled: true,
-            autoQueue: false
-        };
-    },
-    
-    /**
-     * Save quests progress
-     */
-    saveQuestsProgress: function(quests) {
-        try {
-            localStorage.setItem('likeDuelQuests', JSON.stringify(quests));
-            console.log('💾 Quests progress saved');
-            return true;
-        } catch (error) {
-            console.error('❌ Error saving quests:', error);
-            return false;
-        }
-    },
-    
-    /**
-     * Load quests progress
-     */
-    loadQuestsProgress: function() {
-        try {
-            const saved = localStorage.getItem('likeDuelQuests');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-        } catch (error) {
-            console.error('❌ Error loading quests:', error);
-        }
-        return {
-            daily_duels: { progress: 0, completed: false },
-            mutual_matches: { progress: 0, completed: false },
-            win_streak: { progress: 0, completed: false }
-        };
-    },
-    
-    /**
-     * Save leaderboard data
-     */
-    saveLeaderboardData: function(data) {
-        try {
-            const cache = {
-                data: data,
-                timestamp: new Date().getTime()
-            };
-            
-            localStorage.setItem('likeDuelLeaderboard', JSON.stringify(cache));
-            console.log('💾 Leaderboard data cached');
-            return true;
-        } catch (error) {
-            console.error('❌ Error saving leaderboard:', error);
-            return false;
-        }
-    },
-    
-    /**
-     * Load leaderboard data
-     */
-    loadLeaderboardData: function() {
-        try {
-            const saved = localStorage.getItem('likeDuelLeaderboard');
-            if (saved) {
-                const cache = JSON.parse(saved);
-                const now = new Date().getTime();
-                const oneHour = 60 * 60 * 1000;
-                
-                // Return cached data if less than 1 hour old
-                if (now - cache.timestamp < oneHour) {
-                    console.log('📦 Leaderboard data loaded from cache');
-                    return cache.data;
-                }
-            }
-        } catch (error) {
-            console.error('❌ Error loading leaderboard:', error);
-        }
-        return null;
-    },
-    
-    /**
-     * Get storage statistics
-     */
-    getStorageStats: function() {
-        try {
-            let totalSize = 0;
-            const stats = {};
-            
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
-                const size = (key.length + value.length) * 2; // Approximate size in bytes
-                
-                totalSize += size;
-                
-                if (key.startsWith('likeDuel')) {
-                    stats[key] = {
-                        size: size,
-                        items: key.includes('Friends') || key.includes('History') ? 
-                            JSON.parse(value).length : 1
-                    };
-                }
-            }
-            
-            return {
-                totalSize: totalSize,
-                totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
-                stats: stats
-            };
-        } catch (error) {
-            console.error('❌ Error getting storage stats:', error);
-            return null;
-        }
-    },
-    
-    /**
-     * Export all data
-     */
-    exportAllData: function() {
-        try {
-            const data = {
-                userState: window.userState,
-                friends: this.loadFriendsList(),
-                matchHistory: this.loadMatchHistory(),
-                settings: this.loadSettings(),
-                quests: this.loadQuestsProgress(),
-                timestamp: new Date().toISOString()
-            };
-            
-            const json = JSON.stringify(data, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `like_duel_backup_${new Date().toISOString().slice(0, 10)}.json`;
-            a.click();
-            
-            URL.revokeObjectURL(url);
-            
-            console.log('📤 All data exported');
-            return true;
-        } catch (error) {
-            console.error('❌ Error exporting data:', error);
-            return false;
-        }
-    },
-    
-    /**
-     * Import data from file
-     */
-    importData: function(file) {
-        return new Promise((resolve, reject) => {
+            const item = localStorage.getItem(key);
+            if (item === null) return defaultValue;
+
+            // JSON parse qilishga urinish
             try {
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        
-                        // Validate data
-                        if (!data.userState || !data.timestamp) {
-                            throw new Error('Invalid backup file format');
-                        }
-                        
-                        // Restore data
-                        Object.assign(window.userState, data.userState);
-                        
-                        if (data.friends) {
-                            localStorage.setItem('likeDuelFriends', JSON.stringify(data.friends));
-                        }
-                        
-                        if (data.matchHistory) {
-                            localStorage.setItem('likeDuelMatchHistory', JSON.stringify(data.matchHistory));
-                        }
-                        
-                        if (data.settings) {
-                            localStorage.setItem('likeDuelSettings', JSON.stringify(data.settings));
-                        }
-                        
-                        if (data.quests) {
-                            localStorage.setItem('likeDuelQuests', JSON.stringify(data.quests));
-                        }
-                        
-                        console.log('📥 Data imported successfully');
-                        resolve(true);
-                    } catch (parseError) {
-                        console.error('❌ Error parsing backup file:', parseError);
-                        reject(parseError);
-                    }
-                };
-                
-                reader.onerror = function() {
-                    reject(new Error('Failed to read file'));
-                };
-                
-                reader.readAsText(file);
-            } catch (error) {
-                console.error('❌ Error importing data:', error);
-                reject(error);
+                return JSON.parse(item);
+            } catch {
+                return item; // oddiy string bo'lsa
             }
-        });
+        } catch (error) {
+            console.error(`❌ ${key} o'qishda xatolik:`, error);
+            return defaultValue;
+        }
+    },
+
+    /**
+     * Key bo'yicha o'chirish
+     */
+    removeItem: function(key) {
+        try {
+            localStorage.removeItem(key);
+            console.log(`🗑️ ${key} o'chirildi`);
+            return true;
+        } catch (error) {
+            console.error(`❌ ${key} o'chirishda xatolik:`, error);
+            return false;
+        }
+    },
+
+    /**
+     * Barcha ma'lumotlarni tozalash (reset)
+     */
+    clearAll: function() {
+        try {
+            localStorage.clear();
+            console.log('🧹 LocalStorage tozalandi');
+
+            // Default qiymatlarga qaytarish
+            Object.assign(window.userState, {
+                coins: 100,
+                level: 1,
+                rating: 1500,
+                matches: 0,
+                duels: 0,
+                wins: 0,
+                totalLikes: 0,
+                dailySuperLikes: 3,
+                bio: '',
+                currentGender: null,
+                filter: 'not_specified',
+                hasSelectedGender: false,
+                mutualMatchesCount: 0,
+                friendsCount: 0
+            });
+
+            window.uiManager?.updateUIFromUserState();
+            window.utils?.showNotification('Reset', 'Barcha maʼlumotlar tozalandi');
+        } catch (error) {
+            console.error('❌ Tozalashda xatolik:', error);
+        }
+    },
+
+    /**
+     * Storage hajmini ko'rish (debug uchun)
+     */
+    getStorageSize: function() {
+        let total = 0;
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                total += localStorage[key].length;
+            }
+        }
+        return (total / 1024).toFixed(2) + ' KB';
     }
 };
 
-// ==================== AUTO LOAD ====================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM yuklandi, Storage Manager ishga tushmoqda...');
-    
-    // Load user state automatically
-    setTimeout(() => {
-        if (window.storage && window.storage.loadUserState) {
-            window.storage.loadUserState();
-            console.log('✅ Storage Manager ishga tushdi');
-        }
-    }, 500);
+// ==================== AVTO YUKLASH ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('📦 storage.js yuklandi');
+
+    // User state yuklash
+    const loaded = window.storage?.loadUserState();
+
+    // Do'stlar yuklash va UI yangilash
+    const friends = window.storage?.loadFriendsList();
+    if (friends.length > 0 && window.uiManager) {
+        window.uiManager.loadFriendsList(); // agar funksiya mavjud bo'lsa
+    }
+
+    console.log(`✅ Storage holati: ${loaded ? 'yuklandi' : 'yangi'} | Hajm: ${window.storage?.getStorageSize()}`);
 });
+
+// ==================== EXPORT (agar module bo'lsa) ====================
+// Agar boshqa fayllarda import qilish kerak bo'lsa
+// export default window.storage;
+
+console.log('💾 storage.js toʻliq ishga tushdi');

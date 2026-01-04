@@ -1,5 +1,4 @@
 // ==================== GAME LOGIC ====================
-
 // ==================== GLOBAL STATE ====================
 window.gameState = window.gameState || {
     // Socket holati
@@ -44,7 +43,6 @@ window.gameState = window.gameState || {
 };
 
 // ==================== INITIALIZATION ====================
-
 window.initGameLogic = function() {
     console.log('🎮 Game Logic initialized');
     this.initializeElements();
@@ -112,7 +110,6 @@ window.initializeSocket = function() {
 };
 
 // ==================== DUEL START ====================
-
 window.startDuelFlow = function() {
     console.log('🎮 Duel boshlash funksiyasi');
     
@@ -147,7 +144,6 @@ window.startDuelFlow = function() {
 };
 
 // ==================== VOTE HANDLING ====================
-
 window.handleVote = function(choice) {
     console.log('🗳️ Ovoz berildi:', choice);
     
@@ -168,6 +164,10 @@ window.handleVote = function(choice) {
     if (choice === 'super_like' && window.userState.dailySuperLikes > 0) {
         window.userState.dailySuperLikes--;
         window.updateUIFromUserState?.();
+    } else if (choice === 'super_like' && window.userState.dailySuperLikes <= 0) {
+        this.enableVoteButtons();
+        window.utils?.showNotification('Xato', 'Kunlik SUPER LIKE tugadi!');
+        return;
     }
     
     // Serverga yuborish
@@ -214,7 +214,6 @@ window.getChoiceText = function(choice) {
 };
 
 // ==================== MATCH HANDLING ====================
-
 window.handleMatch = function(data) {
     console.log('🎉🎉🎉 MATCH DETECTED! Data:', data);
     
@@ -228,6 +227,13 @@ window.handleMatch = function(data) {
     
     // UI elementlarini yashirish
     this.hideDuelUI();
+    
+    // Raqib onlinemi tekshirish
+    if (!data.partner.online) {
+        window.utils?.showNotification('Diqqat', 'Raqib offline, keyingi duelga o\'tish');
+        this.skipChatInvite();
+        return;
+    }
     
     // Chat taklifi tugmalarini ko'rsatish (ikki tomonda ham)
     this.showMatchOptions(data);
@@ -284,8 +290,8 @@ window.showMatchOptions = function(data) {
             
             <!-- Partner info -->
             <div class="partner-info-card">
-                <img src="${partnerPhoto}" class="partner-avatar"
-                     onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(partnerName)}&background=667eea&color=fff'">
+                <img src="${partnerPhoto}" class="partner-avatar" 
+                    onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(partnerName)}&background=667eea&color=fff'">
                 <div class="partner-details">
                     <div class="partner-name">${partnerName}</div>
                     <div class="partner-username">@${partnerUsername || 'foydalanuvchi'}</div>
@@ -406,6 +412,11 @@ window.startMatchActionTimer = function() {
 window.acceptChatInvite = function(data) {
     console.log('💬 Chat taklifi qabul qilindi:', data);
     
+    // Confirm dialog qo'shish
+    if (!confirm(`${data.partner.name} bilan chat qilishni xohlaysizmi? Chat qabul qilingandan keyin do'stlar ro'yxatiga qo'shilasiz.`)) {
+        return;
+    }
+    
     // Holatlarni yangilash
     window.gameState.hasRespondedToChat = true;
     window.gameState.isWaitingForMatchAction = false;
@@ -475,7 +486,6 @@ window.skipChatInvite = function() {
 };
 
 // ==================== SUPER LIKE HANDLING ====================
-
 window.handleSuperLikeGiven = function(data) {
     console.log('💖 Super like berildi:', data);
     
@@ -484,7 +494,7 @@ window.handleSuperLikeGiven = function(data) {
         console.log('🤝 O\'zaro SUPER LIKE! Do\'st qo\'shilmoqda...');
         this.addToFriendsList(data.opponent);
         window.utils?.showNotification('💖 O\'zaro SUPER LIKE!', 
-            `${data.opponent.name} bilan do\'st bo\'ldingiz!`);
+            `${data.opponent.name} bilan do'st bo'ldingiz!`);
         
         // Confetti
         if (window.confetti) {
@@ -498,7 +508,6 @@ window.handleSuperLikeGiven = function(data) {
 };
 
 // ==================== OPPONENT LEFT HANDLING ====================
-
 window.handleOpponentLeft = function() {
     console.log('🚪 Raqib chiqib ketdi');
     
@@ -572,7 +581,6 @@ window.showNewDuelInvite = function() {
 };
 
 // ==================== OTHER MATCH TYPES ====================
-
 window.handleLikedOnly = function(data) {
     console.log('❤️ Faqat siz like berdidingiz');
     
@@ -641,7 +649,6 @@ window.handleTimeout = function(data) {
 };
 
 // ==================== CHAT INVITE HANDLING ====================
-
 window.handleChatInvite = function(data) {
     console.log('💬 Chat taklifi kelib tushdi:', data);
     
@@ -673,18 +680,18 @@ window.showChatInviteModal = function(data) {
                             ${message}
                         </p>
                         <p style="color: #f1c40f; font-size: 0.9rem;">
-                            <i class="fas fa-info-circle"></i>
+                            <i class="fas fa-info-circle"></i> 
                             Chatni qabul qilsangiz, do'stlar ro'yxatingizga qo'shilasiz
                         </p>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="modal-btn accept-btn" onclick="window.gameLogic?.acceptChatInviteFromModal?.()" 
-                            style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
+                        style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
                         <i class="fas fa-check"></i> Qabul qilish
                     </button>
                     <button class="modal-btn reject-btn" onclick="window.gameLogic?.rejectChatInviteFromModal?.()" 
-                            style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
+                        style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
                         <i class="fas fa-times"></i> Rad etish
                     </button>
                 </div>
@@ -803,7 +810,6 @@ window.rejectChatInviteFromModal = function() {
 };
 
 // ==================== FRIENDS MANAGEMENT ====================
-
 window.addToFriendsList = function(friendData) {
     console.log('👥 Do\'st qo\'shilmoqda:', friendData);
     
@@ -846,7 +852,7 @@ window.addToFriendsList = function(friendData) {
         
         // Notification
         window.utils?.showNotification('🎉 Do\'st qo\'shildi', 
-            `${friendData.name} do\'stlaringiz ro\'yxatiga qo\'shildi!`);
+            `${friendData.name} do'stlaringiz ro'yxatiga qo'shildi!`);
         
         console.log('✅ Do\'st qo\'shildi');
         return true;
@@ -857,7 +863,6 @@ window.addToFriendsList = function(friendData) {
 };
 
 // ==================== DUEL FLOW MANAGEMENT ====================
-
 window.proceedToNextDuel = function() {
     console.log('🔄 Keyingi duelga o\'tilmoqda...');
     
@@ -921,7 +926,6 @@ window.returnToMenu = function() {
 };
 
 // ==================== UTILITY FUNCTIONS ====================
-
 window.stopAllTimers = function() {
     console.log('⏹️ Barcha taymerlar to\'xtatildi');
     
@@ -1009,7 +1013,6 @@ window.hideDuelUI = function() {
 };
 
 // ==================== STATS FUNCTIONS ====================
-
 window.updateMatchStats = function(data) {
     console.log('📊 Match stats yangilanmoqda');
     
@@ -1065,7 +1068,6 @@ window.updateStats = function(data) {
 };
 
 // ==================== AUTO INITIALIZE ====================
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM yuklandi, Game Logic ishga tushmoqda...');
     setTimeout(() => {

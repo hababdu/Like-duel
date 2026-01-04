@@ -2170,3 +2170,346 @@ input:disabled, textarea:disabled, select:disabled {
         font-size: 1.5rem;
     }
 }
+/* Quest items */
+.quest-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.quest-item.completed {
+    background: rgba(46, 204, 113, 0.1);
+    border-color: rgba(46, 204, 113, 0.3);
+}
+
+.quest-item.claimed {
+    opacity: 0.7;
+}
+
+.quest-icon {
+    font-size: 2rem;
+    width: 50px;
+    text-align: center;
+}
+
+.quest-details {
+    flex: 1;
+}
+
+.quest-title {
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.quest-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #e74c3c, #f39c12);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.8rem;
+    color: #ccc;
+    min-width: 40px;
+}
+
+.quest-reward {
+    display: flex;
+    align-items: center;
+}
+
+.claim-btn {
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.claim-btn:hover {
+    transform: scale(1.05);
+}
+
+.reward-info {
+    color: #f1c40f;
+    font-weight: bold;
+}
+
+.claimed-badge {
+    color: #2ecc71;
+    font-size: 1.5rem;
+}
+
+/* League progress */
+.league-progress {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.league-current {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.league-icon {
+    font-size: 2rem;
+}
+
+.league-name {
+    font-weight: bold;
+    color: #fff;
+    font-size: 1.2rem;
+}
+
+.league-rating {
+    color: #f1c40f;
+    font-weight: bold;
+}
+
+.league-progress-bar {
+    height: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.league-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #9b59b6);
+    transition: width 0.5s ease;
+}
+
+.league-next {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+/* Achievements grid */
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.achievement-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.achievement-card.unlocked {
+    border-color: #f1c40f;
+    background: rgba(241, 196, 15, 0.1);
+}
+
+.achievement-card.locked {
+    opacity: 0.6;
+    filter: grayscale(0.8);
+}
+
+.achievement-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.achievement-title {
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.achievement-description {
+    font-size: 0.8rem;
+    color: #ccc;
+    margin-bottom: 10px;
+}
+
+.achievement-reward {
+    color: #f1c40f;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+/* Streak system */
+.streak-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(231, 76, 60, 0.9);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Voice chat */
+.voice-chat-btn {
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+    transition: all 0.3s ease;
+}
+
+.voice-chat-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+}
+
+/* Typing indicator */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    margin: 10px 0;
+}
+
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    background: #3498db;
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-10px); }
+}
+
+/* Reaction buttons */
+.reaction-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.reaction-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reaction-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* VIP Badge */
+.vip-badge {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #000;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 5px;
+}
+
+/* Animation for new features */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.new-feature {
+    animation: pulse 2s infinite;
+    position: relative;
+}
+
+.new-feature::after {
+    content: "YANGI!";
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #e74c3c;
+    color: white;
+    font-size: 0.6rem;
+    padding: 2px 5px;
+    border-radius: 10px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #0a0a0a;
+    }
+    
+    .app-container {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

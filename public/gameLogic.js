@@ -1237,7 +1237,100 @@ window.updateStats = function(data) {
         window.storage.saveUserState();
     }
 };
+// gameLogic.js ga qo'shing
+class LeagueSystem {
+    constructor() {
+        this.leagues = [
+            { id: 1, name: "Bronza", minRating: 0, maxRating: 1200, reward: 500, icon: "🥉" },
+            { id: 2, name: "Kumush", minRating: 1201, maxRating: 1800, reward: 1000, icon: "🥈" },
+            { id: 3, name: "Oltin", minRating: 1801, maxRating: 2500, reward: 2000, icon: "🥇" },
+            { id: 4, name: "Platina", minRating: 2501, maxRating: 3500, reward: 5000, icon: "💎" },
+            { id: 5, name: "Diamond", minRating: 3501, maxRating: 5000, reward: 10000, icon: "✨" },
+            { id: 6, name: "CHAMPION", minRating: 5001, maxRating: 9999, reward: 20000, icon: "👑" }
+        ];
+    }
 
+    getCurrentLeague(rating) {
+        return this.leagues.find(league => 
+            rating >= league.minRating && rating <= league.maxRating
+        ) || this.leagues[0];
+    }
+
+    getNextLeague(rating) {
+        const current = this.getCurrentLeague(rating);
+        const nextIndex = this.leagues.findIndex(l => l.id === current.id) + 1;
+        return nextIndex < this.leagues.length ? this.leagues[nextIndex] : null;
+    }
+
+    getProgressToNextLeague(rating) {
+        const current = this.getCurrentLeague(rating);
+        const next = this.getNextLeague(rating);
+        
+        if (!next) return { progress: 100, current, next: null };
+        
+        const range = current.maxRating - current.minRating;
+        const progress = ((rating - current.minRating) / range) * 100;
+        
+        return {
+            progress: Math.min(100, Math.max(0, progress)),
+            current,
+            next
+        };
+    }
+
+    checkPromotion(oldRating, newRating) {
+        const oldLeague = this.getCurrentLeague(oldRating);
+        const newLeague = this.getCurrentLeague(newRating);
+        
+        if (oldLeague.id < newLeague.id) {
+            // Liga oshirish
+            this.showPromotionModal(newLeague);
+            return true;
+        }
+        return false;
+    }
+
+    showPromotionModal(league) {
+        showModal({
+            title: `🎉 TABRIKLAYMIZ!`,
+            content: `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">${league.icon}</div>
+                    <h3 style="color: #fff; margin-bottom: 10px;">${league.name} LIGASIGA KO'TARILDINGIZ!</h3>
+                    <p style="color: #ccc; margin-bottom: 20px;">
+                        Yangi ligangiz uchun ${league.reward} tanga mukofoti!
+                    </p>
+                    <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Mukofot:</span>
+                            <span><i class="fas fa-coins"></i> ${league.reward} tanga</span>
+                        </div>
+                    </div>
+                </div>
+            `,
+            buttons: [
+                {
+                    text: "Mukofotni olish",
+                    class: "success",
+                    action: () => {
+                        gameState.user.coins += league.reward;
+                        updateUserStats();
+                        showNotification("💰 Mukofot olindi!", `${league.reward} tanga qo'shildi`);
+                    }
+                }
+            ]
+        });
+        
+        // Maxsus konfetti
+        confetti({
+            particleCount: 150,
+            spread: 100,
+            origin: { y: 0.3 }
+        });
+    }
+}
+
+const leagueSystem = new LeagueSystem();
 // ==================== AUTO INITIALIZE ====================
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -731,7 +731,51 @@ function exportGlobalFunctions() {
     
     console.log('✅ Barcha global funksiyalar export qilindi');
 }
+// main.js ga qo'shing
 
+// Lazy loading images
+const imageObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const img = entry.target;
+            img.src = img.dataset.src;
+            imageObserver.unobserve(img);
+        }
+    });
+});
+
+// Code splitting
+function loadModule(moduleName) {
+    return import(`./modules/${moduleName}.js`)
+        .then(module => module.default)
+        .catch(() => console.error(`Module ${moduleName} failed to load`));
+}
+
+// Memory management
+class MemoryManager {
+    static clearOldData() {
+        const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const oldChats = storage.get('chat_history', []).filter(chat => 
+            chat.lastActivity > oneWeekAgo
+        );
+        storage.set('chat_history', oldChats);
+    }
+    
+    static compressImages(base64) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 150;
+                canvas.height = 150;
+                ctx.drawImage(img, 0, 0, 150, 150);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.src = base64;
+        });
+    }
+}
 // ==================== INITIALIZATION ====================
 
 /**

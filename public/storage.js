@@ -507,7 +507,123 @@ const StorageManager = {
         console.log('✅ Storage manager initialized');
     }
 };
+// storage.js ga qo'shing
+class AchievementSystem {
+    constructor() {
+        this.achievements = [
+            { id: 1, type: 'first_match', title: "Birinchi Match", description: "Birinchi matchingizni qiling", reward: 100, icon: "🎯", unlocked: false },
+            { id: 2, type: 'first_friend', title: "Birinchi Do'st", description: "Birinchi do'stingizni qo'shing", reward: 150, icon: "🤝", unlocked: false },
+            { id: 3, type: 'duels_10', title: "Duelchi", description: "10 ta duel o'ynang", reward: 200, icon: "⚔️", unlocked: false },
+            { id: 4, type: 'likes_50', title: "Sevimli", description: "50 ta like bering", reward: 300, icon: "❤️", unlocked: false },
+            { id: 5, type: 'superlikes_20', title: "Super Sevar", description: "20 ta Super Like bering", reward: 500, icon: "💎", unlocked: false },
+            { id: 6, type: 'friends_10', title: "Ijtimoiy", description: "10 ta do'stingiz bo'lsin", reward: 1000, icon: "👥", unlocked: false },
+            { id: 7, type: 'win_streak_5', title: "G'olib", description: "Ketma-ket 5 ta duel yutishingiz kerak", reward: 800, icon: "🏆", unlocked: false },
+            { id: 8, type: 'daily_login_7', title: "Sodiq", description: "7 kun ketma-ket tizimga kiring", reward: 700, icon: "📅", unlocked: false },
+            { id: 9, type: 'perfect_match', title: "Mukammal Match", description: "Barcha ovozlaringiz match bo'lsin", reward: 1000, icon: "✨", unlocked: false },
+            { id: 10, type: 'rich', title: "Boy", description: "5000 tanga to'plang", reward: 2000, icon: "💰", unlocked: false }
+        ];
+        this.loadAchievements();
+    }
 
+    loadAchievements() {
+        const saved = storage.get('achievements');
+        if (saved) {
+            this.achievements = saved;
+        }
+    }
+
+    saveAchievements() {
+        storage.set('achievements', this.achievements);
+    }
+
+    checkAchievement(type, value = 1) {
+        const achievement = this.achievements.find(a => a.type === type);
+        
+        if (achievement && !achievement.unlocked) {
+            // Logic har bir achievement uchun alohida
+            let unlock = false;
+            
+            switch(type) {
+                case 'first_match':
+                    unlock = value > 0;
+                    break;
+                case 'first_friend':
+                    unlock = value > 0;
+                    break;
+                case 'duels_10':
+                    unlock = value >= 10;
+                    break;
+                case 'likes_50':
+                    unlock = value >= 50;
+                    break;
+                case 'superlikes_20':
+                    unlock = value >= 20;
+                    break;
+                case 'friends_10':
+                    unlock = value >= 10;
+                    break;
+                case 'win_streak_5':
+                    unlock = value >= 5;
+                    break;
+                case 'daily_login_7':
+                    unlock = value >= 7;
+                    break;
+                case 'perfect_match':
+                    unlock = value; // boolean
+                    break;
+                case 'rich':
+                    unlock = value >= 5000;
+                    break;
+            }
+            
+            if (unlock) {
+                this.unlockAchievement(achievement.id);
+            }
+        }
+    }
+
+    unlockAchievement(id) {
+        const achievement = this.achievements.find(a => a.id === id);
+        if (achievement && !achievement.unlocked) {
+            achievement.unlocked = true;
+            this.saveAchievements();
+            this.showAchievementPopup(achievement);
+            return true;
+        }
+        return false;
+    }
+
+    showAchievementPopup(achievement) {
+        // Notification ko'rinishida
+        showNotification(
+            `🏆 ${achievement.title}`,
+            `${achievement.description} - ${achievement.reward} tanga mukofoti!`
+        );
+        
+        // Konfetti efekti
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+        
+        // Mukofotni qo'shish
+        gameState.user.coins += achievement.reward;
+        updateUserStats();
+    }
+
+    getUnlockedCount() {
+        return this.achievements.filter(a => a.unlocked).length;
+    }
+
+    getTotalRewards() {
+        return this.achievements
+            .filter(a => a.unlocked)
+            .reduce((sum, a) => sum + a.reward, 0);
+    }
+}
+
+const achievementSystem = new AchievementSystem();
 // Initialize storage when loaded
 StorageManager.init();
 

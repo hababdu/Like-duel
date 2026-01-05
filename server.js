@@ -1824,15 +1824,35 @@ setInterval(() => {
     }
 }, 60000); // Check every minute
 
-// server.js
-socket.on('purchase_completed', (data) => {
+// server.js da, socket.on('connection') ichiga
+
+socket.on('purchase_completed', function(data) {
     const userId = socket.userId;
-    if (!users[userId]) return;
+    if (!userId) {
+        console.log('❌ purchase_completed: userId yoʻq');
+        return;
+    }
 
-    console.log(`💰 ${users[userId].firstName} ${data.coinsAdded} tanga sotib oldi (${data.packageId})`);
+    const user = users[userId];
+    if (!user) {
+        console.log('❌ purchase_completed: user topilmadi');
+        return;
+    }
 
-    // Statistika uchun saqlash mumkin
-    // Masalan: users[userId].totalSpent += data.starsSpent;
+    console.log(`💰 ${user.firstName} (${userId}) ${data.coinsAdded} tanga sotib oldi`);
+    console.log(`   Paket: ${data.packageId}, Stars: ${data.starsSpent}`);
+
+    // Coinlar allaqachon frontendda qo‘shilgan, lekin serverda ham yangilash
+    user.coins += data.coinsAdded;
+
+    // Javob yuborish
+    socket.emit('purchase_success', {
+        coins: user.coins,
+        message: 'Toʻlov muvaffaqiyatli!'
+    });
+
+    // Admin log (ixtiyoriy)
+    console.log(`✅ Toʻlov tasdiqlandi: ${user.firstName} → +${data.coinsAdded} tanga`);
 });
 // Server statistics logging
 setInterval(() => {

@@ -87,12 +87,21 @@ window.payment = {
      * To‘lov muvaffaqiyatli bo‘lganda coinlarni qo‘shish
      */
     onPurchaseSuccess: function(pkg) {
+
         const bonusMultiplier = 1 + (pkg.bonus / 100);
         const totalCoins = Math.round(pkg.coins * bonusMultiplier);
 
         // Coin qo'shish
         window.userState.coins += totalCoins;
-
+// payment.js da onPurchaseSuccess ichiga
+// Serverga ham yuborish
+if (window.socketManager?.socket?.connected) {
+    window.socketManager.socket.emit('purchase_completed', {
+        packageId: pkg.id,
+        coinsAdded: totalCoins,
+        starsSpent: pkg.stars
+    });
+}
         // Super Like bonus (faqat super paketda)
         if (pkg.superLikes) {
             window.userState.dailySuperLikes += pkg.superLikes;

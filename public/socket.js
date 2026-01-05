@@ -26,7 +26,50 @@ window.socketManager = {
             : 'ws://localhost:3000';          // Local development
 
         console.log(`🔌 Socket ulanmoqda: ${serverUrl}`);
+// public/socket.js da, connectToServer ichiga yoki DOMContentLoaded da
 
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔌 socket.js yuklandi');
+
+    setTimeout(() => {
+        window.socketManager?.connectToServer();
+
+        // Telegram WebApp dan user ma'lumotlarini olish va auth yuborish
+        if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+            const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
+
+            const authData = {
+                userId: tgUser.id.toString(),
+                firstName: tgUser.first_name || 'User',
+                last_name: tgUser.last_name || '',
+                username: tgUser.username || '',
+                photoUrl: tgUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUser.first_name || 'User')}&background=667eea&color=fff`,
+                // Local state dan qo'shimcha ma'lumotlar (agar bor bo'lsa)
+                gender: window.userState.currentGender || null,
+                hasSelectedGender: window.userState.hasSelectedGender || false,
+                bio: window.userState.bio || '',
+                filter: window.userState.filter || 'not_specified',
+                rating: window.userState.rating || 1500,
+                coins: window.userState.coins || 100
+            };
+
+            // Socket ulangandan keyin auth yuborish
+            const sendAuth = () => {
+                if (window.socketManager?.socket?.connected) {
+                    window.socketManager.authenticate(authData);
+                    console.log('🔐 Auth muvaffaqiyatli yuborildi:', authData.userId);
+                } else {
+                    setTimeout(sendAuth, 500); // Qayta urinish
+                }
+            };
+
+            setTimeout(sendAuth, 1500);
+        } else {
+            console.warn('⚠️ Telegram WebApp user maʼlumotlari topilmadi');
+            window.utils?.showNotification('Xato', 'Telegram orqali kirish kerak');
+        }
+    }, 1000);
+});
         this.socket = io(serverUrl, {
             transports: ['websocket', 'polling'],
             reconnection: true,
@@ -268,12 +311,16 @@ window.socketManager = {
     },
 
     // Auth yuborish (Telegram user ma'lumotlari bilan)
-    authenticate: function(userData) {
-        if (this.socket && this.socket.connected) {
-            this.socket.emit('auth', userData);
-            console.log('🔐 Auth yuborildi');
-        }
+   // socketManager ichiga qo'shing
+authenticate: function(userData) {
+    if (this.socket && this.socket.connected) {
+        this.socket.emit('auth', userData);
+        console.log('🔐 Auth emit qilindi');
+        return true;
     }
+    console.warn('❌ Auth yuborilmadi — socket ulanmagan');
+    return false;
+}
 };
 
 // ==================== AVTO ULANISH ====================

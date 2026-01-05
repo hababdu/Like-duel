@@ -1244,7 +1244,13 @@ io.on('connection', (socket) => {
     // ==================== QUEUE MANAGEMENT ====================
     socket.on('enter_queue', () => {
         const userId = socket.userId;
-       
+        
+        if (!userId || !users[userId]) {
+            console.log(`⚠️ enter_queue rad etildi: user autentifikatsiya qilinmagan`);
+            // Xato yuborish o'rniga, avto auth so'rash mumkin
+            socket.emit('require_auth', { message: 'Iltimos, qayta kirish' });
+            return;
+        }
         if (!userId || !users[userId]) {
             console.log(`❌ Enter queue: user not found`);
             socket.emit('error', { message: 'Avval autentifikatsiya qiling' });

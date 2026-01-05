@@ -1658,7 +1658,34 @@ io.on('connection', (socket) => {
        
         console.log(` ✅ ${users[userId].firstName} received friends list`);
     });
-   
+    socket.on('purchase_completed', function(data) {
+        const userId = socket.userId;
+        if (!userId) {
+            console.log('❌ purchase_completed: userId yoʻq');
+            return;
+        }
+    
+        const user = users[userId];
+        if (!user) {
+            console.log('❌ purchase_completed: user topilmadi');
+            return;
+        }
+    
+        console.log(`💰 ${user.firstName} (${userId}) ${data.coinsAdded} tanga sotib oldi`);
+        console.log(`   Paket: ${data.packageId}, Stars: ${data.starsSpent}`);
+    
+        // Coinlar allaqachon frontendda qo‘shilgan, lekin serverda ham yangilash
+        user.coins += data.coinsAdded;
+    
+        // Javob yuborish
+        socket.emit('purchase_success', {
+            coins: user.coins,
+            message: 'Toʻlov muvaffaqiyatli!'
+        });
+    
+        // Admin log (ixtiyoriy)
+        console.log(`✅ Toʻlov tasdiqlandi: ${user.firstName} → +${data.coinsAdded} tanga`);
+    });
     // ==================== REMATCH ====================
     socket.on('request_rematch', (data) => {
         const userId = socket.userId;
@@ -1826,34 +1853,7 @@ setInterval(() => {
 
 // server.js da, socket.on('connection') ichiga
 
-socket.on('purchase_completed', function(data) {
-    const userId = socket.userId;
-    if (!userId) {
-        console.log('❌ purchase_completed: userId yoʻq');
-        return;
-    }
 
-    const user = users[userId];
-    if (!user) {
-        console.log('❌ purchase_completed: user topilmadi');
-        return;
-    }
-
-    console.log(`💰 ${user.firstName} (${userId}) ${data.coinsAdded} tanga sotib oldi`);
-    console.log(`   Paket: ${data.packageId}, Stars: ${data.starsSpent}`);
-
-    // Coinlar allaqachon frontendda qo‘shilgan, lekin serverda ham yangilash
-    user.coins += data.coinsAdded;
-
-    // Javob yuborish
-    socket.emit('purchase_success', {
-        coins: user.coins,
-        message: 'Toʻlov muvaffaqiyatli!'
-    });
-
-    // Admin log (ixtiyoriy)
-    console.log(`✅ Toʻlov tasdiqlandi: ${user.firstName} → +${data.coinsAdded} tanga`);
-});
 // Server statistics logging
 setInterval(() => {
     const totalUsers = Object.keys(users).length;

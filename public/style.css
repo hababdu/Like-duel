@@ -2513,3 +2513,41 @@ input:disabled, textarea:disabled, select:disabled {
     margin-top: 15px;
     box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
 }
+.hidden {
+    display: none !important;
+}
+
+.screen {
+    display: block;
+    padding: 20px;
+    text-align: center;
+}
+
+.queue-container {
+    margin-top: 50px;
+}
+
+.loader {
+    width: 80px;
+    height: 80px;
+    border: 8px solid rgba(255,255,255,0.2);
+    border-top: 8px solid #ff6b6b;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 30px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#queueStatus {
+    font-size: 1.4rem;
+    margin: 20px 0;
+}
+
+.waiting-count {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin: 20px 0;
+}

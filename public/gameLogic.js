@@ -101,28 +101,40 @@ window.gameLogic = {
     startDuelFlow: function() {
         console.log('🎮 O‘yin boshlash bosildi');
     
-        // Gender tekshiruvi
         if (!window.userState.hasSelectedGender) {
             window.utils?.showNotification('Diqqat', 'Avval gender tanlang!');
             window.modalManager?.showGenderModal(true);
             return;
         }
     
-        // Socket ulanganmi?
         if (!window.socketManager?.socket?.connected) {
-            window.utils?.showNotification('Xato', 'Serverga ulanib boʻlmadi. Qayta urinib koʻring');
-            console.log('❌ Socket ulanmagan');
-            // Qayta ulanishga urinish
-            window.socketManager?.connectToServer();
+            window.utils?.showNotification('Xato', 'Serverga ulanib boʻlmadi');
             return;
         }
     
-        console.log('✅ Socket ulangan, navbatga kirilmoqda...');
-        window.uiManager?.showScreen('queue');
-        window.uiManager?.updateQueueStatus('Raqib izlanmoqda...');
+        // QUEUE EKRANINI DARHOL OCHISH
+        const queueScreen = document.getElementById('queueScreen');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const duelScreen = document.getElementById('duelScreen');
     
-        // Navbatga kirish
-        window.socketManager?.enterQueue();
+        if (welcomeScreen) welcomeScreen.classList.add('hidden');
+        if (duelScreen) duelScreen.classList.add('hidden');
+        if (queueScreen) {
+            queueScreen.classList.remove('hidden');
+            // Loader va statusni faollashtirish
+            document.getElementById('queueStatus')?.textContent = 'Raqib izlanmoqda...';
+            document.querySelector('.loader')?.style.display = 'block';
+        }
+    
+        window.uiManager?.updateQueueStatus?.('Raqib izlanmoqda...');
+    
+        // Serverga enter_queue yuborish
+        const success = window.socketManager?.enterQueue();
+        if (success) {
+            console.log('✅ enter_queue muvaffaqiyatli yuborildi');
+        } else {
+            window.utils?.showNotification('Xato', 'Navbatga kirib boʻlmadi');
+        }
     },
 
     // ==================== VOTE ====================

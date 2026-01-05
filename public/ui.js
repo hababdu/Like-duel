@@ -185,8 +185,17 @@ window.uiManager = {
     },
 
     updateQueueStatus: function(message) {
-        const el = document.getElementById('queueStatus');
-        if (el) el.textContent = message;
+        const statusEl = document.getElementById('queueStatus');
+        const countEl = document.getElementById('waitingCount');
+        if (statusEl) statusEl.textContent = message || 'Raqib izlanmoqda...';
+        if (countEl) countEl.textContent = '1'; // serverdan kelguncha
+    },
+    
+    showScreen: function(screenName) {
+        ['welcomeScreen', 'queueScreen', 'duelScreen'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', id !== screenName);
+        });
     },
 
     updateDuelStatus: function(message) {

@@ -1823,6 +1823,17 @@ setInterval(() => {
         console.log(`🔄 Daily SUPER LIKES reset for ${resetCount} users`);
     }
 }, 60000); // Check every minute
+
+// server.js
+socket.on('purchase_completed', (data) => {
+    const userId = socket.userId;
+    if (!users[userId]) return;
+
+    console.log(`💰 ${users[userId].firstName} ${data.coinsAdded} tanga sotib oldi (${data.packageId})`);
+
+    // Statistika uchun saqlash mumkin
+    // Masalan: users[userId].totalSpent += data.starsSpent;
+});
 // Server statistics logging
 setInterval(() => {
     const totalUsers = Object.keys(users).length;

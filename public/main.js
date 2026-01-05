@@ -104,6 +104,13 @@ function initApplication() {
     console.log('🎉 Like Duel ilovasi toʻliq ishga tushdi!');
     window.utils?.showNotification('Xush kelibsiz!', 'Like Duel oʻyini tayyor');
 }
+// main.js da, initApplication oxiriga:
+setInterval(() => {
+    if (window.socketManager?.socket && !window.socketManager.socket.connected) {
+        console.log('🔄 Socket uzilgan, qayta ulanmoqda...');
+        window.socketManager.connectToServer();
+    }
+}, 10000); // Har 10 soniyada tekshirish
 
 // ==================== DOM READY ====================
 if (document.readyState === 'loading') {

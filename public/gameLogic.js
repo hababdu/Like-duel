@@ -99,19 +99,29 @@ window.gameLogic = {
 
     // ==================== DUEL FLOW ====================
     startDuelFlow: function() {
+        console.log('🎮 O‘yin boshlash bosildi');
+    
+        // Gender tekshiruvi
         if (!window.userState.hasSelectedGender) {
             window.utils?.showNotification('Diqqat', 'Avval gender tanlang!');
             window.modalManager?.showGenderModal(true);
             return;
         }
-
-        if (!window.socketManager?.isConnected) {
-            window.utils?.showNotification('Xato', 'Serverga ulanib boʻlmadi');
+    
+        // Socket ulanganmi?
+        if (!window.socketManager?.socket?.connected) {
+            window.utils?.showNotification('Xato', 'Serverga ulanib boʻlmadi. Qayta urinib koʻring');
+            console.log('❌ Socket ulanmagan');
+            // Qayta ulanishga urinish
+            window.socketManager?.connectToServer();
             return;
         }
-
+    
+        console.log('✅ Socket ulangan, navbatga kirilmoqda...');
         window.uiManager?.showScreen('queue');
         window.uiManager?.updateQueueStatus('Raqib izlanmoqda...');
+    
+        // Navbatga kirish
         window.socketManager?.enterQueue();
     },
 

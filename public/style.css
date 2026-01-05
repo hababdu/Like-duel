@@ -2433,3 +2433,83 @@ input:disabled, textarea:disabled, select:disabled {
     font-size: 1.1rem;
     font-weight: bold;
 }
+
+/* Do'kon uchun chiroyli paket kartalari */
+.shop-package-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    margin: 15px 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    position: relative;
+    transition: transform 0.3s;
+}
+
+.shop-package-card:hover {
+    transform: translateY(-5px);
+}
+
+.popular-package {
+    border: 3px solid #ffd700;
+    transform: scale(1.05);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ffd700;
+    color: #000;
+    padding: 5px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.package-price {
+    font-size: 2rem;
+    margin: 15px 0;
+    font-weight: 700;
+}
+
+.stars {
+    color: #ffd700;
+}
+
+.currency {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+.package-coins {
+    font-size: 1.3rem;
+    margin: 15px 0;
+}
+
+.bonus {
+    color: #4facfe;
+    font-weight: bold;
+}
+
+.extra {
+    color: #f093fb;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.buy-btn {
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 15px;
+    box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+}

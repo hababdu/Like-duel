@@ -1354,6 +1354,10 @@ body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     border-radius: 25px;
     padding: 30px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     max-width: 400px;
     width: 90%;
     border: 2px solid rgba(255, 255, 255, 0.1);

@@ -331,6 +331,31 @@
     </div>
 
     <!-- MODALLAR -->
+    <div id="giftModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sovg'a yuborish</h2>
+                <button class="close-btn" onclick="closeGiftModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="gift-receiver-info">
+                    <img id="giftReceiverAvatar" src="" alt="">
+                    <div>
+                        <h3 id="giftReceiverName"></h3>
+                        <p id="giftReceiverUsername"></p>
+                    </div>
+                </div>
+                
+                <div class="gifts-grid" id="giftsGrid">
+                    <!-- Sovg'alar bu yerda yuklanadi -->
+                </div>
+                
+                <div class="gift-balance">
+                    <p>Mavjud coinlar: <span id="giftBalanceCoins">0</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Gender tanlash (majburiy) -->
     <div class="gender-modal mandatory-modal" id="genderModal">
         <div class="modal-content">

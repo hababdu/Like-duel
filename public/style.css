@@ -1761,3 +1761,171 @@ button, .nav-tab, .vote-btn, .gender-option-btn {
         padding-bottom: calc(80px + constant(safe-area-inset-bottom));
     }
 }
+
+.gift-receiver-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--card-bg);
+    border-radius: 10px;
+}
+
+.gifts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.gift-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.gift-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
+}
+
+.gift-item.selected {
+    border-color: var(--primary-color);
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.gift-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.gift-price {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.gift-balance {
+    text-align: center;
+    padding: 15px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+/* Gift notification styles */
+.gift-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 9999;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+    max-width: 400px;
+}
+
+.gift-notification.show {
+    transform: translateX(0);
+}
+
+.gift-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.gift-icon-large {
+    font-size: 3rem;
+}
+
+.gift-notification-text h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+}
+
+.gift-notification-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.gift-message {
+    font-style: italic;
+    margin-top: 5px !important;
+    opacity: 0.8;
+}
+
+/* Gift history styles */
+.gift-history-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    margin: 10px 0;
+    background: var(--card-bg);
+    border-radius: 10px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.gift-history-item.received {
+    border-left-color: var(--accent-color);
+}
+
+.gift-history-icon {
+    font-size: 2rem;
+}
+
+.gift-history-info {
+    flex: 1;
+}
+
+.gift-history-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.gift-history-receiver,
+.gift-history-sender {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 3px;
+}
+
+.gift-history-time {
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+.gift-history-price {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+/* Friend list gift button */
+.friend-action-btn.gift-btn {
+    background: linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%);
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.friend-action-btn.gift-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 149, 0, 0.3);
+}

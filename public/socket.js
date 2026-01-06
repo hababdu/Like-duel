@@ -16,7 +16,7 @@ window.socketManager = {
         }
         
         // Server URL - LOCAL uchun
-        const serverUrl = 'http://localhost:3000';
+        const serverUrl = 'https://like-duel.onrender.com';
         
         console.log(`📡 Connecting to: ${serverUrl}`);
         

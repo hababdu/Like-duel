@@ -347,40 +347,38 @@ window.gameLogic = {
         const partner = data.partner;
         
         duelScreen.innerHTML = `
-            <div class="match-celebration" style="text-align: center; padding: 30px 20px;">
-                <div style="font-size: 4rem; margin-bottom: 20px;">🎉</div>
-                <h2 style="color: #fff; font-size: 2rem; margin-bottom: 20px;">MATCH!</h2>
+            <div class="match-celebration" >
+                <div >🎉</div>
+                <h2 >MATCH!</h2>
                 
                 <img src="${partner.photo}" alt="${partner.name}" 
-                     style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #2ecc71; margin: 20px auto;">
+                     >
                 
-                <h3 style="color: #fff; margin-bottom: 10px;">${partner.name}</h3>
-                <p style="color: #ccc; margin-bottom: 30px;">@${partner.username}</p>
+                <h3>${partner.name}</h3>
+                <p>@${partner.username}</p>
                 
-                <div style="background: rgba(46, 204, 113, 0.2); padding: 15px; border-radius: 10px; margin: 20px 0;">
-                    <div style="display: flex; justify-content: center; gap: 30px; color: #fff;">
+                <div >
+                    <div >
                         <div>
-                            <i class="fas fa-coins" style="font-size: 1.5rem;"></i>
-                            <div style="font-size: 1.2rem; margin-top: 5px;">+${data.coinsEarned || 50}</div>
-                            <div style="font-size: 0.8rem; opacity: 0.8;">Tanga</div>
+                            <i></i>
+                            <div>+${data.coinsEarned || 50}</div>
+                            <div >Tanga</div>
                         </div>
                         <div>
-                            <i class="fas fa-star" style="font-size: 1.5rem;"></i>
-                            <div style="font-size: 1.2rem; margin-top: 5px;">+${data.ratingChange || 25}</div>
-                            <div style="font-size: 0.8rem; opacity: 0.8;">Reyting</div>
+                            <i ></i>
+                            <div >+${data.ratingChange || 25}</div>
+                            <div >Reyting</div>
                         </div>
                     </div>
                 </div>
                 
-                <div style="margin: 30px 0;">
-                    <button id="nextDuelBtn" class="btn-primary" 
-                            style="padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                   color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer;">
+                <div >
+                    <button id="nextDuelBtn" class="btn-primary" >
                         Keyingi Duel
                     </button>
                 </div>
                 
-                <p style="color: #999; font-size: 0.9rem;">
+                <p >
                     ${partner.name} bilan o'zaro match!
                 </p>
             </div>

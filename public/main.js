@@ -64,8 +64,8 @@ const giftState = {
         { id: 7, name: 'Oltin', price: 500, icon: '🥇', description: 'Oltin sovg\'a' },
         { id: 8, name: 'Diamond', price: 1000, icon: '💎', description: 'Eng qimmat sovg\'a' }
     ],
-    sentGifts: [],
-    receivedGifts: []
+    sentGifts: JSON.parse(localStorage.getItem('sentGifts')) || [],
+    receivedGifts: JSON.parse(localStorage.getItem('receivedGifts')) || []
 };
 
 // ==================== DOM ELEMENTLARI ==================== 
@@ -281,22 +281,44 @@ function initUserProfile() {
     
     tgUserGlobal = tgUser;
     
-    // Kunlik vazifalarni yuklash
-    loadDailyQuests();
+    // Permanent gender tanlanganligini tekshirish
+    const permanentGenderSelected = localStorage.getItem('permanentGenderSelected') === 'true';
+    const permanentUserGender = localStorage.getItem('permanentUserGender');
     
-    // Achievementslarni yuklash
-    loadAchievements();
-    
-    updateUIFromUserState();
-    addFilterToWelcomeScreen();
-    updateQueueButton();
-    
-    // Gender tanlanmagan bo'lsa
-    if (!userState.hasSelectedGender) {
-        console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
-        setTimeout(() => {
-            showGenderModal(true);
-        }, 1000);
+    if (permanentGenderSelected && permanentUserGender) {
+        userState.hasSelectedGender = true;
+        userState.currentGender = permanentUserGender;
+        userState.filter = permanentUserGender;
+        
+        // Gender avtomatik tanlangan bo'lsa, modalni ko'rsatmaslik
+        console.log('✅ Gender avval tanlangan, modal ko\'rsatilmaydi');
+        
+        // Gender filterini yangilash
+        gameState.currentFilter = permanentUserGender;
+        localStorage.setItem('userFilter', permanentUserGender);
+        
+        // UI ni yangilash
+        updateUIFromUserState();
+        addFilterToWelcomeScreen();
+        updateQueueButton();
+    } else {
+        // Kunlik vazifalarni yuklash
+        loadDailyQuests();
+        
+        // Achievementslarni yuklash
+        loadAchievements();
+        
+        updateUIFromUserState();
+        addFilterToWelcomeScreen();
+        updateQueueButton();
+        
+        // Gender tanlanmagan bo'lsa
+        if (!userState.hasSelectedGender) {
+            console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
+            setTimeout(() => {
+                showGenderModal(true);
+            }, 1000);
+        }
     }
     
     // Faollikni yangilash
@@ -542,6 +564,7 @@ function selectGender(gender) {
     
     userState.currentGender = gender;
     userState.hasSelectedGender = true;
+    userState.filter = gender;
     
     // Gender tanlaganda bonus berish
     if (!localStorage.getItem('genderSelectedBonus')) {
@@ -550,21 +573,35 @@ function selectGender(gender) {
         showNotification('🎁 Bonus!', 'Gender tanlaganingiz uchun 50 coin bonus!');
     }
     
+    // Gender tanlanganini permanent saqlash
+    localStorage.setItem('permanentGenderSelected', 'true');
+    localStorage.setItem('permanentUserGender', gender);
+    localStorage.setItem('userFilter', gender);
+    
+    // Game state ni yangilash
+    gameState.currentFilter = gender;
+    
     saveUserStateToLocalStorage();
     updateUIFromUserState();
+    addFilterToWelcomeScreen();
     
     hideGenderModal();
     
     if (gameState.socket && gameState.isConnected) {
         gameState.socket.emit('select_gender', { gender: gender });
+        gameState.socket.emit('update_profile', { 
+            gender: gender,
+            filter: gender,
+            hasSelectedGender: true 
+        });
     } else {
         connectToServer();
     }
     
     showNotification('🎉 Jins tanlandi',
-        gender === 'male' ? 'Endi duel o\'ynashingiz mumkin!' :
-        gender === 'female' ? 'Endi duel o\'ynashingiz mumkin!' :
-        'Endi duel o\'ynashingiz mumkin!');
+        gender === 'male' ? 'Endi faqat ayollar bilan duel o\'ynashingiz mumkin!' :
+        gender === 'female' ? 'Endi faqat erkaklar bilan duel o\'ynashingiz mumkin!' :
+        'Endi hamma bilan duel o\'ynashingiz mumkin!');
     
     // Achievement tekshirish
     checkAchievement('first_gender_selection');
@@ -575,6 +612,13 @@ function showGenderModal(mandatory = true) {
     console.log('🎯 Gender modali ko\'rsatilmoqda');
     
     if (!elements.genderModal) return;
+    
+    // Permanent gender tanlanganligini tekshirish
+    const permanentGenderSelected = localStorage.getItem('permanentGenderSelected') === 'true';
+    if (permanentGenderSelected) {
+        console.log('✅ Gender allaqachon tanlangan, modal ko\'rsatilmaydi');
+        return;
+    }
     
     elements.genderModal.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -738,6 +782,17 @@ function setupSocketEvents(socket) {
 function authenticateUser() {
     console.log('📤 Auth ma\'lumotlari yuborilmoqda...');
     
+    // Permanent gender tanlanganligini tekshirish
+    const permanentGenderSelected = localStorage.getItem('permanentGenderSelected') === 'true';
+    const permanentUserGender = localStorage.getItem('permanentUserGender');
+    
+    if (permanentGenderSelected && permanentUserGender) {
+        userState.hasSelectedGender = true;
+        userState.currentGender = permanentUserGender;
+        userState.filter = permanentUserGender;
+        gameState.currentFilter = permanentUserGender;
+    }
+    
     gameState.socket.emit('auth', {
         userId: tgUserGlobal.id.toString(),
         firstName: tgUserGlobal.first_name,
@@ -819,6 +874,16 @@ function handleAuthOk(data) {
         rating: data.rating
     });
     
+    // Permanent gender tanlanganligini tekshirish
+    const permanentGenderSelected = localStorage.getItem('permanentGenderSelected') === 'true';
+    const permanentUserGender = localStorage.getItem('permanentUserGender');
+    
+    if (permanentGenderSelected && permanentUserGender) {
+        data.gender = permanentUserGender;
+        data.hasSelectedGender = true;
+        data.filter = permanentUserGender;
+    }
+    
     // User stateni yangilash
     Object.assign(userState, {
         currentGender: data.gender || userState.currentGender,
@@ -839,6 +904,9 @@ function handleAuthOk(data) {
         dailyQuests: data.dailyQuests || userState.dailyQuests,
         achievements: data.achievements || userState.achievements
     });
+    
+    // Game state ni yangilash
+    gameState.currentFilter = userState.filter;
     
     saveUserStateToLocalStorage();
     updateUIFromUserState();
@@ -865,6 +933,18 @@ function handleAuthOk(data) {
 
 function handleShowGenderSelection(data) {
     console.log('⚠️ Serverdan gender tanlash so\'rovi:', data);
+    
+    // Permanent gender tanlanganligini tekshirish
+    const permanentGenderSelected = localStorage.getItem('permanentGenderSelected') === 'true';
+    if (permanentGenderSelected) {
+        console.log('✅ Gender allaqachon tanlangan, serverga bildirish');
+        gameState.socket.emit('gender_selected', {
+            gender: localStorage.getItem('permanentUserGender'),
+            hasSelectedGender: true
+        });
+        return;
+    }
+    
     showGenderModal(true);
     updateQueueStatus('Gender tanlash kerak...');
 }
@@ -874,6 +954,12 @@ function handleGenderSelected(data) {
     
     userState.currentGender = data.gender;
     userState.hasSelectedGender = true;
+    userState.filter = data.gender;
+    
+    // Permanent saqlash
+    localStorage.setItem('permanentGenderSelected', 'true');
+    localStorage.setItem('permanentUserGender', data.gender);
+    localStorage.setItem('userFilter', data.gender);
     
     saveUserStateToLocalStorage();
     updateUIFromUserState();
@@ -1080,6 +1166,9 @@ function handleGiftSent(data) {
         timestamp: Date.now()
     });
     
+    // LocalStorage ga saqlash
+    localStorage.setItem('sentGifts', JSON.stringify(giftState.sentGifts));
+    
     // Achievement tekshirish
     checkAchievement('send_gift');
 }
@@ -1096,6 +1185,9 @@ function handleGiftReceived(data) {
         sender: data.sender,
         timestamp: Date.now()
     });
+    
+    // LocalStorage ga saqlash
+    localStorage.setItem('receivedGifts', JSON.stringify(giftState.receivedGifts));
     
     // Achievement tekshirish
     checkAchievement('receive_gift');
@@ -1152,7 +1244,9 @@ function enterQueue() {
         return;
     }
     
-    if (!userState.hasSelectedGender) {
+    // Permanent gender tanlanganligini tekshirish
+    const permanentGenderSelected = localStorage.getItem('permanentGenderSelected') === 'true';
+    if (!permanentGenderSelected && !userState.hasSelectedGender) {
         showNotification('Diqqat', 'Avval gender tanlashingiz kerak!');
         showGenderModal(true);
         return;
@@ -3327,6 +3421,10 @@ function saveProfile() {
         if (gender !== userState.currentGender) {
             userState.currentGender = gender;
             userState.hasSelectedGender = true;
+            
+            // Permanent saqlash
+            localStorage.setItem('permanentGenderSelected', 'true');
+            localStorage.setItem('permanentUserGender', gender);
         }
         userState.filter = filter;
         

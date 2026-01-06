@@ -296,74 +296,65 @@
     <!-- ==================== MODALLAR ==================== -->
     
     <!-- Gender tanlash (majburiy) -->
-    <div class="modal" id="genderModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 style="color: #fff;">🎯 Gender tanlash</h3>
-                <p style="color: #ccc; font-size: 0.9rem; margin-top: 5px;">
-                    Sizning genderingizni va kim bilan duel qilishni tanlang
-                </p>
-            </div>
-            <div class="modal-body">
-                <div class="gender-warning hidden" id="genderWarning">
-                    <div class="gender-warning-content">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <div>
-                            <div style="font-weight: bold; font-size: 1rem; color: #e74c3c;">Gender tanlanmagan!</div>
-                            <div style="color: #ccc; font-size: 0.8rem;">Duel qilish uchun gender tanlashingiz kerak</div>
-                        </div>
-                    </div>
+<!-- Gender Modal (YANGILANGAN) -->
+<div class="modal" id="genderModal">
+    <div class="modal-content">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 3rem; margin-bottom: 10px;">🎯</div>
+            <h2 style="color: #fff; margin-bottom: 10px;">Gender tanlash</h2>
+            <p style="color: #ccc; opacity: 0.8; font-size: 0.9rem;">
+                O'zingizning genderingizni va kim bilan duel qilishni tanlang
+            </p>
+        </div>
+        
+        <div class="gender-options" style="margin-bottom: 20px;">
+            <button class="gender-option" data-gender="male">
+                <div class="gender-icon male">
+                    <i class="fas fa-mars"></i>
                 </div>
-                
-                <div class="gender-options">
-                    <button class="gender-option" id="selectMaleBtn" data-gender="male">
-                        <div class="gender-icon male">
-                            <i class="fas fa-mars"></i>
-                        </div>
-                        <div class="gender-info">
-                            <div class="gender-title">Erkak</div>
-                            <div class="gender-description">Faqat ayollar bilan duel</div>
-                        </div>
-                        <div class="gender-check">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </button>
-                    
-                    <button class="gender-option" id="selectFemaleBtn" data-gender="female">
-                        <div class="gender-icon female">
-                            <i class="fas fa-venus"></i>
-                        </div>
-                        <div class="gender-info">
-                            <div class="gender-title">Ayol</div>
-                            <div class="gender-description">Faqat erkaklar bilan duel</div>
-                        </div>
-                        <div class="gender-check">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </button>
-                    
-                    <button class="gender-option" id="selectAllBtn" data-gender="all">
-                        <div class="gender-icon all">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="gender-info">
-                            <div class="gender-title">Hammasi</div>
-                            <div class="gender-description">Hamma bilan duel</div>
-                        </div>
-                        <div class="gender-check">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </button>
+                <div class="gender-info">
+                    <div class="gender-title">Erkak</div>
+                    <div class="gender-description">Faqat ayollar bilan duel</div>
                 </div>
-                
-                <div class="gender-note">
-                    <p style="color: #ccc; font-size: 0.8rem;">
-                        <i class="fas fa-info-circle"></i> Gender va filter keyinchalik profil sozlamalaridan o'zgartirilishi mumkin
-                    </p>
+                <div class="gender-check">
+                    <i class="fas fa-check"></i>
                 </div>
-            </div>
+            </button>
+            
+            <button class="gender-option" data-gender="female">
+                <div class="gender-icon female">
+                    <i class="fas fa-venus"></i>
+                </div>
+                <div class="gender-info">
+                    <div class="gender-title">Ayol</div>
+                    <div class="gender-description">Faqat erkaklar bilan duel</div>
+                </div>
+                <div class="gender-check">
+                    <i class="fas fa-check"></i>
+                </div>
+            </button>
+            
+            <button class="gender-option" data-gender="all">
+                <div class="gender-icon all">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="gender-info">
+                    <div class="gender-title">Hammasi</div>
+                    <div class="gender-description">Hamma bilan duel</div>
+                </div>
+                <div class="gender-check">
+                    <i class="fas fa-check"></i>
+                </div>
+            </button>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <p style="color: #999; font-size: 0.85rem;">
+                <i class="fas fa-info-circle"></i> Keyinchalik profil sozlamalaridan o'zgartirishingiz mumkin
+            </p>
         </div>
     </div>
+</div>
     
     <!-- Profil tahrirlash -->
     <div class="chat-modal" id="profileEditModal">

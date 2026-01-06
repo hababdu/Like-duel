@@ -90,7 +90,11 @@ window.gameLogic = {
         socket.on('chat_invite', (data) => {
             this.handleChatInvite(data);
         });
-
+// Socket eventlar qatoriga qo'shing
+socket.on('update_friends_list', () => {
+    console.log('🔄 Friends list yangilash so\'rovi');
+    window.uiManager?.loadFriendsList?.();
+});
         socket.on('super_like_used', (data) => {
             window.userState.dailySuperLikes = data.remaining;
             window.uiManager?.updateUIFromUserState();
@@ -228,15 +232,62 @@ window.gameLogic = {
     // ==================== MATCH HANDLING ====================
     handleMatch: function(data) {
         console.log('🎉 MUTUAL MATCH!', data);
-
+    
         window.gameState.matchCompleted = true;
         window.gameState.currentPartner = data.partner || data.opponent;
-
+    
         this.stopAllTimers();
         this.hideDuelUI();
-
+    
+        // ✅ DO'ST QO'SHISH
+        this.addToFriendsList(data.partner || data.opponent);
+    
         // Match UI ko'rsatish (confetti + chat taklifi)
         this.showMatchScreen(data);
+    },
+    
+    // ==================== FRIENDS ====================
+    addToFriendsList: function(friendData) {
+        if (!friendData || !friendData.id) {
+            console.warn('⚠️ Do\'st ma\'lumotlari yetarli emas');
+            return;
+        }
+    
+        let friends = window.storage?.loadFriendsList() || [];
+    
+        // Takrorlanmasin
+        if (friends.some(f => f.id === friendData.id)) {
+            console.log('ℹ️ Bu do\'st allaqachon ro\'yxatda');
+            return;
+        }
+    
+        // To'liq ma'lumotlarni saqlash
+        const newFriend = {
+            id: friendData.id,
+            name: friendData.name || 'Foydalanuvchi',
+            username: friendData.username || '',
+            photo: friendData.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(friendData.name || 'User')}&background=667eea&color=fff`,
+            gender: friendData.gender || null,
+            rating: friendData.rating || 1500,
+            matches: friendData.matches || 0,
+            level: friendData.level || 1,
+            online: friendData.online || true,
+            isMutual: true,
+            addedAt: new Date().toISOString()
+        };
+    
+        friends.push(newFriend);
+    
+        window.storage?.saveFriendsList(friends);
+        window.userState.mutualMatchesCount = friends.length;
+        window.userState.friendsCount = friends.length;
+        window.uiManager?.updateUIFromUserState();
+    
+        console.log(`✅ Do'st qo'shildi: ${newFriend.name} (${friends.length} ta)`);
+        window.utils?.showNotification('Doʻst qoʻshildi', `${newFriend.name} doʻstlar roʻyxatiga qoʻshildi!`);
+        
+        // UI yangilash
+        window.uiManager?.loadFriendsList?.();
     },
 
     showMatchScreen: function(data) {

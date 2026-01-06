@@ -1,7 +1,8 @@
-// public/main.js - Barcha modullarni birlashtiruvchi asosiy fayl
+// public/main.js - MAIN APPLICATION STARTER
+console.log('🚀 Like Duel Application Starting...');
 
-// ==================== GLOBAL STATE (agar boshqa fayllarda yo'q bo'lsa) ====================
-window.gameState = window.gameState || {
+// Global state
+window.gameState = {
     isConnected: false,
     isInQueue: false,
     isInDuel: false,
@@ -11,12 +12,11 @@ window.gameState = window.gameState || {
     timeLeft: 20,
     timerInterval: null,
     matchActionTimer: null,
-    matchActionTimeout: null,
-    pendingChatInvite: null,
-    currentTab: 'duel'
+    currentTab: 'duel',
+    pendingChatInvite: null
 };
 
-window.userState = window.userState || {
+window.userState = {
     coins: 100,
     level: 1,
     rating: 1500,
@@ -29,111 +29,162 @@ window.userState = window.userState || {
     currentGender: null,
     filter: 'not_specified',
     hasSelectedGender: false,
-    mutualMatchesCount: 0,
     friendsCount: 0
 };
 
-// ==================== MAIN APPLICATION ====================
-function initApplication() {
-    console.log('🚀 Like Duel ilovasi ishga tushmoqda...');
+// Telegram WebApp init
+if (window.Telegram?.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    tg.enableClosingConfirmation();
+    
+    console.log('📱 Telegram WebApp initialized');
+    
+    // Auto login with Telegram data
+    if (tg.initDataUnsafe?.user) {
+        window.tgUser = tg.initDataUnsafe.user;
+        console.log('👤 Telegram user:', window.tgUser.first_name);
+    }
+}
 
-    // 1. Storage yuklash
+// Initialize application
+function initApplication() {
+    console.log('🚀 Initializing application...');
+    
+    // 1. Load storage
     if (window.storage) {
         window.storage.loadUserState();
-        console.log('📦 User state yuklandi');
+        console.log('✅ Storage loaded');
     }
-
-    // 2. Utils tayyor
-    if (!window.utils) {
-        console.warn('⚠️ utils.js yuklanmagan');
-    } else {
-        console.log('✅ utils.js tayyor');
-    }
-
-    // 3. Socket ulanish
-    if (window.socketManager) {
-        window.socketManager.connectToServer();
-        console.log('🔌 Socket ulanmoqda...');
-    } else {
-        console.error('❌ socket.js yuklanmagan');
-    }
-
-    // 4. UI Manager
+    
+    // 2. Setup UI
     if (window.uiManager) {
         window.uiManager.initUserProfile();
         window.uiManager.initTabNavigation();
         window.uiManager.updateUIFromUserState();
-        console.log('✅ UI Manager ishga tushdi');
-    } else {
-        console.error('❌ ui.js yuklanmagan');
+        console.log('✅ UI Manager initialized');
     }
-
-    // 5. Modal Manager
+    
+    // 3. Connect to server
+    if (window.socketManager) {
+        window.socketManager.connectToServer();
+        console.log('✅ Socket connection started');
+    }
+    
+    // 4. Setup modals
     if (window.modalManager) {
         window.modalManager.initAllModals();
-        console.log('✅ Modal Manager ishga tushdi');
-    } else {
-        console.error('❌ modal.js yuklanmagan');
+        console.log('✅ Modal Manager initialized');
     }
-
-    // 6. Game Logic
+    
+    // 5. Setup game logic
     if (window.gameLogic) {
         window.gameLogic.initGameLogic();
-        console.log('✅ Game Logic ishga tushdi');
-    } else {
-        console.error('❌ gameLogic.js yuklanmagan');
+        console.log('✅ Game Logic initialized');
     }
-
-    // 7. Avtomatik gender modal (agar tanlanmagan bo'lsa)
+    
+    // 6. Auto show gender modal if not selected
     setTimeout(() => {
         if (!window.userState.hasSelectedGender) {
-            console.log('⚠️ Gender tanlanmagan — modal koʻrsatilmoqda');
-            window.modalManager?.showGenderModal(true);
+            console.log('⚠️ Gender not selected, showing modal');
+            window.modalManager?.showGenderModal?.(true);
             window.utils?.showNotification('Gender tanlang', 'Oʻyin boshlash uchun gender tanlashingiz kerak');
         }
     }, 2000);
-
-    // 8. Telegram WebApp tayyorlash (agar mavjud bo'lsa)
-    if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        console.log('📱 Telegram WebApp tayyor');
-    }
-
-    console.log('🎉 Like Duel ilovasi toʻliq ishga tushdi!');
-    window.utils?.showNotification('Xush kelibsiz!', 'Like Duel oʻyini tayyor');
+    
+    // 7. Setup start button directly (emergency fix)
+    setupStartButton();
+    
+    console.log('🎉 Application fully initialized!');
 }
-// main.js da, initApplication oxiriga:
-setInterval(() => {
-    if (window.socketManager?.socket && !window.socketManager.socket.connected) {
-        console.log('🔄 Socket uzilgan, qayta ulanmoqda...');
-        window.socketManager.connectToServer();
-    }
-}, 10000); // Har 10 soniyada tekshirish
 
-// ==================== DOM READY ====================
+// Emergency fix for start button
+function setupStartButton() {
+    const startBtn = document.getElementById('startBtn');
+    if (!startBtn) {
+        console.error('❌ startBtn not found!');
+        return;
+    }
+    
+    console.log('🔧 Setting up start button...');
+    
+    // Remove existing listeners
+    const newStartBtn = startBtn.cloneNode(true);
+    startBtn.parentNode.replaceChild(newStartBtn, startBtn);
+    
+    // Add click listener
+    newStartBtn.addEventListener('click', function() {
+        console.log('🎮 Start button clicked!');
+        startDuelGame();
+    });
+    
+    console.log('✅ Start button setup complete');
+}
+
+// Start duel game function
+function startDuelGame() {
+    console.log('🎮 Starting duel game...');
+    
+    // Check gender
+    if (!window.userState.hasSelectedGender) {
+        console.log('⚠️ Gender not selected');
+        window.modalManager?.showGenderModal?.(true);
+        window.utils?.showNotification('Diqqat', 'Avval gender tanlang!');
+        return;
+    }
+    
+    // Check connection
+    if (!window.socketManager?.socket?.connected) {
+        console.log('⚠️ Not connected to server');
+        window.utils?.showNotification('Xato', 'Serverga ulanib boʻlmadi');
+        // Try to reconnect
+        window.socketManager?.connectToServer();
+        return;
+    }
+    
+    console.log('✅ All checks passed, entering queue...');
+    
+    // Show queue screen
+    const queueScreen = document.getElementById('queueScreen');
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const duelScreen = document.getElementById('duelScreen');
+    
+    if (welcomeScreen) welcomeScreen.classList.add('hidden');
+    if (duelScreen) duelScreen.classList.add('hidden');
+    if (queueScreen) queueScreen.classList.remove('hidden');
+    
+    // Update queue status
+    const queueStatus = document.getElementById('queueStatus');
+    if (queueStatus) queueStatus.textContent = 'Raqib izlanmoqda...';
+    
+    // Enter queue
+    if (window.socketManager?.socket) {
+        window.socketManager.socket.emit('enter_queue');
+        console.log('📝 Enter queue signal sent');
+    } else {
+        console.error('❌ Socket not available');
+    }
+}
+
+// DOM Ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApplication);
 } else {
     initApplication();
 }
 
-// ==================== ERROR HANDLING ====================
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('❌ Promise xatosi:', event.reason);
-    window.utils?.showNotification('Xatolik', 'Tizimda xatolik yuz berdi');
-});
+// Auto reconnect
+setInterval(() => {
+    if (window.socketManager?.socket && !window.socketManager.socket.connected) {
+        console.log('🔄 Reconnecting socket...');
+        window.socketManager.connectToServer();
+    }
+}, 10000);
 
-window.addEventListener('error', (event) => {
-    console.error('❌ JS xatosi:', event.error);
-});
+// Export for debugging
+window.startGame = startDuelGame;
+window.debugGameState = () => console.log('Game State:', window.gameState);
+window.debugUserState = () => console.log('User State:', window.userState);
 
-// ==================== SERVICE WORKER (ixtiyoriy PWA uchun) ====================
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('✅ Service Worker roʻyxatdan oʻtdi', reg))
-        .catch(err => console.error('❌ Service Worker xatosi:', err));
-}
-
-console.log('main.js yuklandi va ishga tushirildi');
+console.log('📄 main.js loaded and ready');

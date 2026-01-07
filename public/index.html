@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>❤️ Like Duel - O'zaro Match va Do'stlar Tizimi</title>
+    <title>❤️ Like Duel - Tosh-Qaychi-Qog'oz Duel va Do'stlar Tizimi</title>
     
     <!-- CDN kutubxonalari -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -13,413 +13,6 @@
     
     <!-- Mahalliy fayllar -->
     <link rel="stylesheet" href="style.css">
-    <style>
-        /* Gift Modal Styling */
-        .gift-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .gift-modal.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .gift-modal-content {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow-y: auto;
-            padding: 20px;
-            border: 2px solid #667eea;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .gift-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .gift-modal-header h2 {
-            color: #fff;
-            font-size: 1.5rem;
-            margin: 0;
-        }
-
-        .gift-close-btn {
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        .gift-receiver-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            border: 1px solid rgba(102, 126, 234, 0.3);
-        }
-
-        .gift-receiver-info img {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 3px solid #667eea;
-        }
-
-        .gift-receiver-details h3 {
-            color: #fff;
-            margin: 0 0 5px 0;
-            font-size: 1.2rem;
-        }
-
-        .gift-receiver-details p {
-            color: #ccc;
-            margin: 0;
-            font-size: 0.9rem;
-        }
-
-        .gifts-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .gift-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 120px;
-        }
-
-        .gift-item:hover {
-            transform: translateY(-5px);
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .gift-item.selected {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.2);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .gift-item.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .gift-icon {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            line-height: 1;
-        }
-
-        .gift-name {
-            color: #fff;
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-
-        .gift-price {
-            color: #f1c40f;
-            font-weight: bold;
-            font-size: 1rem;
-        }
-
-        .gift-balance {
-            text-align: center;
-            padding: 15px;
-            margin: 20px 0;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            border: 1px solid rgba(241, 196, 15, 0.3);
-        }
-
-        .gift-balance p {
-            color: #fff;
-            margin: 0;
-            font-size: 1.1rem;
-        }
-
-        .gift-balance span {
-            color: #f1c40f;
-            font-weight: bold;
-        }
-
-        .confirm-gift-btn {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            color: white;
-            border: none;
-            padding: 15px 20px;
-            border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-
-        .confirm-gift-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
-        }
-
-        .confirm-gift-btn:disabled {
-            background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .gift-history-btn {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            margin-top: 15px;
-            width: 100%;
-        }
-
-        /* Gift Notification */
-        .gift-notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            z-index: 9999;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            max-width: 350px;
-        }
-
-        .gift-notification.show {
-            transform: translateX(0);
-        }
-
-        .gift-notification-content {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .gift-icon-large {
-            font-size: 2.5rem;
-        }
-
-        .gift-notification-text h3 {
-            margin: 0 0 5px 0;
-            font-size: 1.1rem;
-        }
-
-        .gift-notification-text p {
-            margin: 0;
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-
-        /* Modal Overlay */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Gift History Modal */
-        .gift-history-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10001;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .gift-history-modal.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .gift-history-content {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            padding: 25px;
-            border: 2px solid #9b59b6;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .gift-history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .gift-history-header h2 {
-            color: #fff;
-            font-size: 1.5rem;
-            margin: 0;
-        }
-
-        .gift-history-section {
-            margin-bottom: 30px;
-        }
-
-        .gift-history-section h3 {
-            color: #fff;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-            padding-left: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .gift-history-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px;
-            margin: 10px 0;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            border-left: 4px solid #667eea;
-        }
-
-        .gift-history-item.received {
-            border-left-color: #2ecc71;
-        }
-
-        .gift-history-icon {
-            font-size: 2rem;
-        }
-
-        .gift-history-info {
-            flex: 1;
-        }
-
-        .gift-history-name {
-            color: #fff;
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 1rem;
-        }
-
-        .gift-history-receiver,
-        .gift-history-sender {
-            color: #ccc;
-            font-size: 0.85rem;
-            margin-bottom: 3px;
-        }
-
-        .gift-history-time {
-            color: #95a5a6;
-            font-size: 0.8rem;
-        }
-
-        .gift-history-price {
-            color: #e74c3c;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .empty-history {
-            text-align: center;
-            padding: 30px;
-            color: #ccc;
-            font-size: 1rem;
-        }
-
-        .empty-history i {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            display: block;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 480px) {
-            .gifts-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .gift-modal-content {
-                width: 95%;
-                padding: 15px;
-            }
-            
-            .gift-receiver-info {
-                padding: 12px;
-            }
-            
-            .gift-receiver-info img {
-                width: 50px;
-                height: 50px;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="app-container">
@@ -452,8 +45,8 @@
             <!-- HEADER -->
             <div class="app-header">
                 <div class="header-title">
-                    <i class="fas fa-heart"></i>
-                    <span>Like Duel</span>
+                    <i class="fas fa-fist-raised"></i>
+                    <span>RPS Duel</span>
                 </div>
                 <div class="header-stats">
                     <div class="stat-item" id="coinsStat">
@@ -463,6 +56,10 @@
                     <div class="stat-item" id="levelStat">
                         <i class="fas fa-star"></i>
                         <span id="levelCount">1</span>
+                    </div>
+                    <div class="stat-item" id="connectionStatus">
+                        <i class="fas fa-wifi"></i>
+                        <span id="connectionStatusBadge">Offline</span>
                     </div>
                 </div>
             </div>
@@ -479,15 +76,15 @@
                         <div class="stats" style="display: flex; justify-content: space-around; margin: 20px 0;">
                             <div class="stat">
                                 <div class="stat-value" id="myMatches">0</div>
-                                <div class="stat-label">Matchlar</div>
+                                <div class="stat-label">O'yinlar</div>
                             </div>
                             <div class="stat">
-                                <div class="stat-value" id="mutualMatchesCount">0</div>
-                                <div class="stat-label">O'zaro Match</div>
+                                <div class="stat-value" id="myWins">0</div>
+                                <div class="stat-label">G'alaba</div>
                             </div>
                             <div class="stat">
-                                <div class="stat-value" id="myLikes">0</div>
-                                <div class="stat-label">Likelar</div>
+                                <div class="stat-value" id="myDraws">0</div>
+                                <div class="stat-label">Durang</div>
                             </div>
                         </div>
 
@@ -500,7 +97,7 @@
                                 🔗 Serverga Ulanish
                             </button>
                             <button id="enterQueueBtn" class="start-btn" disabled>
-                                Navbatga kirish
+                                🎮 Navbatga Kirish
                             </button>
                         </div>
 
@@ -512,11 +109,11 @@
                             <button class="secondary-btn" id="editProfileBtn">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="secondary-btn" id="viewStatsBtn">
+                            <button class="secondary-btn" onclick="showRPSStatistics()">
                                 <i class="fas fa-chart-bar"></i>
                             </button>
-                            <button class="secondary-btn" onclick="showGiftHistory()" title="Sovg'a tarixi">
-                                <i class="fas fa-gift"></i>
+                            <button class="secondary-btn" id="rulesBtn">
+                                <i class="fas fa-question-circle"></i>
                             </button>
                         </div>
                     </div>
@@ -525,7 +122,7 @@
                 <!-- QUEUE SCREEN -->
                 <div class="duel-container hidden" id="queueScreen">
                     <div class="loader"></div>
-                    <div class="waiting-info" style="font-size: 1.2rem; margin-bottom: 15px; color: #fff;">Navbat kutish...</div>
+                    <div class="waiting-info" style="font-size: 1.2rem; margin-bottom: 15px; color: #fff;">Navbatda kutish...</div>
                     <div class="waiting-count" id="waitingCount">0</div>
                     <div class="position-info" id="positionInfo">
                         Sizning o'rningiz: <span id="position">-</span>
@@ -552,7 +149,7 @@
                     </button>
                 </div>
 
-                <!-- DUEL SCREEN -->
+                <!-- DUEL SCREEN (Tosh-Qaychi-Qog'oz) -->
                 <div class="duel-container hidden" id="duelScreen">
                     <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar">
                     <div class="opponent-info">
@@ -561,56 +158,72 @@
 
                         <div class="opponent-stats">
                             <span><i class="fas fa-trophy"></i> <span id="opponentRating">1500</span></span>
-                            <span><i class="fas fa-heart"></i> <span id="opponentMatches">0</span></span>
+                            <span><i class="fas fa-gamepad"></i> <span id="opponentGames">0</span></span>
                             <span><i class="fas fa-level-up-alt"></i> <span id="opponentLevel">1</span></span>
                         </div>
                     </div>
 
-                    <div class="super-like-indicator" id="superLikeIndicator">
-                        <i class="fas fa-gem"></i>
-                        Kunlik SUPER LIKE: <span id="superLikeCount">3</span> ta qoldi
+                    <!-- TANLOVLAR KO'RSATISH -->
+                    <div class="choices-display">
+                        <div class="choice-box">
+                            <div class="choice-label">Siz</div>
+                            <div class="choice-icon" id="playerChoiceIcon">❓</div>
+                        </div>
+                        <div class="vs-text">VS</div>
+                        <div class="choice-box">
+                            <div class="choice-label">Raqib</div>
+                            <div class="choice-icon" id="opponentChoiceIcon">❓</div>
+                        </div>
                     </div>
 
+                    <!-- TIMER -->
                     <div class="timer-container">
                         <div class="timer-circle">
-                            <div class="timer" id="timer">∞</div>
+                            <div class="timer" id="timer">30</div>
                         </div>
                     </div>
 
-                    <div class="vote-container">
-                        <div class="vote-buttons" id="voteButtons">
-                            <div class="vote-btn-group">
-                                <button class="vote-btn btn-no" id="noBtn">✖</button>
-                                <div class="vote-label">O'tkazish</div>
-                            </div>
-                            <div class="vote-btn-group">
-                                <button class="vote-btn btn-like" id="likeBtn">❤️</button>
-                                <div class="vote-label">Like</div>
-                            </div>
-                            <div class="vote-btn-group">
-                                <button class="vote-btn btn-super-like" id="superLikeBtn">💖</button>
-                                <div class="vote-label">Super Like</div>
-                            </div>
-                        </div>
+                    <!-- NATIJA -->
+                    <div class="result-title" id="matchResultTitle">TANLOV QILING!</div>
+
+                    <!-- TANLOV TUGMALARI -->
+                    <div class="rps-buttons">
+                        <button class="rps-btn rock-btn" id="rockBtn">
+                            <span class="rps-icon">🪨</span>
+                            <span class="rps-label">Tosh</span>
+                        </button>
+                        <button class="rps-btn scissors-btn" id="scissorsBtn">
+                            <span class="rps-icon">✂️</span>
+                            <span class="rps-label">Qaychi</span>
+                        </button>
+                        <button class="rps-btn paper-btn" id="paperBtn">
+                            <span class="rps-icon">📄</span>
+                            <span class="rps-label">Qog'oz</span>
+                        </button>
                     </div>
 
+                    <!-- O'TKAZISH TUGMASI -->
+                    <button class="skip-btn" id="noBtn">
+                        <i class="fas fa-forward"></i> O'tkazish
+                    </button>
+
+                    <!-- HOLAT XABARI -->
                     <div class="status-message" id="duelStatus" style="color: #ccc;">
-                        Ovoz bering: ❤️ yoki 💖 yoki ✖
+                        Tosh, Qaychi yoki Qog'oz tanlang!
                     </div>
                 </div>
 
                 <!-- MATCH SCREEN -->
                 <div class="match-screen hidden" id="matchScreen">
-                    <div class="match-title">🎉 MATCH!</div>
+                    <div class="match-title" id="matchTitle">🎉 NATIJA!</div>
                     <div class="match-text" id="matchText">
-                        <span id="partnerName">Foydalanuvchi</span> bilan suhbatlashish
+                        <!-- Natija bu yerda ko'rsatiladi -->
                     </div>
 
                     <div class="rewards" id="matchRewards">
                         <div style="display: flex; justify-content: center; gap: 20px;">
                             <div><i class="fas fa-coins"></i> +<span id="rewardCoins">50</span></div>
                             <div><i class="fas fa-star"></i> +<span id="rewardXP">30</span> XP</div>
-                            <div><i class="fas fa-users"></i> <span style="color: #fff;">DO'ST BO'LDINGIZ!</span></div>
                         </div>
                     </div>
 
@@ -636,20 +249,20 @@
                             <div class="stat-label">Reyting</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="statMatches">0</div>
-                            <div class="stat-label">Matchlar</div>
+                            <div class="stat-value" id="statGames">0</div>
+                            <div class="stat-label">O'yinlar</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-value" id="statDuels">0</div>
-                            <div class="stat-label">Duellar</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="mutualMatchesProfile">0</div>
-                            <div class="stat-label">O'zaro Match</div>
+                            <div class="stat-value" id="statWins">0</div>
+                            <div class="stat-label">G'alaba</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value" id="statWinRate">0%</div>
                             <div class="stat-label">G'alaba %</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statWinStreak">0</div>
+                            <div class="stat-label">Streak</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-value" id="statFriends">0</div>
@@ -661,11 +274,11 @@
                         <button class="match-option-btn" id="editProfileBtn" style="margin-bottom: 10px;">
                             <i class="fas fa-edit"></i> Profilni Tahrirlash
                         </button>
-                        <button class="match-option-btn" id="viewStatsBtn" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); margin-bottom: 10px;">
-                            <i class="fas fa-chart-bar"></i> Batafsil Statistika
+                        <button class="match-option-btn" onclick="showRPSStatistics()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); margin-bottom: 10px;">
+                            <i class="fas fa-chart-bar"></i> Tosh-Qaychi-Qog'oz Statistikasi
                         </button>
-                        <button class="match-option-btn" onclick="showGiftHistory()" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
-                            <i class="fas fa-gift"></i> Sovg'a Tarixi
+                        <button class="match-option-btn" onclick="showDetailedStats()" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
+                            <i class="fas fa-chart-pie"></i> Batafsil Statistika
                         </button>
                     </div>
                 </div>
@@ -729,8 +342,8 @@
 
                     <div class="leaderboard-tabs">
                         <div class="leaderboard-tab active" data-leaderboard="rating">Reyting</div>
-                        <div class="leaderboard-tab" data-leaderboard="matches">Matchlar</div>
-                        <div class="leaderboard-tab" data-leaderboard="friends">Do'stlar</div>
+                        <div class="leaderboard-tab" data-leaderboard="wins">G'alabalar</div>
+                        <div class="leaderboard-tab" data-leaderboard="streak">Streak</div>
                     </div>
 
                     <div class="leaderboard-list" id="leaderboardList"></div>
@@ -743,67 +356,10 @@
         </div>
     </div>
 
-    <!-- SOVG'A YUBORISH MODALI -->
-    <div class="gift-modal" id="giftModal">
-        <div class="gift-modal-content">
-            <div class="gift-modal-header">
-                <h2>🎁 Sovg'a yuborish</h2>
-                <button class="gift-close-btn" onclick="closeGiftModal()">×</button>
-            </div>
-            
-            <div class="modal-body">
-                <div class="gift-receiver-info">
-                    <img id="giftReceiverAvatar" src="" alt="">
-                    <div class="gift-receiver-details">
-                        <h3 id="giftReceiverName">Foydalanuvchi</h3>
-                        <p id="giftReceiverUsername">@username</p>
-                    </div>
-                </div>
-                
-                <p style="color: #ccc; margin-bottom: 15px; text-align: center;">Quyidagi sovg'alardan birini tanlang:</p>
-                
-                <div class="gifts-grid" id="giftsGrid">
-                    <!-- Sovg'alar bu yerda JavaScript orqali yuklanadi -->
-                </div>
-                
-                <div class="gift-balance">
-                    <p>💳 Mavjud coinlar: <span id="giftBalanceCoins">0</span> <i class="fas fa-coins" style="color: #f1c40f;"></i></p>
-                </div>
-                
-                <button class="gift-history-btn" onclick="showGiftHistory()">
-                    <i class="fas fa-history"></i> Sovg'a tarixini ko'rish
-                </button>
-            </div>
-        </div>
-    </div>
+    <!-- MODAL KONTEYNERI -->
+    <div id="modalContainer"></div>
 
-    <!-- SOVG'A TARIXI MODALI -->
-    <div class="gift-history-modal" id="giftHistoryModal">
-        <div class="gift-history-content">
-            <div class="gift-history-header">
-                <h2>📜 Sovg'a tarixi</h2>
-                <button class="gift-close-btn" onclick="closeGiftHistoryModal()">×</button>
-            </div>
-            
-            <div class="modal-body">
-                <div class="gift-history-section">
-                    <h3><i class="fas fa-paper-plane"></i> Yuborilgan sovg'alar</h3>
-                    <div id="sentGiftsList">
-                        <!-- Yuborilgan sovg'alar -->
-                    </div>
-                </div>
-                
-                <div class="gift-history-section">
-                    <h3><i class="fas fa-gift"></i> Qabul qilingan sovg'alar</h3>
-                    <div id="receivedGiftsList">
-                        <!-- Qabul qilingan sovg'alar -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Gender tanlash (majburiy) -->
+    <!-- GENDER MODALI -->
     <div class="gender-modal mandatory-modal" id="genderModal">
         <div class="modal-content">
             <div style="font-size: 3rem; margin-bottom: 15px;">👤</div>
@@ -850,21 +406,21 @@
         </div>
     </div>
 
-    <!-- Profil tahrirlash -->
-    <div class="chat-modal" id="profileEditModal">
-        <div class="chat-box">
-            <div class="chat-header">
-                <div style="color: #fff;">Profilni Tahrirlash</div>
-                <button id="closeProfileEditBtn"><i class="fas fa-times" style="color: #fff;"></i></button>
+    <!-- PROFIL TAXRIRLASH MODALI -->
+    <div class="modal" id="profileEditModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Profilni Tahrirlash</h2>
+                <button class="close-btn" onclick="closeProfileEdit()">×</button>
             </div>
-            <div class="chat-messages" style="height: auto; padding: 20px;">
+            <div class="modal-body">
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #fff;">Bio</label>
-                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);"></textarea>
+                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); width: 100%; padding: 10px; border-radius: 8px;"></textarea>
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #fff;">Jins</label>
-                    <select id="editGender" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <select id="editGender" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); width: 100%; padding: 10px; border-radius: 8px;">
                         <option value="not_specified">Ko'rsatilmaydi (hamma bilan)</option>
                         <option value="male">Erkak (faqat ayollar bilan)</option>
                         <option value="female">Ayol (faqat erkaklar bilan)</option>
@@ -872,329 +428,164 @@
                 </div>
                 <div style="margin-bottom: 15px;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #fff;">Filter</label>
-                    <select id="editFilter" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <select id="editFilter" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); width: 100%; padding: 10px; border-radius: 8px;">
                         <option value="not_specified">Hamma bilan duel</option>
                         <option value="male">Faqat erkaklar bilan</option>
                         <option value="female">Faqat ayollar bilan</option>
                     </select>
                 </div>
-                <button id="saveProfileBtn" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: #fff;">Saqlash</button>
+            </div>
+            <div class="modal-footer">
+                <button id="saveProfileBtn" class="btn btn-primary">Saqlash</button>
+                <button onclick="closeProfileEdit()" class="btn btn-secondary">Bekor qilish</button>
             </div>
         </div>
     </div>
 
-    <!-- Chat modal -->
-    <div class="chat-modal" id="chatModal">
-        <div class="chat-box">
-            <div class="chat-header">
-                <div id="chatTitle" style="color: #fff;">Telegram Chat</div>
-                <button id="closeChatBtn"><i class="fas fa-times" style="color: #fff;"></i></button>
+    <!-- QOIDALAR MODALI -->
+    <div class="modal" id="rulesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Tosh-Qaychi-Qog'oz Qoidalari</h2>
+                <button class="close-btn" onclick="hideRulesModal()">×</button>
             </div>
-            <div class="chat-content">
-                <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
-                <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
-                <div class="chat-username" id="chatUsername">@username</div>
+            <div class="modal-body">
+                <div class="rules-content">
+                    <div class="rule-item">
+                        <div class="rule-icon">🪨</div>
+                        <div class="rule-text">
+                            <h3>Tosh (🪨)</h3>
+                            <p>Qaychini sindiradi</p>
+                        </div>
+                    </div>
+                    <div class="rule-item">
+                        <div class="rule-icon">✂️</div>
+                        <div class="rule-text">
+                            <h3>Qaychi (✂️)</h3>
+                            <p>Qog'ozni kesadi</p>
+                        </div>
+                    </div>
+                    <div class="rule-item">
+                        <div class="rule-icon">📄</div>
+                        <div class="rule-text">
+                            <h3>Qog'oz (📄)</h3>
+                            <p>Toshni o'rab oladi</p>
+                        </div>
+                    </div>
+                    <div class="rule-diagram">
+                        <div class="diagram-row">
+                            <div class="diagram-item">🪨</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-item">✂️</div>
+                        </div>
+                        <div class="diagram-row">
+                            <div class="diagram-item">✂️</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-item">📄</div>
+                        </div>
+                        <div class="diagram-row">
+                            <div class="diagram-item">📄</div>
+                            <div class="diagram-arrow">→</div>
+                            <div class="diagram-item">🪨</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="hideRulesModal()" class="btn btn-primary">Tushunarli</button>
+            </div>
+        </div>
+    </div>
 
-                <button class="chat-button" id="chatOpenTelegramBtn">
-                    <i class="fab fa-telegram"></i> Telegramda ochish
-                </button>
-
-                <div class="chat-note">
-                    <p style="color: #ccc;"><i class="fas fa-info-circle"></i> Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!</p>
+    <!-- STATISTIKA MODALI -->
+    <div class="modal" id="statsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Batafsil Statistika</h2>
+                <button class="close-btn" onclick="closeStatsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="detailedStatsContent">
+                    <!-- Statistika bu yerda ko'rsatiladi -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Notification -->
+    <!-- SOZLAMALAR MODALI -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sozlamalar</h2>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="soundToggle">
+                        <span>Tovushlar</span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="vibrationToggle">
+                        <span>Vibratsiya</span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <label>
+                        <input type="checkbox" id="notificationsToggle">
+                        <span>Bildirishnomalar</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveSettingsBtn" class="btn btn-primary">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFIKATSIYA -->
     <div class="notification" id="notification">
         <div id="notificationTitle" style="font-weight: bold; margin-bottom: 5px; color: #fff;"></div>
         <div id="notificationMessage" style="color: #ccc;"></div>
     </div>
 
-    <script>
-        // Sovg'a modalini ochish funksiyasi
-        function openGiftModal(receiver) {
-            if (!receiver) {
-                console.error('Receiver not provided');
-                return;
-            }
-            
-            console.log('Opening gift modal for:', receiver);
-            
-            // Modal elementlarini topish
-            const modal = document.getElementById('giftModal');
-            const avatar = document.getElementById('giftReceiverAvatar');
-            const name = document.getElementById('giftReceiverName');
-            const username = document.getElementById('giftReceiverUsername');
-            const balance = document.getElementById('giftBalanceCoins');
-            const grid = document.getElementById('giftsGrid');
-            
-            if (!modal || !avatar || !name || !username || !balance || !grid) {
-                console.error('Gift modal elements not found');
-                return;
-            }
-            
-            // Receiver ma'lumotlarini to'ldirish
-            avatar.src = receiver.photo || `https://ui-avatars.com/api/?name=${receiver.name || 'User'}&background=667eea&color=fff`;
-            name.textContent = receiver.name || 'Foydalanuvchi';
-            username.textContent = receiver.username ? `@${receiver.username}` : '';
-            
-            // Coin balance
-            const userCoins = parseInt(localStorage.getItem('userCoins')) || 100;
-            balance.textContent = userCoins;
-            
-            // Sovg'alarni yuklash
-            loadGiftsToModal(grid, userCoins, receiver);
-            
-            // Modalni ochish
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeGiftModal() {
-            const modal = document.getElementById('giftModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-            document.body.style.overflow = 'auto';
-        }
-        
-        function closeGiftHistoryModal() {
-            const modal = document.getElementById('giftHistoryModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-            document.body.style.overflow = 'auto';
-        }
-        
-        function loadGiftsToModal(gridElement, userCoins, receiver) {
-            const gifts = [
-                { id: 1, name: 'Virtual Gul', price: 10, icon: '🌹', description: 'Sevgi ramzi' },
-                { id: 2, name: 'Yulduz', price: 25, icon: '⭐', description: 'Yorqin yulduz' },
-                { id: 3, name: 'Sevgi Qalbi', price: 50, icon: '💝', description: 'Maxsus sevgi' },
-                { id: 4, name: 'Tog\' Gozali', price: 100, icon: '🏔️', description: 'O\'zbekiston gozali' },
-                { id: 5, name: 'Paxta Gullari', price: 150, icon: '🌸', description: 'O\'zbekiston ramzi' },
-                { id: 6, name: 'Kumush', price: 200, icon: '🥈', description: 'Kumush sovg\'a' },
-                { id: 7, name: 'Oltin', price: 500, icon: '🥇', description: 'Oltin sovg\'a' },
-                { id: 8, name: 'Diamond', price: 1000, icon: '💎', description: 'Eng qimmat sovg\'a' }
-            ];
-            
-            gridElement.innerHTML = '';
-            
-            gifts.forEach(gift => {
-                const canAfford = userCoins >= gift.price;
-                const giftElement = document.createElement('div');
-                giftElement.className = `gift-item ${canAfford ? '' : 'disabled'}`;
-                giftElement.innerHTML = `
-                    <div class="gift-icon">${gift.icon}</div>
-                    <div class="gift-name">${gift.name}</div>
-                    <div class="gift-price">${gift.price} coin</div>
-                `;
-                
-                if (canAfford) {
-                    giftElement.addEventListener('click', () => {
-                        selectGift(gift, receiver);
-                    });
-                }
-                
-                gridElement.appendChild(giftElement);
-            });
-        }
-        
-        function selectGift(gift, receiver) {
-            console.log('Selected gift:', gift, 'for receiver:', receiver);
-            
-            // Oldingi tanlangan sovg'ani olib tashlash
-            const selectedItems = document.querySelectorAll('.gift-item.selected');
-            selectedItems.forEach(item => item.classList.remove('selected'));
-            
-            // Yangi sovg'ani tanlash
-            const giftItems = document.querySelectorAll('.gift-item');
-            giftItems.forEach(item => {
-                if (item.querySelector('.gift-name').textContent === gift.name) {
-                    item.classList.add('selected');
-                }
-            });
-            
-            // Tasdiqlash tugmasini yaratish/yangilash
-            let confirmBtn = document.querySelector('.confirm-gift-btn');
-            if (!confirmBtn) {
-                confirmBtn = document.createElement('button');
-                confirmBtn.className = 'confirm-gift-btn';
-                document.querySelector('.modal-body').appendChild(confirmBtn);
-            }
-            
-            confirmBtn.innerHTML = `✅ ${gift.price} coin evaziga sovg'a yuborish`;
-            confirmBtn.onclick = () => sendGift(gift, receiver);
-        }
-        
-        function sendGift(gift, receiver) {
-            console.log('Sending gift:', gift, 'to:', receiver);
-            
-            // Bu yerda serverga so'rov yuboriladi
-            // Hozircha test rejimida ishlatamiz
-            const userCoins = parseInt(localStorage.getItem('userCoins')) || 100;
-            
-            if (userCoins >= gift.price) {
-                // Coinlarni kamaytirish
-                const newCoins = userCoins - gift.price;
-                localStorage.setItem('userCoins', newCoins.toString());
-                
-                // UI ni yangilash
-                document.getElementById('giftBalanceCoins').textContent = newCoins;
-                if (document.getElementById('coinsCount')) {
-                    document.getElementById('coinsCount').textContent = newCoins;
-                }
-                
-                // Sovg'ani yuborish haqida bildirishnoma
-                showGiftNotification({
-                    sender: { name: 'Siz' },
-                    gift: { name: gift.name, icon: gift.icon },
-                    receiver: { name: receiver.name }
-                });
-                
-                // Sovg'a tarixiga qo'shish
-                saveGiftToHistory(gift, receiver, 'sent');
-                
-                // Modalni yopish
-                closeGiftModal();
-                
-                // Bildirishnoma
-                showNotification('🎁 Sovg\'a yuborildi!', 
-                    `${receiver.name} ga ${gift.name} sovg'asini yubordingiz!`);
-            } else {
-                showNotification('Xato', 'Coinlaringiz yetarli emas!');
-            }
-        }
-        
-        function showGiftNotification(data) {
-            const notification = document.createElement('div');
-            notification.className = 'gift-notification';
-            notification.innerHTML = `
-                <div class="gift-notification-content">
-                    <div class="gift-icon-large">${data.gift.icon}</div>
-                    <div class="gift-notification-text">
-                        <h3>🎁 Sovg'a yuborildi!</h3>
-                        <p>${data.sender.name} ${data.receiver.name} ga ${data.gift.name} sovg'asini yubordi!</p>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-            
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    notification.remove();
-                }, 300);
-            }, 5000);
-        }
-        
-        function saveGiftToHistory(gift, receiver, type) {
-            const historyKey = type === 'sent' ? 'sentGifts' : 'receivedGifts';
-            let history = JSON.parse(localStorage.getItem(historyKey)) || [];
-            
-            history.unshift({
-                gift: gift,
-                [type === 'sent' ? 'receiver' : 'sender']: receiver,
-                timestamp: new Date().toISOString()
-            });
-            
-            // Faqat oxirgi 50 ta sovg'ani saqlash
-            if (history.length > 50) {
-                history = history.slice(0, 50);
-            }
-            
-            localStorage.setItem(historyKey, JSON.stringify(history));
-        }
-        
-        function showGiftHistory() {
-            const sentGifts = JSON.parse(localStorage.getItem('sentGifts')) || [];
-            const receivedGifts = JSON.parse(localStorage.getItem('receivedGifts')) || [];
-            
-            const modal = document.getElementById('giftHistoryModal');
-            const sentList = document.getElementById('sentGiftsList');
-            const receivedList = document.getElementById('receivedGiftsList');
-            
-            if (!modal || !sentList || !receivedList) return;
-            
-            // Yuborilgan sovg'alar
-            if (sentGifts.length > 0) {
-                sentList.innerHTML = sentGifts.map(gift => `
-                    <div class="gift-history-item">
-                        <div class="gift-history-icon">${gift.gift.icon}</div>
-                        <div class="gift-history-info">
-                            <div class="gift-history-name">${gift.gift.name}</div>
-                            <div class="gift-history-receiver">${gift.receiver.name} ga</div>
-                            <div class="gift-history-time">${new Date(gift.timestamp).toLocaleString('uz-UZ')}</div>
-                        </div>
-                        <div class="gift-history-price">-${gift.gift.price}</div>
-                    </div>
-                `).join('');
-            } else {
-                sentList.innerHTML = `
-                    <div class="empty-history">
-                        <i class="fas fa-paper-plane"></i>
-                        <p>Hali sovg'a yuborilmagan</p>
-                    </div>
-                `;
-            }
-            
-            // Qabul qilingan sovg'alar
-            if (receivedGifts.length > 0) {
-                receivedList.innerHTML = receivedGifts.map(gift => `
-                    <div class="gift-history-item received">
-                        <div class="gift-history-icon">${gift.gift.icon}</div>
-                        <div class="gift-history-info">
-                            <div class="gift-history-name">${gift.gift.name}</div>
-                            <div class="gift-history-sender">${gift.sender.name} dan</div>
-                            <div class="gift-history-time">${new Date(gift.timestamp).toLocaleString('uz-UZ')}</div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                receivedList.innerHTML = `
-                    <div class="empty-history">
-                        <i class="fas fa-gift"></i>
-                        <p>Hali sovg'a qabul qilinmagan</p>
-                    </div>
-                `;
-            }
-            
-            // Modalni ochish
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        // Global funksiyalarni qo'shish
-        window.openGiftModal = openGiftModal;
-        window.closeGiftModal = closeGiftModal;
-        window.closeGiftHistoryModal = closeGiftHistoryModal;
-        window.showGiftHistory = showGiftHistory;
-        
-        // Notification funksiyasi
-        function showNotification(title, message) {
-            const notification = document.getElementById('notification');
-            const titleElement = document.getElementById('notificationTitle');
-            const messageElement = document.getElementById('notificationMessage');
-            
-            if (notification && titleElement && messageElement) {
-                titleElement.textContent = title;
-                messageElement.textContent = message;
-                notification.classList.add('active');
-                
-                setTimeout(() => {
-                    notification.classList.remove('active');
-                }, 3000);
-            }
-        }
-    </script>
-    
+    <!-- LEVEL UP NOTIFIKATSIYA -->
+    <div class="level-up-notification" id="levelUpNotification" style="display: none;">
+        <div class="level-up-content">
+            <div class="level-up-icon">🎉</div>
+            <div class="level-up-text">
+                <h3>LEVEL UP!</h3>
+                <p id="levelUpText">1 → 2</p>
+                <p class="level-up-reward">100 coin bonus!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- STREAK NOTIFIKATSIYA -->
+    <div class="streak-notification" id="streakNotification" style="display: none;">
+        <div class="streak-content">
+            <div class="streak-icon">🔥</div>
+            <div class="streak-text">
+                <h3 id="streakTitle">3 KETMA-KET G'ALABA!</h3>
+                <p id="streakMessage">Streak bonus: 15 coin qo'shildi!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACHIEVEMENT NOTIFIKATSIYA -->
+    <div class="achievement-notification" id="achievementNotification" style="display: none;">
+        <div class="achievement-content">
+            <div class="achievement-icon" id="achievementIcon">🏆</div>
+            <div class="achievement-text">
+                <h3>Achievement Ochildi!</h3>
+                <p id="achievementTitle">Birinchi G'alaba</p>
+                <p id="achievementReward">200 coin qo'shildi!</p>
+            </div>
+        </div>
+    </div>
+
     <script src="main.js"></script>
 </body>
 </html>

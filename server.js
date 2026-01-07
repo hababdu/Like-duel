@@ -12,8 +12,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: [
-            'https://like-duel.onrender.com',
-            'https://like-duel-game.onrender.com',
+            'https://rock-paper-scissors-duel.onrender.com',
+            'https://rps-duel.onrender.com',
             'http://localhost:3000',
             'http://localhost:5500',
             'http://127.0.0.1:5500',
@@ -28,7 +28,7 @@ const io = new Server(server, {
 });
 
 // ==================== DEBUG ====================
-console.log('🚀 SERVER ISHGA TUSHDI');
+console.log('🚀 TO\'SH-QAYCHI-QOG\'OZ DUEL SERVERI ISHGA TUSHDI');
 console.log('📅 Sana:', new Date().toISOString());
 console.log('🔧 Node version:', process.version);
 console.log('🌍 NODE_ENV:', process.env.NODE_ENV || 'production');
@@ -64,10 +64,11 @@ async function connectToMongoDB() {
 }
 
 // MongoDB modellari
-let User, MutualMatch, Duel;
+let User, MutualMatch, Duel, Achievement, DailyQuest;
 
 if (isMongoConnected) {
     try {
+        // User modeli
         const userSchema = new mongoose.Schema({
             userId: { type: String, required: true, unique: true },
             firstName: String,
@@ -80,38 +81,78 @@ if (isMongoConnected) {
             rating: { type: Number, default: 1500 },
             coins: { type: Number, default: 100 },
             level: { type: Number, default: 1 },
-            matches: { type: Number, default: 0 },
-            duels: { type: Number, default: 0 },
+            totalGames: { type: Number, default: 0 },
             wins: { type: Number, default: 0 },
-            totalLikes: { type: Number, default: 0 },
+            draws: { type: Number, default: 0 },
+            losses: { type: Number, default: 0 },
+            winStreak: { type: Number, default: 0 },
+            maxWinStreak: { type: Number, default: 0 },
             mutualMatchesCount: { type: Number, default: 0 },
             friendsCount: { type: Number, default: 0 },
-            dailySuperLikes: { type: Number, default: 3 },
             lastResetDate: { type: String, default: () => new Date().toDateString() },
             socketId: String,
             connected: { type: Boolean, default: false },
-            lastActive: { type: Date, default: Date.now }
+            lastActive: { type: Date, default: Date.now },
+            streakDays: { type: Number, default: 0 },
+            lastLogin: { type: Date, default: Date.now },
+            totalPlayTime: { type: Number, default: 0 }
         });
 
+        // MutualMatch modeli
         const mutualMatchSchema = new mongoose.Schema({
             user1Id: { type: String, required: true },
             user2Id: { type: String, required: true },
+            isSuperLike: { type: Boolean, default: false },
             createdAt: { type: Date, default: Date.now }
         });
 
+        // Duel modeli
         const duelSchema = new mongoose.Schema({
             duelId: { type: String, required: true, unique: true },
             player1Id: { type: String, required: true },
             player2Id: { type: String, required: true },
-            votes: { type: Map, of: String, default: {} },
+            player1Choice: { type: String, enum: ['rock', 'scissors', 'paper', 'skip'], default: null },
+            player2Choice: { type: String, enum: ['rock', 'scissors', 'paper', 'skip'], default: null },
+            result: { type: String, enum: ['player1_win', 'player2_win', 'draw', 'pending'], default: 'pending' },
             startTime: { type: Date, default: Date.now },
+            endTime: { type: Date, default: null },
             ended: { type: Boolean, default: false },
-            resultsSent: { type: Boolean, default: false }
+            rewardsGiven: { type: Boolean, default: false }
+        });
+
+        // Achievement modeli
+        const achievementSchema = new mongoose.Schema({
+            userId: { type: String, required: true },
+            achievementId: { type: String, required: true },
+            title: String,
+            description: String,
+            icon: String,
+            unlockedAt: { type: Date, default: Date.now },
+            progress: { type: Number, default: 0 },
+            required: { type: Number, default: 1 },
+            unlocked: { type: Boolean, default: false }
+        });
+
+        // DailyQuest modeli
+        const dailyQuestSchema = new mongoose.Schema({
+            userId: { type: String, required: true },
+            questId: { type: String, required: true },
+            title: String,
+            description: String,
+            progress: { type: Number, default: 0 },
+            total: { type: Number, default: 1 },
+            reward: { type: Number, default: 0 },
+            type: String,
+            completed: { type: Boolean, default: false },
+            claimed: { type: Boolean, default: false },
+            date: { type: String, default: () => new Date().toDateString() }
         });
 
         User = mongoose.model('User', userSchema);
         MutualMatch = mongoose.model('MutualMatch', mutualMatchSchema);
         Duel = mongoose.model('Duel', duelSchema);
+        Achievement = mongoose.model('Achievement', achievementSchema);
+        DailyQuest = mongoose.model('DailyQuest', dailyQuestSchema);
         
         console.log('✅ MongoDB modellari yaratildi');
     } catch (error) {
@@ -124,6 +165,8 @@ if (isMongoConnected) {
 const testUsersDB = new Map();
 const testDuelsDB = new Map();
 const testMutualMatches = new Map();
+const testAchievementsDB = new Map();
+const testDailyQuestsDB = new Map();
 const onlineUsers = new Map();
 const queue = [];
 const activeDuels = new Map();
@@ -150,27 +193,80 @@ function getTestUser(userId) {
             rating: 1500,
             coins: 100,
             level: 1,
-            matches: 0,
-            duels: 0,
+            totalGames: 0,
             wins: 0,
-            totalLikes: 0,
+            draws: 0,
+            losses: 0,
+            winStreak: 0,
+            maxWinStreak: 0,
             mutualMatchesCount: 0,
             friendsCount: 0,
-            dailySuperLikes: 3,
             lastResetDate: new Date().toDateString(),
             socketId: '',
             connected: false,
-            lastActive: new Date()
+            lastActive: new Date(),
+            streakDays: 0,
+            lastLogin: new Date(),
+            totalPlayTime: 0
         });
     }
     return testUsersDB.get(userId);
 }
 
+function getTestAchievements(userId) {
+    if (!testAchievementsDB.has(userId)) {
+        testAchievementsDB.set(userId, []);
+    }
+    return testAchievementsDB.get(userId);
+}
+
+function getTestDailyQuests(userId) {
+    if (!testDailyQuestsDB.has(userId)) {
+        const defaultQuests = [
+            {
+                questId: 'play_3_duels',
+                title: '3 ta duel o\'ynash',
+                progress: 0,
+                total: 3,
+                reward: 50,
+                type: 'play',
+                completed: false,
+                claimed: false,
+                date: new Date().toDateString()
+            },
+            {
+                questId: 'win_1_duel',
+                title: '1 ta duel yutish',
+                progress: 0,
+                total: 1,
+                reward: 100,
+                type: 'win',
+                completed: false,
+                claimed: false,
+                date: new Date().toDateString()
+            },
+            {
+                questId: 'make_1_friend',
+                title: '1 ta do\'st orttirish',
+                progress: 0,
+                total: 1,
+                reward: 200,
+                type: 'friend',
+                completed: false,
+                claimed: false,
+                date: new Date().toDateString()
+            }
+        ];
+        testDailyQuestsDB.set(userId, defaultQuests);
+    }
+    return testDailyQuestsDB.get(userId);
+}
+
 // ==================== MIDDLEWARE ====================
 app.use(cors({
     origin: [
-        'https://like-duel.onrender.com',
-        'https://like-duel-game.onrender.com',
+        'https://rock-paper-scissors-duel.onrender.com',
+        'https://rps-duel.onrender.com',
         'http://localhost:3000',
         'http://localhost:5500'
     ],
@@ -184,9 +280,10 @@ app.use(express.static('public'));
 app.get('/', (req, res) => {
     res.json({
         status: 'online',
-        service: 'Like Duel Server',
+        service: 'Tosh-Qaychi-Qog\'oz Duel Server',
         version: '1.0.0',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        game: 'Rock Paper Scissors Duel'
     });
 });
 
@@ -200,16 +297,133 @@ app.get('/api/health', async (req, res) => {
             totalUsers: isMongoConnected ? await User.countDocuments() : testUsersDB.size,
             activeDuels: activeDuels.size,
             queue: queue.length,
-            onlineUsers: onlineUsers.size
+            onlineUsers: onlineUsers.size,
+            game: 'Tosh-Qaychi-Qog\'oz Duel'
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+app.get('/api/stats', async (req, res) => {
+    try {
+        const stats = {
+            totalGamesPlayed: 0,
+            totalUsers: isMongoConnected ? await User.countDocuments() : testUsersDB.size,
+            averageRating: 1500,
+            mostWins: 0,
+            longestWinStreak: 0
+        };
+
+        if (isMongoConnected) {
+            const users = await User.find();
+            if (users.length > 0) {
+                stats.totalGamesPlayed = users.reduce((sum, user) => sum + user.totalGames, 0);
+                stats.averageRating = Math.round(users.reduce((sum, user) => sum + user.rating, 0) / users.length);
+                stats.mostWins = Math.max(...users.map(user => user.wins));
+                stats.longestWinStreak = Math.max(...users.map(user => user.maxWinStreak));
+            }
+        } else {
+            const users = Array.from(testUsersDB.values());
+            if (users.length > 0) {
+                stats.totalGamesPlayed = users.reduce((sum, user) => sum + user.totalGames, 0);
+                stats.averageRating = Math.round(users.reduce((sum, user) => sum + user.rating, 0) / users.length);
+                stats.mostWins = Math.max(...users.map(user => user.wins));
+                stats.longestWinStreak = Math.max(...users.map(user => user.maxWinStreak));
+            }
+        }
+
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ==================== TO'SH-QAYCHI-QOG'OZ QOIDALARI ====================
+function determineWinner(choice1, choice2) {
+    if (choice1 === choice2) return 'draw';
+    
+    const rules = {
+        'rock': 'scissors',     // Tosh qaychini yengadi
+        'scissors': 'paper',    // Qaychi qog'ozni yengadi
+        'paper': 'rock'         // Qog'oz toshni yengadi
+    };
+    
+    if (rules[choice1] === choice2) {
+        return 'player1';
+    } else {
+        return 'player2';
+    }
+}
+
+function calculateRPSRewards(player1Choice, player2Choice, player1Rating, player2Rating) {
+    const result = determineWinner(player1Choice, player2Choice);
+    
+    let player1Reward = {
+        coins: 10,
+        xp: 5,
+        ratingChange: -5
+    };
+    
+    let player2Reward = {
+        coins: 10,
+        xp: 5,
+        ratingChange: -5
+    };
+    
+    if (result === 'draw') {
+        // Durang uchun mukofotlar
+        player1Reward = {
+            coins: 25,
+            xp: 15,
+            ratingChange: 10
+        };
+        player2Reward = {
+            coins: 25,
+            xp: 15,
+            ratingChange: 10
+        };
+    } else if (result === 'player1') {
+        // Player1 g'alaba uchun mukofotlar
+        player1Reward = {
+            coins: 50,
+            xp: 30,
+            ratingChange: 20
+        };
+        player2Reward = {
+            coins: 10,
+            xp: 5,
+            ratingChange: -5
+        };
+    } else if (result === 'player2') {
+        // Player2 g'alaba uchun mukofotlar
+        player1Reward = {
+            coins: 10,
+            xp: 5,
+            ratingChange: -5
+        };
+        player2Reward = {
+            coins: 50,
+            xp: 30,
+            ratingChange: 20
+        };
+    }
+    
+    return {
+        player1: player1Reward,
+        player2: player2Reward,
+        result: result
+    };
+}
+
 // ==================== SOCKET.IO HANDLERS ====================
 io.on('connection', (socket) => {
     console.log('✅ Yangi ulanish:', socket.id);
+    
+    // ==================== PING ====================
+    socket.on('ping', (data) => {
+        socket.emit('ping', data);
+    });
     
     // ==================== AUTH HANDLER ====================
     socket.on('auth', async (data) => {
@@ -234,10 +448,33 @@ io.on('connection', (socket) => {
                         gender: data.gender || 'not_specified',
                         hasSelectedGender: data.hasSelectedGender || false,
                         bio: data.bio || '',
-                        filter: data.filter || 'not_specified'
+                        filter: data.filter || 'not_specified',
+                        streakDays: 1,
+                        lastLogin: new Date()
                     });
                     await user.save();
+                    
+                    // Achievement yaratish
+                    await createDefaultAchievements(userId);
+                    await createDefaultDailyQuests(userId);
                 } else {
+                    // Streak hisoblash
+                    const today = new Date().toDateString();
+                    const lastLoginDate = user.lastLogin ? new Date(user.lastLogin).toDateString() : null;
+                    
+                    if (lastLoginDate !== today) {
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toDateString();
+                        
+                        if (lastLoginDate === yesterdayStr) {
+                            user.streakDays += 1;
+                        } else if (lastLoginDate && lastLoginDate !== yesterdayStr) {
+                            user.streakDays = 1;
+                        }
+                        user.lastLogin = new Date();
+                    }
+                    
                     user.firstName = data.firstName || user.firstName;
                     user.username = data.username || user.username;
                     user.photoUrl = data.photoUrl || user.photoUrl;
@@ -246,10 +483,9 @@ io.on('connection', (socket) => {
                     if (data.bio !== undefined) user.bio = data.bio;
                     if (data.filter !== undefined) user.filter = data.filter;
                     
-                    const today = new Date().toDateString();
-                    if (user.lastResetDate !== today) {
-                        user.dailySuperLikes = 3;
-                        user.lastResetDate = today;
+                    const todayDate = new Date().toDateString();
+                    if (user.lastResetDate !== todayDate) {
+                        user.lastResetDate = todayDate;
                     }
                     
                     user.socketId = socket.id;
@@ -260,6 +496,10 @@ io.on('connection', (socket) => {
                 
                 onlineUsers.set(userId, socket.id);
                 socket.userId = userId;
+                
+                // Achievement va questlarni olish
+                const achievements = await Achievement.find({ userId, unlocked: true });
+                const dailyQuests = await DailyQuest.find({ userId, date: new Date().toDateString() });
                 
                 socket.emit('auth_ok', {
                     userId: user.userId,
@@ -273,16 +513,21 @@ io.on('connection', (socket) => {
                     rating: user.rating,
                     coins: user.coins,
                     level: user.level,
-                    matches: user.matches,
-                    duels: user.duels,
+                    totalGames: user.totalGames,
                     wins: user.wins,
-                    totalLikes: user.totalLikes,
+                    draws: user.draws,
+                    losses: user.losses,
+                    winStreak: user.winStreak,
+                    maxWinStreak: user.maxWinStreak,
                     mutualMatchesCount: user.mutualMatchesCount,
                     friendsCount: user.friendsCount,
-                    dailySuperLikes: user.dailySuperLikes
+                    streakDays: user.streakDays,
+                    achievements: achievements,
+                    dailyQuests: dailyQuests
                 });
                 
             } else {
+                // TEST MODE
                 const testUser = getTestUser(userId);
                 
                 testUser.firstName = data.firstName || testUser.firstName;
@@ -293,10 +538,26 @@ io.on('connection', (socket) => {
                 testUser.bio = data.bio || testUser.bio;
                 testUser.filter = data.filter || testUser.filter;
                 
+                // Streak hisoblash
                 const today = new Date().toDateString();
-                if (testUser.lastResetDate !== today) {
-                    testUser.dailySuperLikes = 3;
-                    testUser.lastResetDate = today;
+                const lastLoginDate = testUser.lastLogin ? new Date(testUser.lastLogin).toDateString() : null;
+                
+                if (lastLoginDate !== today) {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const yesterdayStr = yesterday.toDateString();
+                    
+                    if (lastLoginDate === yesterdayStr) {
+                        testUser.streakDays += 1;
+                    } else if (lastLoginDate && lastLoginDate !== yesterdayStr) {
+                        testUser.streakDays = 1;
+                    }
+                    testUser.lastLogin = new Date();
+                }
+                
+                const todayDate = new Date().toDateString();
+                if (testUser.lastResetDate !== todayDate) {
+                    testUser.lastResetDate = todayDate;
                 }
                 
                 testUser.socketId = socket.id;
@@ -306,6 +567,9 @@ io.on('connection', (socket) => {
                 testUsersDB.set(userId, testUser);
                 onlineUsers.set(userId, socket.id);
                 socket.userId = userId;
+                
+                const achievements = getTestAchievements(userId);
+                const dailyQuests = getTestDailyQuests(userId);
                 
                 socket.emit('auth_ok', {
                     userId: testUser.userId,
@@ -319,13 +583,17 @@ io.on('connection', (socket) => {
                     rating: testUser.rating,
                     coins: testUser.coins,
                     level: testUser.level,
-                    matches: testUser.matches,
-                    duels: testUser.duels,
+                    totalGames: testUser.totalGames,
                     wins: testUser.wins,
-                    totalLikes: testUser.totalLikes,
+                    draws: testUser.draws,
+                    losses: testUser.losses,
+                    winStreak: testUser.winStreak,
+                    maxWinStreak: testUser.maxWinStreak,
                     mutualMatchesCount: testUser.mutualMatchesCount,
                     friendsCount: testUser.friendsCount,
-                    dailySuperLikes: testUser.dailySuperLikes
+                    streakDays: testUser.streakDays,
+                    achievements: achievements,
+                    dailyQuests: dailyQuests
                 });
             }
             
@@ -465,7 +733,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ==================== DUEL OVOZ BERISH ====================
+    // ==================== TO'SH-QAYCHI-QOG'OZ OVOZ BERISH ====================
     socket.on('vote', async (data) => {
         try {
             const userId = socket.userId;
@@ -486,43 +754,28 @@ io.on('connection', (socket) => {
                 return;
             }
             
-            if (choice === 'super_like') {
-                let user;
-                if (isMongoConnected) {
-                    user = await User.findOne({ userId });
-                } else {
-                    user = getTestUser(userId);
-                }
-                
-                if (user.dailySuperLikes <= 0) {
-                    socket.emit('error', { message: 'Kunlik SUPER LIKE limitingiz tugadi' });
-                    return;
-                }
-                
-                if (isMongoConnected) {
-                    await User.updateOne(
-                        { userId },
-                        {
-                            $inc: { dailySuperLikes: -1 },
-                            $set: { lastActive: new Date() }
-                        }
-                    );
-                } else {
-                    const testUser = getTestUser(userId);
-                    testUser.dailySuperLikes -= 1;
-                    testUser.lastActive = new Date();
-                    testUsersDB.set(userId, testUser);
-                }
-                
-                socket.emit('super_like_used', {
-                    remaining: user.dailySuperLikes - 1
-                });
+            // Tanlovni saqlash
+            if (duelData.player1 === userId) {
+                duelData.player1Choice = choice;
+            } else {
+                duelData.player2Choice = choice;
             }
             
-            duelData.votes[userId] = choice;
+            // Raqib tanlovini bildirish
+            const opponentId = duelData.player1 === userId ? duelData.player2 : duelData.player1;
+            const opponentSocketId = onlineUsers.get(opponentId);
+            if (opponentSocketId) {
+                const opponentSocket = io.sockets.sockets.get(opponentSocketId);
+                if (opponentSocket) {
+                    opponentSocket.emit('opponent_choice', {
+                        choice: choice
+                    });
+                }
+            }
             
-            if (duelData.votes[duelData.player1] && duelData.votes[duelData.player2]) {
-                await processDuelResult(duelId);
+            // Ikkala o'yinchi ham tanlagan bo'lsa
+            if (duelData.player1Choice && duelData.player2Choice) {
+                await processRPSDuelResult(duelId);
             }
             
         } catch (error) {
@@ -602,7 +855,7 @@ io.on('connection', (socket) => {
                 
                 const friends = await User.find({
                     userId: { $in: friendIds }
-                }).select('userId firstName username photoUrl gender rating matches connected lastActive');
+                }).select('userId firstName username photoUrl gender rating totalGames connected lastActive');
                 
                 const formattedFriends = friends.map(friend => ({
                     id: friend.userId,
@@ -611,7 +864,7 @@ io.on('connection', (socket) => {
                     photo: friend.photoUrl,
                     gender: friend.gender,
                     rating: friend.rating,
-                    matches: friend.matches,
+                    games: friend.totalGames,
                     online: friend.connected,
                     lastActive: friend.lastActive,
                     isMutual: true
@@ -633,6 +886,285 @@ io.on('connection', (socket) => {
             
         } catch (error) {
             console.error('Do\'stlar ro\'yxatini olish xatosi:', error);
+        }
+    });
+    
+    // ==================== QUEST UPDATE ====================
+    socket.on('update_quest', async (data) => {
+        try {
+            const userId = socket.userId;
+            const { questType, value = 1 } = data;
+            
+            if (!userId) return;
+            
+            console.log('🎯 Quest yangilash:', userId.substring(0, 10) + '...', questType);
+            
+            if (isMongoConnected) {
+                const today = new Date().toDateString();
+                let quest = await DailyQuest.findOne({ 
+                    userId, 
+                    type: questType,
+                    date: today 
+                });
+                
+                if (!quest) {
+                    // Quest topilmasa, yangi yaratish
+                    const questData = getQuestData(questType);
+                    quest = new DailyQuest({
+                        userId,
+                        questId: questType + '_' + Date.now(),
+                        title: questData.title,
+                        description: questData.description,
+                        progress: value,
+                        total: questData.total,
+                        reward: questData.reward,
+                        type: questType,
+                        date: today
+                    });
+                } else {
+                    quest.progress += value;
+                    if (quest.progress >= quest.total) {
+                        quest.completed = true;
+                    }
+                }
+                
+                await quest.save();
+                
+                // Barcha questlarni qaytarish
+                const dailyQuests = await DailyQuest.find({ userId, date: today });
+                socket.emit('quest_updated', {
+                    quests: dailyQuests,
+                    completed: quest.completed,
+                    reward: quest.reward
+                });
+                
+            } else {
+                // Test mode
+                const quests = getTestDailyQuests(userId);
+                const today = new Date().toDateString();
+                
+                quests.forEach(quest => {
+                    if (quest.type === questType && quest.date === today) {
+                        quest.progress += value;
+                        if (quest.progress >= quest.total) {
+                            quest.completed = true;
+                        }
+                    }
+                });
+                
+                testDailyQuestsDB.set(userId, quests);
+                socket.emit('quest_updated', {
+                    quests: quests,
+                    completed: quests.some(q => q.type === questType && q.completed)
+                });
+            }
+            
+        } catch (error) {
+            console.error('Quest yangilash xatosi:', error);
+        }
+    });
+    
+    // ==================== QUEST REWARD ====================
+    socket.on('claim_quest_reward', async (data) => {
+        try {
+            const userId = socket.userId;
+            const { questId } = data;
+            
+            if (!userId) return;
+            
+            console.log('🏆 Quest mukofoti olish:', userId.substring(0, 10) + '...', questId);
+            
+            if (isMongoConnected) {
+                const quest = await DailyQuest.findOne({ userId, questId });
+                if (!quest || !quest.completed || quest.claimed) {
+                    socket.emit('error', { message: 'Quest mukofotini olish mumkin emas' });
+                    return;
+                }
+                
+                quest.claimed = true;
+                await quest.save();
+                
+                await User.updateOne(
+                    { userId },
+                    { $inc: { coins: quest.reward } }
+                );
+                
+                socket.emit('quest_reward_claimed', {
+                    questId: questId,
+                    reward: quest.reward,
+                    message: `${quest.reward} coin qo'shildi!`
+                });
+                
+            } else {
+                const quests = getTestDailyQuests(userId);
+                const quest = quests.find(q => q.questId === questId);
+                
+                if (!quest || !quest.completed || quest.claimed) {
+                    socket.emit('error', { message: 'Quest mukofotini olish mumkin emas' });
+                    return;
+                }
+                
+                quest.claimed = true;
+                const testUser = getTestUser(userId);
+                testUser.coins += quest.reward;
+                testUsersDB.set(userId, testUser);
+                
+                socket.emit('quest_reward_claimed', {
+                    questId: questId,
+                    reward: quest.reward,
+                    message: `${quest.reward} coin qo'shildi!`
+                });
+            }
+            
+        } catch (error) {
+            console.error('Quest mukofoti olish xatosi:', error);
+        }
+    });
+    
+    // ==================== ACHIEVEMENT CHECK ====================
+    socket.on('check_achievement', async (data) => {
+        try {
+            const userId = socket.userId;
+            const { achievementId } = data;
+            
+            if (!userId) return;
+            
+            console.log('🏆 Achievement tekshirish:', userId.substring(0, 10) + '...', achievementId);
+            
+            let user;
+            if (isMongoConnected) {
+                user = await User.findOne({ userId });
+            } else {
+                user = getTestUser(userId);
+            }
+            
+            const achievementData = getAchievementData(achievementId, user);
+            
+            if (!achievementData) return;
+            
+            if (isMongoConnected) {
+                let achievement = await Achievement.findOne({ userId, achievementId });
+                
+                if (!achievement) {
+                    achievement = new Achievement({
+                        userId,
+                        achievementId,
+                        title: achievementData.title,
+                        description: achievementData.description,
+                        icon: achievementData.icon,
+                        progress: achievementData.progress,
+                        required: achievementData.required,
+                        unlocked: achievementData.progress >= achievementData.required
+                    });
+                    await achievement.save();
+                } else {
+                    achievement.progress = achievementData.progress;
+                    if (achievement.progress >= achievement.required && !achievement.unlocked) {
+                        achievement.unlocked = true;
+                        achievement.unlockedAt = new Date();
+                    }
+                    await achievement.save();
+                }
+                
+                if (achievement.unlocked && achievement.progress >= achievement.required) {
+                    // Mukofot berish
+                    await User.updateOne(
+                        { userId },
+                        { $inc: { coins: achievementData.reward } }
+                    );
+                    
+                    socket.emit('achievement_unlocked', {
+                        achievement: {
+                            id: achievement.achievementId,
+                            title: achievement.title,
+                            description: achievement.description,
+                            icon: achievement.icon,
+                            reward: achievementData.reward
+                        },
+                        achievements: await Achievement.find({ userId, unlocked: true })
+                    });
+                }
+                
+            } else {
+                const achievements = getTestAchievements(userId);
+                let achievement = achievements.find(a => a.achievementId === achievementId);
+                
+                if (!achievement) {
+                    achievement = {
+                        userId,
+                        achievementId,
+                        title: achievementData.title,
+                        description: achievementData.description,
+                        icon: achievementData.icon,
+                        progress: achievementData.progress,
+                        required: achievementData.required,
+                        unlocked: achievementData.progress >= achievementData.required,
+                        unlockedAt: new Date()
+                    };
+                    achievements.push(achievement);
+                } else {
+                    achievement.progress = achievementData.progress;
+                    if (achievement.progress >= achievement.required && !achievement.unlocked) {
+                        achievement.unlocked = true;
+                        achievement.unlockedAt = new Date();
+                    }
+                }
+                
+                if (achievement.unlocked && achievement.progress >= achievement.required) {
+                    // Mukofot berish
+                    const testUser = getTestUser(userId);
+                    testUser.coins += achievementData.reward;
+                    testUsersDB.set(userId, testUser);
+                    
+                    socket.emit('achievement_unlocked', {
+                        achievement: {
+                            id: achievement.achievementId,
+                            title: achievement.title,
+                            description: achievement.description,
+                            icon: achievement.icon,
+                            reward: achievementData.reward
+                        },
+                        achievements: achievements.filter(a => a.unlocked)
+                    });
+                }
+                
+                testAchievementsDB.set(userId, achievements);
+            }
+            
+        } catch (error) {
+            console.error('Achievement tekshirish xatosi:', error);
+        }
+    });
+    
+    // ==================== DUELDAN CHIQISH ====================
+    socket.on('leave_duel', async (data) => {
+        try {
+            const userId = socket.userId;
+            const { duelId } = data;
+            
+            if (!userId) return;
+            
+            console.log('🚪 Dueldan chiqish:', userId.substring(0, 10) + '...', duelId);
+            
+            const duelData = activeDuels.get(duelId);
+            if (!duelData) return;
+            
+            duelData.ended = true;
+            
+            const opponentId = duelData.player1 === userId ? duelData.player2 : duelData.player1;
+            const opponentSocketId = onlineUsers.get(opponentId);
+            
+            if (opponentSocketId) {
+                const opponentSocket = io.sockets.sockets.get(opponentSocketId);
+                if (opponentSocket) {
+                    opponentSocket.emit('opponent_left');
+                }
+            }
+            
+            activeDuels.delete(duelId);
+            
+        } catch (error) {
+            console.error('Dueldan chiqish xatosi:', error);
         }
     });
     
@@ -669,6 +1201,7 @@ io.on('connection', (socket) => {
                     testUsersDB.set(userId, testUser);
                 }
                 
+                // Dueldan chiqish
                 for (const [duelId, duelData] of activeDuels.entries()) {
                     if ((duelData.player1 === userId || duelData.player2 === userId) && !duelData.ended) {
                         duelData.ended = true;
@@ -696,6 +1229,7 @@ io.on('connection', (socket) => {
 });
 
 // ==================== YORDAMCHI FUNKSIYALAR ====================
+
 function updateWaitingCount() {
     const count = queue.length;
     
@@ -736,7 +1270,7 @@ async function findOpponentFor(userId) {
         
         if (!opponent || !opponent.hasSelectedGender || !opponent.gender) continue;
         
-        // YANGI VA TO'G'RI GENDER FILTER LOGIKASI
+        // Gender filter logikasi
         const userGender = user.gender;
         const userFilter = user.filter;
         const opponentGender = opponent.gender;
@@ -754,7 +1288,6 @@ async function findOpponentFor(userId) {
         
         // 3. Gender mosligini tekshirish
         if (userGender === 'not_specified' || opponentGender === 'not_specified') {
-            // Birortasi 'not_specified' bo'lsa, match qilish mumkin
             return opponentId;
         }
         
@@ -769,7 +1302,7 @@ async function findOpponentFor(userId) {
 
 async function startDuel(player1Id, player2Id) {
     try {
-        console.log('⚔️ Duel boshlanmoqda:', {
+        console.log('⚔️ Tosh-Qaychi-Qog\'oz Duel boshlanmoqda:', {
             player1: player1Id.substring(0, 10) + '...',
             player2: player2Id.substring(0, 10) + '...'
         });
@@ -802,7 +1335,8 @@ async function startDuel(player1Id, player2Id) {
                 duelId,
                 player1Id,
                 player2Id,
-                votes: {},
+                player1Choice: null,
+                player2Choice: null,
                 ended: false,
                 resultsSent: false
             });
@@ -812,7 +1346,8 @@ async function startDuel(player1Id, player2Id) {
             id: duelId,
             player1: player1Id,
             player2: player2Id,
-            votes: {},
+            player1Choice: null,
+            player2Choice: null,
             ended: false,
             resultsSent: false
         });
@@ -829,7 +1364,7 @@ async function startDuel(player1Id, player2Id) {
                         username: player2.username,
                         photo: player2.photoUrl,
                         rating: player2.rating,
-                        matches: player2.matches,
+                        totalGames: player2.totalGames,
                         level: player2.level,
                         gender: player2.gender
                     }
@@ -849,7 +1384,7 @@ async function startDuel(player1Id, player2Id) {
                         username: player1.username,
                         photo: player1.photoUrl,
                         rating: player1.rating,
-                        matches: player1.matches,
+                        totalGames: player1.totalGames,
                         level: player1.level,
                         gender: player1.gender
                     }
@@ -857,28 +1392,26 @@ async function startDuel(player1Id, player2Id) {
             }
         }
         
+        // Timeout
         setTimeout(async () => {
             const duelData = activeDuels.get(duelId);
             if (duelData && !duelData.ended) {
                 await handleDuelTimeout(duelId);
             }
-        }, 20000);
+        }, 30000);
         
     } catch (error) {
         console.error('Duel boshlashda xato:', error);
     }
 }
 
-async function processDuelResult(duelId) {
+async function processRPSDuelResult(duelId) {
     try {
         const duelData = activeDuels.get(duelId);
         if (!duelData || duelData.ended || duelData.resultsSent) return;
         
         duelData.ended = true;
         duelData.resultsSent = true;
-        
-        const player1Vote = duelData.votes[duelData.player1];
-        const player2Vote = duelData.votes[duelData.player2];
         
         let player1, player2;
         if (isMongoConnected) {
@@ -891,340 +1424,199 @@ async function processDuelResult(duelId) {
         
         if (!player1 || !player2) return;
         
-        const player1Liked = player1Vote === 'like' || player1Vote === 'super_like';
-        const player2Liked = player2Vote === 'like' || player2Vote === 'super_like';
-        const player1SuperLike = player1Vote === 'super_like';
-        const player2SuperLike = player2Vote === 'super_like';
+        // Natijani hisoblash
+        const result = determineWinner(duelData.player1Choice, duelData.player2Choice);
+        const rewards = calculateRPSRewards(
+            duelData.player1Choice, 
+            duelData.player2Choice, 
+            player1.rating, 
+            player2.rating
+        );
         
-        // YANGI: MUTUAL MATCH SAQLASH FUNKSIYASI
-        async function saveMutualMatch(user1Id, user2Id, isSuperLike = false) {
-            try {
-                if (isMongoConnected) {
-                    const existingMatch = await MutualMatch.findOne({
-                        $or: [
-                            { user1Id: user1Id, user2Id: user2Id },
-                            { user1Id: user2Id, user2Id: user1Id }
-                        ]
-                    });
-                    
-                    if (!existingMatch) {
-                        const mutualMatch = new MutualMatch({
-                            user1Id: user1Id,
-                            user2Id: user2Id,
-                            isSuperLike: isSuperLike,
-                            createdAt: new Date()
-                        });
-                        await mutualMatch.save();
-                        
-                        await User.updateOne(
-                            { userId: user1Id },
-                            { 
-                                $inc: { 
-                                    mutualMatchesCount: 1,
-                                    friendsCount: 1
-                                }
-                            }
-                        );
-                        
-                        await User.updateOne(
-                            { userId: user2Id },
-                            { 
-                                $inc: { 
-                                    mutualMatchesCount: 1,
-                                    friendsCount: 1
-                                }
-                            }
-                        );
-                        
-                        const user1SocketId = onlineUsers.get(user1Id);
-                        const user2SocketId = onlineUsers.get(user2Id);
-                        
-                        if (user1SocketId) {
-                            const socket = io.sockets.sockets.get(user1SocketId);
-                            if (socket) {
-                                socket.emit('mutual_match', {
-                                    partnerId: user2Id,
-                                    partnerName: player2.firstName,
-                                    mutualMatchesCount: player1.mutualMatchesCount + 1,
-                                    friendsCount: player1.friendsCount + 1,
-                                    isSuperLike: isSuperLike
-                                });
-                            }
-                        }
-                        
-                        if (user2SocketId) {
-                            const socket = io.sockets.sockets.get(user2SocketId);
-                            if (socket) {
-                                socket.emit('mutual_match', {
-                                    partnerId: user1Id,
-                                    partnerName: player1.firstName,
-                                    mutualMatchesCount: player2.mutualMatchesCount + 1,
-                                    friendsCount: player2.friendsCount + 1,
-                                    isSuperLike: isSuperLike
-                                });
-                            }
-                        }
-                    }
-                } else {
-                    const matchKey = [user1Id, user2Id].sort().join('_');
-                    if (!testMutualMatches.has(matchKey)) {
-                        testMutualMatches.set(matchKey, {
-                            user1Id: user1Id,
-                            user2Id: user2Id,
-                            isSuperLike: isSuperLike,
-                            createdAt: new Date()
-                        });
-                        
-                        const testUser1 = getTestUser(user1Id);
-                        const testUser2 = getTestUser(user2Id);
-                        
-                        testUser1.mutualMatchesCount += 1;
-                        testUser1.friendsCount += 1;
-                        testUser2.mutualMatchesCount += 1;
-                        testUser2.friendsCount += 1;
-                        
-                        testUsersDB.set(user1Id, testUser1);
-                        testUsersDB.set(user2Id, testUser2);
+        // Foydalanuvchilarni yangilash
+        if (isMongoConnected) {
+            // Player1 yangilash
+            await User.updateOne(
+                { userId: duelData.player1 },
+                {
+                    $inc: {
+                        totalGames: 1,
+                        coins: rewards.player1.coins,
+                        rating: rewards.player1.ratingChange,
+                        wins: result === 'player1' ? 1 : 0,
+                        draws: result === 'draw' ? 1 : 0,
+                        losses: result === 'player2' ? 1 : 0
+                    },
+                    $set: {
+                        winStreak: result === 'player1' ? (player1.winStreak || 0) + 1 : 0,
+                        maxWinStreak: result === 'player1' ? Math.max(player1.maxWinStreak || 0, (player1.winStreak || 0) + 1) : player1.maxWinStreak,
+                        lastActive: new Date()
                     }
                 }
-            } catch (error) {
-                console.error('Mutual match saqlashda xato:', error);
+            );
+            
+            // Player2 yangilash
+            await User.updateOne(
+                { userId: duelData.player2 },
+                {
+                    $inc: {
+                        totalGames: 1,
+                        coins: rewards.player2.coins,
+                        rating: rewards.player2.ratingChange,
+                        wins: result === 'player2' ? 1 : 0,
+                        draws: result === 'draw' ? 1 : 0,
+                        losses: result === 'player1' ? 1 : 0
+                    },
+                    $set: {
+                        winStreak: result === 'player2' ? (player2.winStreak || 0) + 1 : 0,
+                        maxWinStreak: result === 'player2' ? Math.max(player2.maxWinStreak || 0, (player2.winStreak || 0) + 1) : player2.maxWinStreak,
+                        lastActive: new Date()
+                    }
+                }
+            );
+            
+        } else {
+            // Test mode
+            player1.totalGames += 1;
+            player1.coins += rewards.player1.coins;
+            player1.rating += rewards.player1.ratingChange;
+            
+            player2.totalGames += 1;
+            player2.coins += rewards.player2.coins;
+            player2.rating += rewards.player2.ratingChange;
+            
+            if (result === 'player1') {
+                player1.wins += 1;
+                player2.losses += 1;
+                player1.winStreak = (player1.winStreak || 0) + 1;
+                player1.maxWinStreak = Math.max(player1.maxWinStreak || 0, player1.winStreak);
+                player2.winStreak = 0;
+            } else if (result === 'player2') {
+                player2.wins += 1;
+                player1.losses += 1;
+                player2.winStreak = (player2.winStreak || 0) + 1;
+                player2.maxWinStreak = Math.max(player2.maxWinStreak || 0, player2.winStreak);
+                player1.winStreak = 0;
+            } else {
+                player1.draws += 1;
+                player2.draws += 1;
+            }
+            
+            player1.lastActive = new Date();
+            player2.lastActive = new Date();
+            
+            testUsersDB.set(duelData.player1, player1);
+            testUsersDB.set(duelData.player2, player2);
+        }
+        
+        // Natijani o'yinchilarga yuborish
+        const player1SocketId = onlineUsers.get(duelData.player1);
+        if (player1SocketId) {
+            const socket = io.sockets.sockets.get(player1SocketId);
+            if (socket) {
+                const player1Result = result === 'player1' ? 'win' : result === 'player2' ? 'lose' : 'draw';
+                socket.emit('match', {
+                    result: player1Result,
+                    yourChoice: duelData.player1Choice,
+                    opponentChoice: duelData.player2Choice,
+                    partner: {
+                        id: duelData.player2,
+                        name: player2.firstName,
+                        username: player2.username,
+                        photo: player2.photoUrl,
+                        gender: player2.gender
+                    },
+                    rewards: {
+                        coins: rewards.player1.coins,
+                        xp: rewards.player1.xp
+                    },
+                    newRating: player1.rating + rewards.player1.ratingChange
+                });
             }
         }
         
-        if (player1Liked && player2Liked) {
-            // O'zaro like
-            const isMutualSuperLike = player1SuperLike && player2SuperLike;
-            const rewards1 = player1SuperLike ? 70 : 50;
-            const rewards2 = player2SuperLike ? 70 : 50;
-            
-            // Mutual match saqlash
-            await saveMutualMatch(duelData.player1, duelData.player2, isMutualSuperLike);
-            
-            if (isMongoConnected) {
-                await User.updateOne(
-                    { userId: duelData.player1 },
-                    {
-                        $inc: {
-                            matches: 1,
-                            duels: 1,
-                            wins: 1,
-                            coins: rewards1,
-                            rating: 25,
-                            totalLikes: 1
-                        },
-                        $set: { lastActive: new Date() }
-                    }
-                );
-                
-                await User.updateOne(
-                    { userId: duelData.player2 },
-                    {
-                        $inc: {
-                            matches: 1,
-                            duels: 1,
-                            wins: 1,
-                            coins: rewards2,
-                            rating: 25,
-                            totalLikes: 1
-                        },
-                        $set: { lastActive: new Date() }
-                    }
-                );
-            } else {
-                player1.matches += 1;
-                player1.duels += 1;
-                player1.wins += 1;
-                player1.coins += rewards1;
-                player1.rating += 25;
-                player1.totalLikes += 1;
-                player1.lastActive = new Date();
-                
-                player2.matches += 1;
-                player2.duels += 1;
-                player2.wins += 1;
-                player2.coins += rewards2;
-                player2.rating += 25;
-                player2.totalLikes += 1;
-                player2.lastActive = new Date();
+        const player2SocketId = onlineUsers.get(duelData.player2);
+        if (player2SocketId) {
+            const socket = io.sockets.sockets.get(player2SocketId);
+            if (socket) {
+                const player2Result = result === 'player2' ? 'win' : result === 'player1' ? 'lose' : 'draw';
+                socket.emit('match', {
+                    result: player2Result,
+                    yourChoice: duelData.player2Choice,
+                    opponentChoice: duelData.player1Choice,
+                    partner: {
+                        id: duelData.player1,
+                        name: player1.firstName,
+                        username: player1.username,
+                        photo: player1.photoUrl,
+                        gender: player1.gender
+                    },
+                    rewards: {
+                        coins: rewards.player2.coins,
+                        xp: rewards.player2.xp
+                    },
+                    newRating: player2.rating + rewards.player2.ratingChange
+                });
             }
-            
-            const player1SocketId = onlineUsers.get(duelData.player1);
-            if (player1SocketId) {
-                const socket = io.sockets.sockets.get(player1SocketId);
-                if (socket) {
-                    socket.emit('match', {
-                        partner: {
-                            id: duelData.player2,
-                            name: player2.firstName,
-                            username: player2.username,
-                            photo: player2.photoUrl,
-                            gender: player2.gender
-                        },
-                        rewards: { coins: rewards1, xp: 30 },
-                        newRating: player1.rating + 25,
-                        isMutual: true,
-                        isSuperLike: player1SuperLike && player2SuperLike
+        }
+        
+        // Questlarni yangilash
+        if (player1SocketId) {
+            const socket = io.sockets.sockets.get(player1SocketId);
+            if (socket) {
+                socket.emit('update_quest', {
+                    questType: 'play_duel',
+                    value: 1
+                });
+                if (result === 'player1') {
+                    socket.emit('update_quest', {
+                        questType: 'win_duel',
+                        value: 1
                     });
                 }
             }
-            
-            const player2SocketId = onlineUsers.get(duelData.player2);
-            if (player2SocketId) {
-                const socket = io.sockets.sockets.get(player2SocketId);
-                if (socket) {
-                    socket.emit('match', {
-                        partner: {
-                            id: duelData.player1,
-                            name: player1.firstName,
-                            username: player1.username,
-                            photo: player1.photoUrl,
-                            gender: player1.gender
-                        },
-                        rewards: { coins: rewards2, xp: 30 },
-                        newRating: player2.rating + 25,
-                        isMutual: true,
-                        isSuperLike: player1SuperLike && player2SuperLike
+        }
+        
+        if (player2SocketId) {
+            const socket = io.sockets.sockets.get(player2SocketId);
+            if (socket) {
+                socket.emit('update_quest', {
+                    questType: 'play_duel',
+                    value: 1
+                });
+                if (result === 'player2') {
+                    socket.emit('update_quest', {
+                        questType: 'win_duel',
+                        value: 1
                     });
                 }
             }
-            
-        } else if (player1Liked) {
-            // Faqat player1 like bosdi
-            const rewards = player1SuperLike ? 30 : 10;
-            
-            if (isMongoConnected) {
-                await User.updateOne(
-                    { userId: duelData.player1 },
-                    {
-                        $inc: {
-                            duels: 1,
-                            coins: rewards,
-                            totalLikes: 1,
-                            rating: 10
-                        },
-                        $set: { lastActive: new Date() }
-                    }
-                );
-            } else {
-                player1.duels += 1;
-                player1.coins += rewards;
-                player1.totalLikes += 1;
-                player1.rating += 10;
-                player1.lastActive = new Date();
-            }
-            
-            const player1SocketId = onlineUsers.get(duelData.player1);
+        }
+        
+        // Ketma-ket g'alaba uchun bonus
+        if (result === 'player1' && player1.winStreak >= 3) {
+            const streakBonus = Math.min(100, player1.winStreak * 10);
             if (player1SocketId) {
                 const socket = io.sockets.sockets.get(player1SocketId);
                 if (socket) {
-                    socket.emit('match', {
-                        partner: {
-                            id: duelData.player2,
-                            name: player2.firstName,
-                            username: player2.username,
-                            photo: player2.photoUrl,
-                            gender: player2.gender
-                        },
-                        rewards: { coins: rewards, xp: 5 },
-                        newRating: player1.rating + 10,
-                        isMutual: false,
-                        isSuperLike: player1SuperLike
+                    socket.emit('streak_bonus', {
+                        streak: player1.winStreak,
+                        bonus: streakBonus
                     });
                 }
             }
-            
-            const player2SocketId = onlineUsers.get(duelData.player2);
+        }
+        
+        if (result === 'player2' && player2.winStreak >= 3) {
+            const streakBonus = Math.min(100, player2.winStreak * 10);
             if (player2SocketId) {
                 const socket = io.sockets.sockets.get(player2SocketId);
                 if (socket) {
-                    socket.emit('no_match', {});
-                }
-            }
-            
-        } else if (player2Liked) {
-            // Faqat player2 like bosdi
-            const rewards = player2SuperLike ? 30 : 10;
-            
-            if (isMongoConnected) {
-                await User.updateOne(
-                    { userId: duelData.player2 },
-                    {
-                        $inc: {
-                            duels: 1,
-                            coins: rewards,
-                            totalLikes: 1,
-                            rating: 10
-                        },
-                        $set: { lastActive: new Date() }
-                    }
-                );
-            } else {
-                player2.duels += 1;
-                player2.coins += rewards;
-                player2.totalLikes += 1;
-                player2.rating += 10;
-                player2.lastActive = new Date();
-            }
-            
-            const player2SocketId = onlineUsers.get(duelData.player2);
-            if (player2SocketId) {
-                const socket = io.sockets.sockets.get(player2SocketId);
-                if (socket) {
-                    socket.emit('match', {
-                        partner: {
-                            id: duelData.player1,
-                            name: player1.firstName,
-                            username: player1.username,
-                            photo: player1.photoUrl,
-                            gender: player1.gender
-                        },
-                        rewards: { coins: rewards, xp: 5 },
-                        newRating: player2.rating + 10,
-                        isMutual: false,
-                        isSuperLike: player2SuperLike
+                    socket.emit('streak_bonus', {
+                        streak: player2.winStreak,
+                        bonus: streakBonus
                     });
                 }
-            }
-            
-            const player1SocketId = onlineUsers.get(duelData.player1);
-            if (player1SocketId) {
-                const socket = io.sockets.sockets.get(player1SocketId);
-                if (socket) {
-                    socket.emit('no_match', {});
-                }
-            }
-            
-        } else {
-            // Hech kim like bermadi
-            if (isMongoConnected) {
-                await User.updateOne(
-                    { userId: duelData.player1 },
-                    { $inc: { duels: 1 }, $set: { lastActive: new Date() } }
-                );
-                
-                await User.updateOne(
-                    { userId: duelData.player2 },
-                    { $inc: { duels: 1 }, $set: { lastActive: new Date() } }
-                );
-            } else {
-                player1.duels += 1;
-                player1.lastActive = new Date();
-                player2.duels += 1;
-                player2.lastActive = new Date();
-            }
-            
-            const player1SocketId = onlineUsers.get(duelData.player1);
-            const player2SocketId = onlineUsers.get(duelData.player2);
-            
-            if (player1SocketId) {
-                const socket = io.sockets.sockets.get(player1SocketId);
-                if (socket) socket.emit('no_match', {});
-            }
-            
-            if (player2SocketId) {
-                const socket = io.sockets.sockets.get(player2SocketId);
-                if (socket) socket.emit('no_match', {});
             }
         }
         
@@ -1234,7 +1626,7 @@ async function processDuelResult(duelId) {
         }, 1000);
         
     } catch (error) {
-        console.error('Duel natijasini qayta ishlashda xato:', error);
+        console.error('Tosh-Qaychi-Qog\'oz duel natijasini qayta ishlashda xato:', error);
     }
 }
 
@@ -1245,17 +1637,22 @@ async function handleDuelTimeout(duelId) {
         
         duelData.ended = true;
         
+        // Agar biror o'yinchi tanlamagan bo'lsa, avtomatik skip deb hisoblaymiz
+        if (!duelData.player1Choice) duelData.player1Choice = 'skip';
+        if (!duelData.player2Choice) duelData.player2Choice = 'skip';
+        
+        // Skip uchun hech qanday mukofot yo'q
         const player1SocketId = onlineUsers.get(duelData.player1);
         const player2SocketId = onlineUsers.get(duelData.player2);
         
         if (player1SocketId) {
             const socket = io.sockets.sockets.get(player1SocketId);
-            if (socket) socket.emit('timeout', {});
+            if (socket) socket.emit('no_match', {});
         }
         
         if (player2SocketId) {
             const socket = io.sockets.sockets.get(player2SocketId);
-            if (socket) socket.emit('timeout', {});
+            if (socket) socket.emit('no_match', {});
         }
         
         setTimeout(() => {
@@ -1295,57 +1692,286 @@ async function findAndStartDuels() {
     }
 }
 
+// ==================== ACHIEVEMENT FUNKSIYALARI ====================
+
+async function createDefaultAchievements(userId) {
+    const defaultAchievements = [
+        {
+            achievementId: 'first_duel',
+            title: 'Birinchi Duel',
+            description: 'Birinchi duelni o\'ynash',
+            icon: '🎮',
+            required: 1,
+            reward: 100
+        },
+        {
+            achievementId: 'first_win',
+            title: 'Birinchi G\'alaba',
+            description: 'Birinchi g\'alabani qo\'lga kiriting',
+            icon: '🏆',
+            required: 1,
+            reward: 200
+        },
+        {
+            achievementId: 'win_streak_3',
+            title: '3 ketma-ket g\'alaba',
+            description: '3 marta ketma-ket g\'alaba qozoning',
+            icon: '🔥',
+            required: 3,
+            reward: 150
+        },
+        {
+            achievementId: 'win_streak_5',
+            title: '5 ketma-ket g\'alaba',
+            description: '5 marta ketma-ket g\'alaba qozoning',
+            icon: '⚡',
+            required: 5,
+            reward: 300
+        },
+        {
+            achievementId: 'play_10_games',
+            title: '10 ta duel',
+            description: '10 ta duel o\'ynang',
+            icon: '🎯',
+            required: 10,
+            reward: 250
+        },
+        {
+            achievementId: 'play_50_games',
+            title: '50 ta duel',
+            description: '50 ta duel o\'ynang',
+            icon: '💎',
+            required: 50,
+            reward: 500
+        },
+        {
+            achievementId: 'max_streak_10',
+            title: 'Rekordchi',
+            description: '10 martadan ko\'p ketma-ket g\'alaba qozoning',
+            icon: '👑',
+            required: 10,
+            reward: 1000
+        }
+    ];
+    
+    if (isMongoConnected) {
+        for (const achievementData of defaultAchievements) {
+            const achievement = new Achievement({
+                userId,
+                achievementId: achievementData.achievementId,
+                title: achievementData.title,
+                description: achievementData.description,
+                icon: achievementData.icon,
+                progress: 0,
+                required: achievementData.required,
+                unlocked: false
+            });
+            await achievement.save();
+        }
+    } else {
+        testAchievementsDB.set(userId, defaultAchievements.map(achievementData => ({
+            userId,
+            achievementId: achievementData.achievementId,
+            title: achievementData.title,
+            description: achievementData.description,
+            icon: achievementData.icon,
+            progress: 0,
+            required: achievementData.required,
+            unlocked: false
+        })));
+    }
+}
+
+function getAchievementData(achievementId, user) {
+    const achievementMap = {
+        'first_duel': {
+            progress: user.totalGames || 0,
+            required: 1,
+            title: 'Birinchi Duel',
+            description: 'Birinchi duelni o\'ynash',
+            icon: '🎮',
+            reward: 100
+        },
+        'first_win': {
+            progress: user.wins || 0,
+            required: 1,
+            title: 'Birinchi G\'alaba',
+            description: 'Birinchi g\'alabani qo\'lga kiriting',
+            icon: '🏆',
+            reward: 200
+        },
+        'win_streak_3': {
+            progress: user.winStreak || 0,
+            required: 3,
+            title: '3 ketma-ket g\'alaba',
+            description: '3 marta ketma-ket g\'alaba qozoning',
+            icon: '🔥',
+            reward: 150
+        },
+        'win_streak_5': {
+            progress: user.winStreak || 0,
+            required: 5,
+            title: '5 ketma-ket g\'alaba',
+            description: '5 marta ketma-ket g\'alaba qozoning',
+            icon: '⚡',
+            reward: 300
+        },
+        'play_10_games': {
+            progress: user.totalGames || 0,
+            required: 10,
+            title: '10 ta duel',
+            description: '10 ta duel o\'ynang',
+            icon: '🎯',
+            reward: 250
+        },
+        'play_50_games': {
+            progress: user.totalGames || 0,
+            required: 50,
+            title: '50 ta duel',
+            description: '50 ta duel o\'ynang',
+            icon: '💎',
+            reward: 500
+        },
+        'max_streak_10': {
+            progress: user.maxWinStreak || 0,
+            required: 10,
+            title: 'Rekordchi',
+            description: '10 martadan ko\'p ketma-ket g\'alaba qozoning',
+            icon: '👑',
+            reward: 1000
+        }
+    };
+    
+    return achievementMap[achievementId];
+}
+
+// ==================== QUEST FUNKSIYALARI ====================
+
+async function createDefaultDailyQuests(userId) {
+    const today = new Date().toDateString();
+    
+    const defaultQuests = [
+        {
+            questId: 'play_3_duels_' + Date.now(),
+            title: '3 ta duel o\'ynash',
+            description: '3 ta duel o\'ynang',
+            progress: 0,
+            total: 3,
+            reward: 50,
+            type: 'play_duel',
+            date: today
+        },
+        {
+            questId: 'win_1_duel_' + Date.now(),
+            title: '1 ta duel yutish',
+            description: '1 ta duel yuting',
+            progress: 0,
+            total: 1,
+            reward: 100,
+            type: 'win_duel',
+            date: today
+        },
+        {
+            questId: 'make_1_friend_' + Date.now(),
+            title: '1 ta do\'st orttirish',
+            description: 'Mutual match orqali do\'st orttiring',
+            progress: 0,
+            total: 1,
+            reward: 200,
+            type: 'make_friend',
+            date: today
+        }
+    ];
+    
+    if (isMongoConnected) {
+        for (const questData of defaultQuests) {
+            const quest = new DailyQuest({
+                userId,
+                ...questData
+            });
+            await quest.save();
+        }
+    }
+}
+
+function getQuestData(questType) {
+    const questMap = {
+        'play_duel': {
+            title: 'Duel o\'ynash',
+            description: 'Duel o\'ynang',
+            total: 3,
+            reward: 50
+        },
+        'win_duel': {
+            title: 'Duel yutish',
+            description: 'Duel yuting',
+            total: 1,
+            reward: 100
+        },
+        'make_friend': {
+            title: 'Do\'st orttirish',
+            description: 'Mutual match orqali do\'st orttiring',
+            total: 1,
+            reward: 200
+        },
+        'earn_coins': {
+            title: 'Coin yig\'ish',
+            description: 'Coin yig\'ing',
+            total: 100,
+            reward: 50
+        }
+    };
+    
+    return questMap[questType] || {
+        title: 'Yangilik',
+        description: 'Yangi quest',
+        total: 1,
+        reward: 10
+    };
+}
+
 // ==================== SERVER ISHGA TUSHIRISH ====================
 const PORT = process.env.PORT || 3000;
 
 async function startServer() {
-    console.log('🚀 Server ishga tushmoqda...');
+    console.log('🚀 Tosh-Qaychi-Qog\'oz Duel Server ishga tushmoqda...');
     
     await connectToMongoDB();
     
     server.listen(PORT, '0.0.0.0', () => {
         console.log('\n' + '='.repeat(60));
-        console.log('🚀 LIKE DUEL SERVER');
+        console.log('⚔️ TO\'SH-QAYCHI-QOG\'OZ DUEL SERVER');
         console.log('='.repeat(60));
         console.log(`📍 Server ishga tushdi: PORT ${PORT}`);
         console.log(`🌍 URL: http://localhost:${PORT}`);
-        console.log(`🌍 Render URL: https://like-duel.onrender.com`);
         console.log(`🗄️  Database: ${isMongoConnected ? 'MongoDB Atlas' : 'TEST MODE'}`);
+        console.log('🎮 O\'yin: Tosh (🪨) - Qaychi (✂️) - Qog\'oz (📄)');
         console.log('='.repeat(60));
         console.log('✅ Barcha tizimlar tayyor');
         console.log('✅ Socket.io server faol');
+        console.log('✅ O\'yin logikasi yoqilgan');
         console.log('='.repeat(60));
     });
 }
 
 startServer();
 
-// Kunlik limitlarni yangilash
+// Kunlik reset
 setInterval(async () => {
     try {
         const today = new Date().toDateString();
         
         if (isMongoConnected) {
-            await User.updateMany(
-                { lastResetDate: { $ne: today } },
-                { 
-                    $set: { 
-                        dailySuperLikes: 3,
-                        lastResetDate: today 
-                    } 
-                }
-            );
-        } else {
-            testUsersDB.forEach((user, userId) => {
-                if (user.lastResetDate !== today) {
-                    user.dailySuperLikes = 3;
-                    user.lastResetDate = today;
-                    testUsersDB.set(userId, user);
-                }
+            // Eski questlarni o'chirish
+            await DailyQuest.deleteMany({
+                date: { $ne: today }
             });
+        } else {
+            // Test mode: barcha questlarni yangilash
+            testDailyQuestsDB.clear();
         }
         
     } catch (error) {
-        console.error('Kunlik limitlarni yangilash xatosi:', error);
+        console.error('Kunlik reset xatosi:', error);
     }
-}, 60000);
+}, 60000); // Har daqiqa

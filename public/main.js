@@ -645,11 +645,7 @@ function connectToServer() {
     updateQueueStatus('Serverga ulanmoqda...');
     showNotification('Ulanish', 'Serverga ulanmoqda...');
     
-    const servers = [
-        'wss://rock-paper-scissors-duel.onrender.com',
-        'wss://rps-duel.onrender.com',
-        'ws://localhost:3000'
-    ];
+    const serverUrl = 'https://like-duel.onrender.com';
     
     let currentServerIndex = 0;
     let connected = false;

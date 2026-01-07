@@ -459,25 +459,52 @@ function initUserProfile() {
 function applyTelegramTheme() {
     if (typeof Telegram === 'undefined' || !Telegram.WebApp) return;
     
-    const theme = Telegram.WebApp.colorScheme;
-    const bgColor = Telegram.WebApp.backgroundColor;
-    const textColor = Telegram.WebApp.textColor;
-    
-    document.documentElement.style.setProperty('--tg-bg-color', bgColor);
-    document.documentElement.style.setProperty('--tg-text-color', textColor);
-    
-    Telegram.WebApp.setHeaderColor('#667eea');
-    Telegram.WebApp.setBackgroundColor('#0f0f23');
-    
-    Telegram.WebApp.BackButton.onClick(() => {
-        if (gameState.isInDuel) {
-            showExitDuelConfirm();
-        } else {
-            returnToMenu();
+    try {
+        const theme = Telegram.WebApp.colorScheme;
+        const bgColor = Telegram.WebApp.backgroundColor;
+        const textColor = Telegram.WebApp.textColor;
+        
+        document.documentElement.style.setProperty('--tg-bg-color', bgColor);
+        document.documentElement.style.setProperty('--tg-text-color', textColor);
+        
+        // Versiyani tekshirish
+        const version = Telegram.WebApp.version || '6.0';
+        const isOldVersion = parseFloat(version) < 6.1;
+        
+        if (!isOldVersion) {
+            try {
+                Telegram.WebApp.setHeaderColor('#667eea');
+                Telegram.WebApp.setBackgroundColor('#0f0f23');
+            } catch (e) {
+                console.log('Telegram API cheklovlari:', e.message);
+            }
         }
-    });
-    
-    updateBackButtonVisibility();
+        
+        // BackButton faqat zarurat bo'lganda
+        if (gameState.isInDuel || gameState.isInQueue || gameState.inMatchScreen) {
+            try {
+                Telegram.WebApp.BackButton.show();
+                Telegram.WebApp.BackButton.onClick(() => {
+                    if (gameState.isInDuel) {
+                        showExitDuelConfirm();
+                    } else {
+                        returnToRPSMenu();
+                    }
+                });
+            } catch (e) {
+                console.log('BackButton not supported');
+            }
+        } else {
+            try {
+                Telegram.WebApp.BackButton.hide();
+            } catch (e) {
+                // Ignore
+            }
+        }
+        
+    } catch (error) {
+        console.log('Telegram theme apply error:', error);
+    }
 }
 
 function updateBackButtonVisibility() {
@@ -724,6 +751,17 @@ function hideRulesModal() {
 
 // ==================== SERVERGA ULANISH ==================== 
 function connectToServer() {
+
+    if (servers.length === 0 || !servers[0]) {
+        console.log('ℹ️ Test rejimida ishlayapman');
+        setTimeout(() => {
+            gameState.isConnected = true;
+            gameState.connectionStatus = 'connected';
+            updateConnectionStatus();
+            simulateServerConnection();
+        }, 1000);
+        return;
+    }
     if (!tgUserGlobal) {
         tgUserGlobal = {
             id: 'temp_' + Date.now(),
@@ -744,7 +782,7 @@ function connectToServer() {
     updateQueueStatus('Serverga ulanmoqda...');
     showNotification('Ulanish', 'Serverga ulanmoqda...');
     
-    const servers = 'https://like-duel.onrender.com';
+    const servers = ['wss://like-duel-server.onrender.com'];
     
     let currentServerIndex = 0;
     let connected = false;
@@ -1246,9 +1284,13 @@ function enterQueue() {
     }
     
     if (!gameState.socket || !gameState.isConnected) {
-        showNotification('Xato', 'Avval serverga ulanishingiz kerak');
-        connectToServer();
-        return;
+        showNotification('Diqqat', 'Serverga ulanmadingiz. Test rejimida ishlayapman.');
+        
+        // Test rejimida ishlash
+        gameState.isConnected = true;
+        gameState.connectionStatus = 'connected';
+        updateConnectionStatus();
+        simulateServerConnection();
     }
     
     if (!userState.hasSelectedGender) {
@@ -1265,7 +1307,16 @@ function enterQueue() {
     console.log('🔄 Navbatga kirish...');
     gameState.isInQueue = true;
     updateQueueButton();
-    gameState.socket.emit('enter_rps_queue');
+    
+    // Haqiqiy serverga yoki test rejimiga
+    if (gameState.socket && gameState.isConnected) {
+        gameState.socket.emit('enter_rps_queue');
+    } else {
+        // Test rejimi - simulyatsiya qilish
+        const testEvent = new CustomEvent('enterQueueSimulated');
+        document.dispatchEvent(testEvent);
+    }
+    
     showScreen('queue');
     updateBackButtonVisibility();
     showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
@@ -2664,24 +2715,32 @@ function playSound(soundName) {
     
     if (!soundEnabled) return;
     
+    // Soddalashtirilgan tovushlar
     const sounds = {
-        'rock': 'https://assets.mixkit.co/sfx/preview/mixkit-stone-drop-759.mp3',
-        'scissors': 'https://assets.mixkit.co/sfx/preview/mixkit-scissors-cutting-767.mp3',
-        'paper': 'https://assets.mixkit.co/sfx/preview/mixkit-paper-rips-1093.mp3',
+        'rock': 'https://assets.mixkit.co/sfx/preview/mixkit-rock-hit-759.mp3',
+        'scissors': 'https://assets.mixkit.co/sfx/preview/mixkit-cutting-with-scissors-767.mp3',
+        'paper': 'https://assets.mixkit.co/sfx/preview/mixkit-page-paper-1093.mp3',
         'win': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
         'lose': 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3',
         'draw': 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
         'skip': 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
-        'duel_start': 'https://assets.mixkit.co/sfx/preview/mixkit-game-show-intro-music-687.mp3',
+        'duel_start': 'https://assets.mixkit.co/sfx/preview/mixkit-game-start-1664.mp3',
         'notification': 'https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3',
         'level_up': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
         'achievement': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3'
     };
     
     if (sounds[soundName]) {
-        const audio = new Audio(sounds[soundName]);
-        audio.volume = 0.3;
-        audio.play().catch(e => console.log('Tovushni ijro etishda xato:', e));
+        try {
+            const audio = new Audio(sounds[soundName]);
+            audio.volume = 0.3;
+            audio.play().catch(e => {
+                console.log('Tovushni ijro etishda xato:', e);
+                // Tovush bo'lmasa, hech narsa qilma
+            });
+        } catch (error) {
+            console.log('Audio yaratishda xato:', error);
+        }
     }
 }
 
@@ -2965,6 +3024,36 @@ function closeSettings() {
 }
 
 // ==================== DOM YUKLANGANDA ==================== 
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 TOSH-QAYCHI-QOG\'OZ DUEL - DOM yuklandi');
+    
+    try {
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            console.log('✅ Telegram WebApp faollashtirildi');
+        }
+    } catch (error) {
+        console.log('ℹ️ Telegram Web App mavjud emas, test rejimida');
+    }
+    
+    initUserProfile();
+    initTabNavigation();
+    initSettings();
+    setupEventListeners();
+    loadProfileQuests();
+    loadShopItems();
+    loadLeaderboard();
+    loadFriendsList();
+    setupActivityTracking();
+    
+    // Test tugmalarini qo'shish (faqat test rejimida)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        addTestButtons();
+    }
+    
+    console.log('✅ Tosh-Qaychi-Qog\'oz Duel to\'liq yuklandi!');
+});
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 TOSH-QAYCHI-QOG\'OZ DUEL - DOM yuklandi');
     

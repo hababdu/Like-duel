@@ -1,9 +1,10 @@
-// ==================== O'YIN HOLATLARI ==================== 
+// ==================== O'YIN HOLATLARI ====================
 const gameState = {
     socket: null,
     isConnected: false,
     isInQueue: false,
     isInDuel: false,
+    timeLeft: 20,
     timerInterval: null,
     playerData: null,
     currentDuelId: null,
@@ -20,30 +21,25 @@ const gameState = {
     matchCompleted: false,
     lastMatchData: null,
     inMatchScreen: false,
-    connectionStatus: 'disconnected',
+    connectionStatus: 'disconnected', // 'disconnected', 'connecting', 'connected', 'reconnecting'
     lastActivity: Date.now(),
     pingInterval: null,
     averagePing: 0,
-    networkQuality: 'good',
-    streakWins: 0,
-    currentChoice: null,
-    opponentChoice: null,
-    duelTimer: 30 // 30 soniya
+    networkQuality: 'good' // 'good', 'medium', 'poor'
 };
 
-// ==================== USER STATE ==================== 
+// ==================== USER STATE ====================
 const userState = {
     currentGender: localStorage.getItem('userGender') || null,
     hasSelectedGender: localStorage.getItem('hasSelectedGender') === 'true',
     coins: parseInt(localStorage.getItem('userCoins')) || 100,
     level: parseInt(localStorage.getItem('userLevel')) || 1,
     rating: parseInt(localStorage.getItem('userRating')) || 1500,
-    totalGames: parseInt(localStorage.getItem('userTotalGames')) || 0,
+    matches: parseInt(localStorage.getItem('userMatches')) || 0,
+    duels: parseInt(localStorage.getItem('userDuels')) || 0,
     wins: parseInt(localStorage.getItem('userWins')) || 0,
-    draws: parseInt(localStorage.getItem('userDraws')) || 0,
-    losses: parseInt(localStorage.getItem('userLosses')) || 0,
-    winStreak: parseInt(localStorage.getItem('userWinStreak')) || 0,
-    maxWinStreak: parseInt(localStorage.getItem('userMaxWinStreak')) || 0,
+    totalLikes: parseInt(localStorage.getItem('userTotalLikes')) || 0,
+    dailySuperLikes: parseInt(localStorage.getItem('userDailySuperLikes')) || 3,
     bio: localStorage.getItem('userBio') || '',
     filter: localStorage.getItem('userFilter') || 'not_specified',
     mutualMatchesCount: parseInt(localStorage.getItem('mutualMatchesCount')) || 0,
@@ -56,211 +52,7 @@ const userState = {
     totalPlayTime: parseInt(localStorage.getItem('userTotalPlayTime')) || 0
 };
 
-// ==================== TO'SH-QAYCHI-QOG'OZ O'YINI ====================
-const RPSGame = {
-    // Tanlovlar ro'yxati
-    choices: ['rock', 'scissors', 'paper'],
-    
-    // Tanlov ikonkalari
-    choiceIcons: {
-        rock: '🪨',
-        scissors: '✂️',
-        paper: '📄',
-        skip: '✖'
-    },
-    
-    // Tanlov matnlari
-    choiceNames: {
-        rock: 'Tosh',
-        scissors: 'Qaychi',
-        paper: 'Qog\'oz',
-        skip: 'O\'tkazib yuborish'
-    },
-    
-    // Tanlov ranglari
-    choiceColors: {
-        rock: '#95a5a6',
-        scissors: '#3498db',
-        paper: '#f1c40f',
-        skip: '#e74c3c'
-    },
-    
-    // To'sh-Qaychi-Qog'oz qoidalari
-    rules: {
-        rock: ['scissors'],     // Tosh qaychini yengadi
-        scissors: ['paper'],    // Qaychi qog'ozni yengadi
-        paper: ['rock']         // Qog'oz toshni yengadi
-    },
-    
-    // Natijani aniqlash
-    determineResult(playerChoice, opponentChoice) {
-        console.log(`🎮 Tosh-Qaychi-Qog'oz: ${playerChoice} vs ${opponentChoice}`);
-        
-        // O'zaro tanlov
-        if (playerChoice === 'skip' || opponentChoice === 'skip') {
-            return 'no_match';
-        }
-        
-        if (playerChoice === opponentChoice) {
-            return 'draw';
-        }
-        
-        // Qoidalarni tekshirish
-        if (this.rules[playerChoice]?.includes(opponentChoice)) {
-            return 'win';
-        }
-        
-        return 'lose';
-    },
-    
-    // Qoida matni
-    getRuleText(playerChoice, opponentChoice, result) {
-        const playerName = this.choiceNames[playerChoice] || 'Tanlov';
-        const opponentName = this.choiceNames[opponentChoice] || 'Tanlov';
-        const playerIcon = this.choiceIcons[playerChoice] || '';
-        const opponentIcon = this.choiceIcons[opponentChoice] || '';
-        
-        switch(result) {
-            case 'win':
-                return `${playerIcon} ${playerName} > ${opponentIcon} ${opponentName}`;
-            case 'lose':
-                return `${playerIcon} ${playerName} < ${opponentIcon} ${opponentName}`;
-            case 'draw':
-                return `${playerIcon} ${playerName} = ${opponentIcon} ${opponentName}`;
-            default:
-                return 'Natija aniqlanmadi';
-        }
-    },
-    
-    // Reyting o'zgarishini hisoblash
-    calculateRatingChange(playerRating, opponentRating, result, isRanked = true) {
-        if (!isRanked) {
-            return {
-                player: 0,
-                opponent: 0
-            };
-        }
-        
-        const K = 32; // Reyting o'zgarish koeffitsienti
-        const expectedScore = 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
-        
-        let actualScore;
-        switch(result) {
-            case 'win': actualScore = 1; break;
-            case 'draw': actualScore = 0.5; break;
-            case 'lose': actualScore = 0; break;
-            default: actualScore = 0;
-        }
-        
-        const ratingChange = Math.round(K * (actualScore - expectedScore));
-        
-        return {
-            player: ratingChange,
-            opponent: -ratingChange
-        };
-    },
-    
-    // Mukofotlarni hisoblash
-    calculateRewards(result, playerLevel, opponentLevel, isSuperLike = false) {
-        const baseCoins = {
-            win: 50,
-            draw: 25,
-            lose: 10,
-            no_match: 5
-        };
-        
-        const baseXP = {
-            win: 30,
-            draw: 15,
-            lose: 5,
-            no_match: 2
-        };
-        
-        // Asosiy mukofotlar
-        let coins = baseCoins[result] || 0;
-        let xp = baseXP[result] || 0;
-        
-        // Super Like uchun bonus
-        if (isSuperLike) {
-            coins *= 2;
-            xp *= 2;
-        }
-        
-        // Level farqi uchun bonus
-        const levelDiff = opponentLevel - playerLevel;
-        if (levelDiff > 0) {
-            // Yuqori leveldagi raqibni yutish uchun bonus
-            coins += Math.min(levelDiff * 10, 50);
-            xp += Math.min(levelDiff * 5, 25);
-        }
-        
-        // Ketma-ket g'alaba uchun bonus
-        if (result === 'win') {
-            const winStreak = parseInt(localStorage.getItem('winStreak')) || 0;
-            const streakBonus = Math.min(Math.floor(winStreak / 3) * 5, 25);
-            coins += streakBonus;
-        }
-        
-        return {
-            coins: coins,
-            xp: xp,
-            message: this.getRewardMessage(result, coins, xp)
-        };
-    },
-    
-    // Mukofot xabari
-    getRewardMessage(result, coins, xp) {
-        const messages = {
-            win: `🏆 G'alaba uchun ${coins} coin va ${xp} XP!`,
-            lose: `💪 Yaxshi urindiz! ${coins} coin va ${xp} XP!`,
-            draw: `🤝 Durang uchun ${coins} coin va ${xp} XP!`,
-            no_match: `👋 ${coins} coin va ${xp} XP!`
-        };
-        
-        return messages[result] || 'Mukofot olindi!';
-    },
-    
-    // Tanlovni tasodifiy qilish (bot uchun)
-    getRandomChoice() {
-        return this.choices[Math.floor(Math.random() * this.choices.length)];
-    },
-    
-    // Strategiya asosida tanlov (aqlli bot)
-    getSmartChoice(opponentHistory = []) {
-        if (opponentHistory.length === 0) {
-            return this.getRandomChoice();
-        }
-        
-        // O'tmishdagi tanlovlar statistikasini hisoblash
-        const choiceCount = { rock: 0, scissors: 0, paper: 0 };
-        opponentHistory.forEach(choice => {
-            if (choiceCount[choice] !== undefined) {
-                choiceCount[choice]++;
-            }
-        });
-        
-        // Eng ko'p ishlatilgan tanlovni aniqlash
-        let mostUsedChoice = 'rock';
-        let maxCount = 0;
-        
-        Object.entries(choiceCount).forEach(([choice, count]) => {
-            if (count > maxCount) {
-                maxCount = count;
-                mostUsedChoice = choice;
-            }
-        });
-        
-        // Qarama-qarshi tanlovni qaytarish
-        switch(mostUsedChoice) {
-            case 'rock': return 'paper';      // Toshga qarshi qog'oz
-            case 'scissors': return 'rock';   // Qaychiga qarshi tosh
-            case 'paper': return 'scissors';  // Qog'ozga qarshi qaychi
-            default: return this.getRandomChoice();
-        }
-    }
-};
-
-// ==================== DOM ELEMENTLARI ==================== 
+// ==================== DOM ELEMENTLARI ====================
 const elements = {
     // Asosiy ekranlar
     welcomeScreen: document.getElementById('welcomeScreen'),
@@ -273,8 +65,8 @@ const elements = {
     myName: document.getElementById('myName'),
     myUsername: document.getElementById('myUsername'),
     myMatches: document.getElementById('myMatches'),
-    myWins: document.getElementById('myWins'),
-    myDraws: document.getElementById('myDraws'),
+    myLikes: document.getElementById('myLikes'),
+    mutualMatchesCount: document.getElementById('mutualMatchesCount'),
     
     // Navbat ekrani
     waitingCount: document.getElementById('waitingCount'),
@@ -288,25 +80,20 @@ const elements = {
     opponentName: document.getElementById('opponentName'),
     opponentUsername: document.getElementById('opponentUsername'),
     opponentRating: document.getElementById('opponentRating'),
-    opponentGames: document.getElementById('opponentGames'),
+    opponentMatches: document.getElementById('opponentMatches'),
     opponentLevel: document.getElementById('opponentLevel'),
-    playerChoiceIcon: document.getElementById('playerChoiceIcon'),
-    opponentChoiceIcon: document.getElementById('opponentChoiceIcon'),
     timer: document.getElementById('timer'),
     duelStatus: document.getElementById('duelStatus'),
-    
-    // RPS elementlari
-    matchResultTitle: document.getElementById('matchResultTitle'),
-    rockBtn: document.getElementById('rockBtn'),
-    scissorsBtn: document.getElementById('scissorsBtn'),
-    paperBtn: document.getElementById('paperBtn'),
-    noBtn: document.getElementById('noBtn'),
-    rulesBtn: document.getElementById('rulesBtn'),
+    superLikeCount: document.getElementById('superLikeCount'),
     
     // Tugmalar
     startBtn: document.getElementById('startBtn'),
+    connectBtn: document.getElementById('connectBtn'),
     enterQueueBtn: document.getElementById('enterQueueBtn'),
     leaveQueueBtn: document.getElementById('leaveQueueBtn'),
+    noBtn: document.getElementById('noBtn'),
+    likeBtn: document.getElementById('likeBtn'),
+    superLikeBtn: document.getElementById('superLikeBtn'),
     refreshFriendsBtn: document.getElementById('refreshFriendsBtn'),
     
     // Match ekrani
@@ -323,19 +110,16 @@ const elements = {
     profileUsername: document.getElementById('profileUsername'),
     profileBio: document.getElementById('profileBio'),
     statRating: document.getElementById('statRating'),
-    statGames: document.getElementById('statGames'),
-    statWins: document.getElementById('statWins'),
+    statMatches: document.getElementById('statMatches'),
+    statDuels: document.getElementById('statDuels'),
     statWinRate: document.getElementById('statWinRate'),
-    statWinStreak: document.getElementById('statWinStreak'),
+    mutualMatchesProfile: document.getElementById('mutualMatchesProfile'),
     statFriends: document.getElementById('statFriends'),
     
     // Valyuta va level
     coinsCount: document.getElementById('coinsCount'),
     levelCount: document.getElementById('levelCount'),
     shopCoinsCount: document.getElementById('shopCoinsCount'),
-    
-    // Ulanish holati
-    connectionStatusBadge: document.getElementById('connectionStatusBadge'),
     
     // Notifikatsiya
     notification: document.getElementById('notification'),
@@ -346,26 +130,31 @@ const elements = {
     genderModal: document.getElementById('genderModal'),
     genderWarning: document.getElementById('genderWarning'),
     selectGenderNowBtn: document.getElementById('selectGenderNowBtn'),
-    selectMaleBtn: document.getElementById('selectMaleBtn'),
-    selectFemaleBtn: document.getElementById('selectFemaleBtn'),
-    selectAllBtn: document.getElementById('selectAllBtn'),
     
-    rulesModal: document.getElementById('rulesModal'),
+    rematchModal: document.getElementById('rematchModal'),
+    rematchOpponentName: document.getElementById('rematchOpponentName'),
+    acceptRematchBtn: document.getElementById('acceptRematchBtn'),
+    declineRematchBtn: document.getElementById('declineRematchBtn'),
     
     profileEditModal: document.getElementById('profileEditModal'),
     editProfileBtn: document.getElementById('editProfileBtn'),
+    closeProfileEditBtn: document.getElementById('closeProfileEditBtn'),
     editBio: document.getElementById('editBio'),
     editGender: document.getElementById('editGender'),
     editFilter: document.getElementById('editFilter'),
     saveProfileBtn: document.getElementById('saveProfileBtn'),
     
-    statsModal: document.getElementById('statsModal'),
+    selectMaleBtn: document.getElementById('selectMaleBtn'),
+    selectFemaleBtn: document.getElementById('selectFemaleBtn'),
+    selectAllBtn: document.getElementById('selectAllBtn'),
     
-    settingsModal: document.getElementById('settingsModal'),
-    soundToggle: document.getElementById('soundToggle'),
-    vibrationToggle: document.getElementById('vibrationToggle'),
-    notificationsToggle: document.getElementById('notificationsToggle'),
-    saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+    chatModal: document.getElementById('chatModal'),
+    chatPartnerAvatar: document.getElementById('chatPartnerAvatar'),
+    chatPartnerName: document.getElementById('chatPartnerName'),
+    chatUsername: document.getElementById('chatUsername'),
+    chatOpenTelegramBtn: document.getElementById('chatOpenTelegramBtn'),
+    closeChatBtn: document.getElementById('closeChatBtn'),
+    chatTitle: document.getElementById('chatTitle'),
     
     // Do'stlar ro'yxati
     friendsList: document.getElementById('friendsList'),
@@ -384,17 +173,46 @@ const elements = {
     profileQuestsList: document.getElementById('profileQuestsList'),
     
     // Boshqa elementlar
-    detailedStatsContent: document.getElementById('detailedStatsContent')
+    viewStatsBtn: document.getElementById('viewStatsBtn'),
+    connectionStatusBadge: document.getElementById('connectionStatusBadge'),
+    pingDisplay: document.getElementById('pingDisplay'),
+    networkStatus: document.getElementById('networkStatus'),
+    
+    // Progress barlar
+    levelProgress: document.getElementById('levelProgress'),
+    levelProgressText: document.getElementById('levelProgressText'),
+    
+    // Statistika modal
+    statsModal: document.getElementById('statsModal'),
+    closeStatsBtn: document.getElementById('closeStatsBtn'),
+    detailedStatsContent: document.getElementById('detailedStatsContent'),
+    
+    // Kunlik streak
+    streakDaysElement: document.getElementById('streakDays'),
+    streakRewardBtn: document.getElementById('streakRewardBtn'),
+    
+    // Achievements
+    achievementsList: document.getElementById('achievementsList'),
+    
+    // O'yin sozlamalari
+    settingsModal: document.getElementById('settingsModal'),
+    openSettingsBtn: document.getElementById('openSettingsBtn'),
+    closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+    soundToggle: document.getElementById('soundToggle'),
+    vibrationToggle: document.getElementById('vibrationToggle'),
+    notificationsToggle: document.getElementById('notificationsToggle'),
+    saveSettingsBtn: document.getElementById('saveSettingsBtn')
 };
 
-// ==================== GLOBAL USER ==================== 
+// ==================== GLOBAL USER ====================
 let tgUserGlobal = null;
 
-// ==================== PROFILNI YUKLASH ==================== 
+// ==================== PROFILNI YUKLASH ====================
 function initUserProfile() {
     console.log('👤 Profil yuklanmoqda...');
     
     let tgUser = {};
+    
     try {
         if (typeof Telegram !== 'undefined' && Telegram.WebApp && Telegram.WebApp.initDataUnsafe) {
             tgUser = Telegram.WebApp.initDataUnsafe.user || {};
@@ -405,6 +223,7 @@ function initUserProfile() {
                 userState.telegramUsername = tgUser.username;
             }
             
+            // Telegram theme moslash
             applyTelegramTheme();
         }
     } catch (error) {
@@ -420,12 +239,15 @@ function initUserProfile() {
         };
     }
     
+    // Kunlik login streak ni tekshirish
     checkDailyLoginStreak();
     
-    const userPhoto = tgUser.photo_url || `https://ui-avatars.com/api/?name=${tgUser.first_name || 'User'}&background=667eea&color=fff`;
+    // Foydalanuvchi ma'lumotlarini yuklash
+    const userPhoto = tgUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUser.first_name || 'User')}&background=667eea&color=fff`;
     const userName = tgUser.first_name || 'Foydalanuvchi';
     const userUsername = tgUser.username ? '@' + tgUser.username : '@foydalanuvchi';
     
+    // DOM elementlarini yangilash
     updateAvatar(elements.myAvatar, userPhoto);
     updateAvatar(elements.profileAvatar, userPhoto);
     
@@ -436,13 +258,17 @@ function initUserProfile() {
     
     tgUserGlobal = tgUser;
     
+    // Kunlik vazifalarni yuklash
     loadDailyQuests();
+    
+    // Achievementslarni yuklash
     loadAchievements();
     
     updateUIFromUserState();
     addFilterToWelcomeScreen();
     updateQueueButton();
     
+    // Gender tanlanmagan bo'lsa
     if (!userState.hasSelectedGender) {
         console.log('⚠️ Gender tanlanmagan, modal ko\'rsatish');
         setTimeout(() => {
@@ -450,61 +276,38 @@ function initUserProfile() {
         }, 1000);
     }
     
+    // Faollikni yangilash
     gameState.lastActivity = Date.now();
     
     return tgUser;
 }
 
-// ==================== TELEGRAM THEME ==================== 
+// ==================== TELEGRAM THEME ====================
 function applyTelegramTheme() {
     if (typeof Telegram === 'undefined' || !Telegram.WebApp) return;
     
-    try {
-        const theme = Telegram.WebApp.colorScheme;
-        const bgColor = Telegram.WebApp.backgroundColor;
-        const textColor = Telegram.WebApp.textColor;
-        
-        document.documentElement.style.setProperty('--tg-bg-color', bgColor);
-        document.documentElement.style.setProperty('--tg-text-color', textColor);
-        
-        // Versiyani tekshirish
-        const version = Telegram.WebApp.version || '6.0';
-        const isOldVersion = parseFloat(version) < 6.1;
-        
-        if (!isOldVersion) {
-            try {
-                Telegram.WebApp.setHeaderColor('#667eea');
-                Telegram.WebApp.setBackgroundColor('#0f0f23');
-            } catch (e) {
-                console.log('Telegram API cheklovlari:', e.message);
-            }
-        }
-        
-        // BackButton faqat zarurat bo'lganda
-        if (gameState.isInDuel || gameState.isInQueue || gameState.inMatchScreen) {
-            try {
-                Telegram.WebApp.BackButton.show();
-                Telegram.WebApp.BackButton.onClick(() => {
-                    if (gameState.isInDuel) {
-                        showExitDuelConfirm();
-                    } else {
-                        returnToRPSMenu();
-                    }
-                });
-            } catch (e) {
-                console.log('BackButton not supported');
-            }
+    const theme = Telegram.WebApp.colorScheme;
+    const bgColor = Telegram.WebApp.backgroundColor;
+    const textColor = Telegram.WebApp.textColor;
+    
+    document.documentElement.style.setProperty('--tg-bg-color', bgColor);
+    document.documentElement.style.setProperty('--tg-text-color', textColor);
+    
+    // Telegram button theme
+    Telegram.WebApp.setHeaderColor('#667eea');
+    Telegram.WebApp.setBackgroundColor('#0f0f23');
+    
+    // Back button
+    Telegram.WebApp.BackButton.onClick(() => {
+        if (gameState.isInDuel) {
+            showExitDuelConfirm();
         } else {
-            try {
-                Telegram.WebApp.BackButton.hide();
-            } catch (e) {
-                // Ignore
-            }
+            returnToMenu();
         }
-        
-    } catch (error) {
-        console.log('Telegram theme apply error:', error);
-    }
+    });
+    
+    // Faollikda BackButton ko'rsatish
+    updateBackButtonVisibility();
 }
 
 function updateBackButtonVisibility() {
@@ -517,34 +320,51 @@ function updateBackButtonVisibility() {
     }
 }
 
-// ==================== UI YANGILASH ==================== 
+// ==================== UI YANGILASH ====================
 function updateUIFromUserState() {
     console.log('🎨 UI yangilanmoqda...');
     
+    // Gender badge qo'shish
     if (userState.hasSelectedGender && userState.currentGender) {
         addGenderBadge(elements.myName, userState.currentGender);
         addGenderBadge(elements.profileName, userState.currentGender);
     }
     
+    // Valyuta va level
     if (elements.coinsCount) elements.coinsCount.textContent = formatNumber(userState.coins);
     if (elements.levelCount) elements.levelCount.textContent = userState.level;
     if (elements.shopCoinsCount) elements.shopCoinsCount.textContent = formatNumber(userState.coins);
     
+    // Statistika
     if (elements.statRating) elements.statRating.textContent = userState.rating;
-    if (elements.statGames) elements.statGames.textContent = userState.totalGames;
-    if (elements.myMatches) elements.myMatches.textContent = userState.totalGames;
-    if (elements.myWins) elements.myWins.textContent = userState.wins;
-    if (elements.myDraws) elements.myDraws.textContent = userState.draws;
-    if (elements.statWins) elements.statWins.textContent = userState.wins;
-    if (elements.statWinStreak) elements.statWinStreak.textContent = userState.winStreak;
+    if (elements.statMatches) elements.statMatches.textContent = userState.matches;
+    if (elements.myMatches) elements.myMatches.textContent = userState.matches;
+    if (elements.statDuels) elements.statDuels.textContent = userState.duels;
+    if (elements.mutualMatchesCount) elements.mutualMatchesCount.textContent = userState.mutualMatchesCount;
+    if (elements.mutualMatchesProfile) elements.mutualMatchesProfile.textContent = userState.mutualMatchesCount;
     if (elements.statFriends) elements.statFriends.textContent = userState.friendsCount;
     
-    const winRate = userState.totalGames > 0 ? Math.round((userState.wins / userState.totalGames) * 100) : 0;
+    // G'alaba foizi
+    const winRate = userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0;
     if (elements.statWinRate) elements.statWinRate.textContent = winRate + '%';
     
+    // Like'lar
+    if (elements.myLikes) elements.myLikes.textContent = userState.totalLikes;
+    if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
+    
+    // Bio
     if (elements.profileBio && userState.bio) {
         elements.profileBio.textContent = userState.bio;
     }
+    
+    // Streak
+    if (elements.streakDaysElement) {
+        elements.streakDaysElement.textContent = userState.streakDays;
+        updateStreakRewardButton();
+    }
+    
+    // Level progress
+    updateLevelProgress();
     
     updateQueueButton();
 }
@@ -555,7 +375,7 @@ function updateAvatar(imgElement, photoUrl) {
     imgElement.src = photoUrl;
     imgElement.onerror = function() {
         const name = tgUserGlobal?.first_name || 'User';
-        this.src = `https://ui-avatars.com/api/?name=${name}&background=667eea&color=fff`;
+        this.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=667eea&color=fff`;
     };
 }
 
@@ -569,14 +389,26 @@ function addGenderBadge(element, gender) {
     badge.className = `gender-badge gender-${gender}-badge`;
     
     if (gender === 'male') {
-        badge.innerHTML = ' 👤 Erkak';
+        badge.innerHTML = '<i class="fas fa-mars"></i> Erkak';
     } else if (gender === 'female') {
-        badge.innerHTML = ' 👤 Ayol';
+        badge.innerHTML = '<i class="fas fa-venus"></i> Ayol';
     } else {
-        badge.innerHTML = ' 👤 Hammasi';
+        badge.innerHTML = '<i class="fas fa-users"></i> Hammasi';
     }
     
     element.appendChild(badge);
+}
+
+function updateLevelProgress() {
+    if (!elements.levelProgress || !elements.levelProgressText) return;
+    
+    const currentLevel = userState.level;
+    const currentXP = userState.rating - ((currentLevel - 1) * 100);
+    const totalXP = 100; // Har bir level uchun 100 XP
+    const progressPercentage = Math.min(100, (currentXP / totalXP) * 100);
+    
+    elements.levelProgress.style.width = `${progressPercentage}%`;
+    elements.levelProgressText.textContent = `Level ${currentLevel} (${Math.round(progressPercentage)}%)`;
 }
 
 function formatNumber(num) {
@@ -589,27 +421,35 @@ function formatNumber(num) {
     return num.toString();
 }
 
-// ==================== FILTER FUNKSIYALARI ==================== 
+// ==================== FILTER FUNKSIYALARI ====================
 function createFilterOptions() {
     const filterContainer = document.createElement('div');
     filterContainer.className = 'gender-filter-container';
     filterContainer.innerHTML = `
-        <div class="filter-options">
+        <div class="gender-filter-options">
             <div class="gender-filter-option ${gameState.currentFilter === 'male' ? 'active' : ''}" data-filter="male">
-                <div class="filter-icon">👨</div>
-                <div class="filter-text">Faqat erkaklar</div>
+                <div class="gender-filter-icon male">
+                    <i class="fas fa-mars"></i>
+                    <span class="filter-tooltip">Faqat erkaklar</span>
+                </div>
             </div>
+            
             <div class="gender-filter-option ${gameState.currentFilter === 'female' ? 'active' : ''}" data-filter="female">
-                <div class="filter-icon">👩</div>
-                <div class="filter-text">Faqat ayollar</div>
+                <div class="gender-filter-icon female">
+                    <i class="fas fa-venus"></i>
+                    <span class="filter-tooltip">Faqat ayollar</span>
+                </div>
             </div>
+            
             <div class="gender-filter-option ${gameState.currentFilter === 'not_specified' ? 'active' : ''}" data-filter="not_specified">
-                <div class="filter-icon">👥</div>
-                <div class="filter-text">Hamma bilan</div>
+                <div class="gender-filter-icon all">
+                    <i class="fas fa-users"></i>
+                    <span class="filter-tooltip">Hamma bilan</span>
+                </div>
             </div>
         </div>
         <div class="filter-info">
-            Filter: ${getFilterText(gameState.currentFilter)}
+            <small>Filter: ${getFilterText(gameState.currentFilter)}</small>
         </div>
     `;
     
@@ -647,9 +487,9 @@ function selectFilter(filter) {
         }
     });
     
-    showNotification('Filter o\'zgartirildi',
-        filter === 'male' ? 'Endi faqat erkaklar bilan duel!' :
-        filter === 'female' ? 'Endi faqat ayollar bilan duel!' :
+    showNotification('Filter o\'zgartirildi', 
+        filter === 'male' ? 'Endi faqat erkaklar bilan duel!' : 
+        filter === 'female' ? 'Endi faqat ayollar bilan duel!' : 
         'Endi hamma bilan duel!');
     
     if (gameState.socket && gameState.isConnected) {
@@ -681,13 +521,14 @@ function addFilterToWelcomeScreen() {
     }
 }
 
-// ==================== GENDER TANLASH ==================== 
+// ==================== GENDER TANLASH ====================
 function selectGender(gender) {
     console.log(`🎯 Gender tanlash: ${gender}`);
     
     userState.currentGender = gender;
     userState.hasSelectedGender = true;
     
+    // Gender tanlaganda bonus berish
     if (!localStorage.getItem('genderSelectedBonus')) {
         userState.coins += 50;
         localStorage.setItem('genderSelectedBonus', 'true');
@@ -705,15 +546,18 @@ function selectGender(gender) {
         connectToServer();
     }
     
-    showNotification('🎉 Jins tanlandi',
-        gender === 'male' ? 'Endi duel o\'ynashingiz mumkin!' :
-        gender === 'female' ? 'Endi duel o\'ynashingiz mumkin!' :
+    showNotification('🎉 Jins tanlandi', 
+        gender === 'male' ? 'Endi duel o\'ynashingiz mumkin!' : 
+        gender === 'female' ? 'Endi duel o\'ynashingiz mumkin!' : 
         'Endi duel o\'ynashingiz mumkin!');
+    
+    // Achievement tekshirish
+    checkAchievement('first_gender_selection');
 }
 
-// ==================== MODAL FUNKSIYALARI ==================== 
+// ==================== MODAL FUNKSIYALARI ====================
 function showGenderModal(mandatory = true) {
-    console.log('🎯 Gender modali ko\'rsatilmoqda');
+    console.log(`🎯 Gender modali ko'rsatilmoqda`);
     
     if (!elements.genderModal) return;
     
@@ -735,33 +579,8 @@ function hideGenderModal() {
     document.body.style.overflow = 'auto';
 }
 
-function showRulesModal() {
-    if (elements.rulesModal) {
-        elements.rulesModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function hideRulesModal() {
-    if (elements.rulesModal) {
-        elements.rulesModal.classList.remove('active');
-    }
-    document.body.style.overflow = 'auto';
-}
-
-// ==================== SERVERGA ULANISH ==================== 
+// ==================== TAKOMILLASHTIRILGAN SERVERGA ULANISH ====================
 function connectToServer() {
-
-    if (servers.length === 0 || !servers[0]) {
-        console.log('ℹ️ Test rejimida ishlayapman');
-        setTimeout(() => {
-            gameState.isConnected = true;
-            gameState.connectionStatus = 'connected';
-            updateConnectionStatus();
-            simulateServerConnection();
-        }, 1000);
-        return;
-    }
     if (!tgUserGlobal) {
         tgUserGlobal = {
             id: 'temp_' + Date.now(),
@@ -782,7 +601,12 @@ function connectToServer() {
     updateQueueStatus('Serverga ulanmoqda...');
     showNotification('Ulanish', 'Serverga ulanmoqda...');
     
-    const servers = ['wss://like-duel-server.onrender.com'];
+    // Server URL lari
+    const servers = [
+        'wss://like-duel.onrender.com',
+        'wss://backup-server.onrender.com',
+        'ws://localhost:3000'
+    ];
     
     let currentServerIndex = 0;
     let connected = false;
@@ -822,6 +646,7 @@ function connectToServer() {
             
             setupSocketEvents(gameState.socket);
             
+            // Timeout
             const connectionTimeout = setTimeout(() => {
                 if (!connected) {
                     console.log(`⏱️ ${socketUrl} ga ulanish vaqti tugadi`);
@@ -838,7 +663,9 @@ function connectToServer() {
                 gameState.connectionStatus = 'connected';
                 updateConnectionStatus();
                 
+                // Ping o'lchashni boshlash
                 startPingMeasurement();
+                
                 authenticateUser();
             });
             
@@ -860,6 +687,7 @@ function connectToServer() {
 }
 
 function setupSocketEvents(socket) {
+    // Asosiy eventlar
     socket.on('connect', handleSocketConnect);
     socket.on('disconnect', handleSocketDisconnect);
     socket.on('connect_error', handleSocketError);
@@ -867,23 +695,25 @@ function setupSocketEvents(socket) {
     socket.on('reconnect_attempt', handleReconnectAttempt);
     socket.on('reconnect_error', handleReconnectError);
     
+    // O'yin eventlari
     socket.on('auth_ok', handleAuthOk);
     socket.on('show_gender_selection', handleShowGenderSelection);
     socket.on('gender_selected', handleGenderSelected);
     socket.on('queue_joined', handleQueueJoined);
     socket.on('waiting_count', handleWaitingCount);
-    socket.on('rps_duel_started', handleRPSDuelStarted);
-    socket.on('rps_result', handleRPSResponse);
-    socket.on('rps_opponent_choice', handleRPSOpponentChoice);
+    socket.on('duel_started', handleDuelStarted);
+    socket.on('match', handleMatch);
     socket.on('mutual_match', handleMutualMatch);
+    socket.on('no_match', handleNoMatch);
+    socket.on('timeout', handleTimeout);
+    socket.on('waiting_response', handleWaitingResponse);
     socket.on('friends_list', handleFriendsList);
     socket.on('profile_updated', handleProfileUpdated);
+    socket.on('super_like_used', handleSuperLikeUsed);
     socket.on('daily_reset', handleDailyReset);
     socket.on('opponent_left', handleOpponentLeft);
     socket.on('quest_updated', handleQuestUpdated);
-    socket.on('quest_reward_claimed', handleQuestRewardClaimed);
     socket.on('achievement_unlocked', handleAchievementUnlocked);
-    socket.on('streak_bonus', handleStreakBonus);
     socket.on('ping', handlePing);
     socket.on('error', handleSocketError);
 }
@@ -896,7 +726,7 @@ function authenticateUser() {
         firstName: tgUserGlobal.first_name,
         lastName: tgUserGlobal.last_name || '',
         username: tgUserGlobal.username,
-        photoUrl: tgUserGlobal.photo_url || `https://ui-avatars.com/api/?name=${tgUserGlobal.first_name || 'User'}&background=667eea&color=fff`,
+        photoUrl: tgUserGlobal.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tgUserGlobal.first_name || 'User')}&background=667eea&color=fff`,
         language: tgUserGlobal.language_code || 'uz',
         gender: userState.currentGender,
         hasSelectedGender: userState.hasSelectedGender,
@@ -907,7 +737,7 @@ function authenticateUser() {
     });
 }
 
-// ==================== SOCKET EVENT HANDLERS ==================== 
+// ==================== SOCKET EVENT HANDLERS ====================
 function handleSocketConnect() {
     console.log('✅ Socket ulandi');
     gameState.isConnected = true;
@@ -928,6 +758,7 @@ function handleSocketDisconnect(reason) {
         gameState.pingInterval = null;
     }
     
+    // Qayta ulanish
     if (reason !== 'io client disconnect') {
         gameState.connectionStatus = 'reconnecting';
         updateConnectionStatus();
@@ -968,22 +799,21 @@ function handleAuthOk(data) {
         userId: data.userId?.substring(0, 10) + '...',
         firstName: data.firstName,
         hasSelectedGender: data.hasSelectedGender,
-        rating: data.rating,
-        totalGames: data.totalGames
+        rating: data.rating
     });
     
+    // User stateni yangilash
     Object.assign(userState, {
         currentGender: data.gender || userState.currentGender,
         hasSelectedGender: data.hasSelectedGender !== undefined ? data.hasSelectedGender : userState.hasSelectedGender,
         coins: data.coins || userState.coins,
         level: data.level || userState.level,
         rating: data.rating || userState.rating,
-        totalGames: data.totalGames || userState.totalGames,
+        matches: data.matches || userState.matches,
+        duels: data.duels || userState.duels,
         wins: data.wins || userState.wins,
-        draws: data.draws || userState.draws,
-        losses: data.losses || userState.losses,
-        winStreak: data.winStreak || userState.winStreak,
-        maxWinStreak: data.maxWinStreak || userState.maxWinStreak,
+        totalLikes: data.totalLikes || userState.totalLikes,
+        dailySuperLikes: data.dailySuperLikes || userState.dailySuperLikes,
         bio: data.bio || userState.bio,
         filter: data.filter || userState.filter,
         mutualMatchesCount: data.mutualMatchesCount || userState.mutualMatchesCount,
@@ -1010,6 +840,7 @@ function handleAuthOk(data) {
         }, 500);
     }
     
+    // Kunlik vazifalarni yuklash
     if (data.dailyQuests) {
         loadDailyQuests();
     }
@@ -1066,8 +897,8 @@ function handleWaitingCount(data) {
     }
 }
 
-function handleRPSDuelStarted(data) {
-    console.log('🎮 Tosh-Qaychi-Qog\'oz duel boshlandi:', {
+function handleDuelStarted(data) {
+    console.log('⚔️ Duel boshlandi:', {
         duelId: data.duelId?.substring(0, 10) + '...',
         opponent: data.opponent.name
     });
@@ -1078,62 +909,33 @@ function handleRPSDuelStarted(data) {
     gameState.matchCompleted = false;
     gameState.inMatchScreen = false;
     gameState.currentDuelId = data.duelId;
-    gameState.currentChoice = null;
-    gameState.opponentChoice = null;
-    gameState.duelTimer = 30;
-    
     showScreen('duel');
     
     updateQueueButton();
     updateBackButtonVisibility();
     clearInterval(gameState.timerInterval);
-    enableRPSButtons();
+    resetVoteButtons();
     
+    // Raqib ma'lumotlarini yangilash
     updateOpponentInfo(data.opponent);
     
     startTimer();
-    updateDuelStatus('Tosh, Qaychi yoki Qog\'oz tanlang!');
+    updateDuelStatus('Ovoz bering: ❤️ yoki 💖 yoki ✖');
     
+    // Duel boshlangan sound effect
     playSound('duel_start');
 }
 
-function handleRPSResponse(data) {
-    console.log('🎮 Tosh-Qaychi-Qog\'oz natijasi:', data);
+function handleMatch(data) {
+    console.log('🎉 MATCH!', {
+        partner: data.partner?.name,
+        isMutual: data.isMutual,
+        isSuperLike: data.isSuperLike
+    });
     
-    const { result, playerChoice, opponentChoice, rewards, partner } = data;
-    
-    // Animatsiyalar
-    showRPSAnimation(playerChoice, opponentChoice, result);
-    
-    // Natijani ko'rsatish
-    showRPSResult(result, playerChoice, opponentChoice, partner);
-    
-    // Mukofotlarni qo'shish
-    if (rewards) {
-        applyRPSRewards(rewards, result);
-    }
-    
-    // O'yin holatini yangilash
-    updateRPSGameState(result, playerChoice, opponentChoice, rewards, partner);
-    
-    // Match ekraniga o'tish
-    setTimeout(() => {
-        showMatchScreen(result, partner, rewards);
-    }, 2000);
-}
-
-function handleRPSOpponentChoice(data) {
-    console.log('👀 Raqib tanlovi:', data.choice);
-    
-    gameState.opponentChoice = data.choice;
-    
-    if (elements.opponentChoiceIcon) {
-        elements.opponentChoiceIcon.textContent = RPSGame.choiceIcons[data.choice] || '❓';
-        elements.opponentChoiceIcon.style.color = RPSGame.choiceColors[data.choice] || '#fff';
-        elements.opponentChoiceIcon.style.animation = 'bounce 0.5s ease';
-    }
-    
-    updateDuelStatus('Raqib tanladi. Natijani kutish...');
+    gameState.matchCompleted = true;
+    gameState.lastMatchData = data;
+    handleMatchResult(data);
 }
 
 function handleMutualMatch(data) {
@@ -1148,8 +950,28 @@ function handleMutualMatch(data) {
         loadFriendsList();
     }
     
-    showNotification('🎉 DO\'ST BO\'LDINGIZ!',
-        `${data.partnerName} bilan o\'zaro SUPER LIKE! Endi siz do\'st bo\'ldingiz.`);
+    showNotification('🎉 DO\'ST BO\'LDINGIZ!', 
+        `${data.partnerName} bilan o'zaro SUPER LIKE! Endi siz do'st bo'ldingiz.`);
+    
+    // Achievement tekshirish
+    checkAchievement('first_friend');
+}
+
+function handleNoMatch(data) {
+    console.log('❌ Match bo\'lmadi');
+    gameState.matchCompleted = true;
+    handleNoMatchResult(data);
+}
+
+function handleTimeout(data) {
+    console.log('⏰ Vaqt tugadi');
+    gameState.matchCompleted = true;
+    handleTimeoutResult(data);
+}
+
+function handleWaitingResponse(data) {
+    console.log('⏳ Raqib javobini kutish:', data);
+    handleWaitingForResponse(data);
 }
 
 function handleFriendsList(data) {
@@ -1163,13 +985,22 @@ function handleProfileUpdated(data) {
     updateStatsFromServer(data);
 }
 
+function handleSuperLikeUsed(data) {
+    console.log('💖 Super like ishlatildi:', data);
+    if (elements.superLikeCount) elements.superLikeCount.textContent = data.remaining;
+    userState.dailySuperLikes = data.remaining;
+    saveUserStateToLocalStorage();
+}
+
 function handleDailyReset(data) {
     console.log('🔄 Kunlik limitlar yangilandi:', data);
+    if (elements.superLikeCount) elements.superLikeCount.textContent = data.superLikes;
+    userState.dailySuperLikes = data.superLikes;
     userState.dailyQuests = data.dailyQuests || [];
     saveUserStateToLocalStorage();
     
     loadDailyQuests();
-    showNotification('Kun yangilandi', 'Kunlik vazifalar qayta tiklandi!');
+    showNotification('Kun yangilandi', 'Kunlik SUPER LIKE lar va vazifalar qayta tiklandi!');
 }
 
 function handleOpponentLeft() {
@@ -1187,28 +1018,8 @@ function handleQuestUpdated(data) {
     loadDailyQuests();
     
     if (data.completed) {
-        showNotification('✅ Vazifa bajarildi!', `${data.reward} coin qo\'shildi!`);
+        showNotification('✅ Vazifa bajarildi!', `${data.reward} coin qo'shildi!`);
     }
-}
-
-function handleQuestRewardClaimed(data) {
-    console.log('💰 Quest mukofoti olindi:', data);
-    userState.coins += data.reward;
-    saveUserStateToLocalStorage();
-    updateUIFromUserState();
-    
-    showNotification('🎁 Mukofot olindi!', `${data.reward} coin qo'shildi!`);
-    
-    const quests = userState.dailyQuests;
-    const updatedQuests = quests.map(q => {
-        if (q.questId === data.questId) {
-            q.claimed = true;
-        }
-        return q;
-    });
-    userState.dailyQuests = updatedQuests;
-    saveUserStateToLocalStorage();
-    loadDailyQuests();
 }
 
 function handleAchievementUnlocked(data) {
@@ -1220,31 +1031,33 @@ function handleAchievementUnlocked(data) {
     showAchievementNotification(data.achievement);
 }
 
-function handleStreakBonus(data) {
-    console.log('🔥 Streak bonus:', data);
-    
-    userState.coins += data.bonus;
-    saveUserStateToLocalStorage();
-    updateUIFromUserState();
-    
-    showNotification(`🔥 ${data.streak} ketma-ket g'alaba!`,
-        `${data.bonus} coin streak bonus qo'shildi!`);
-}
-
 function handlePing(data) {
     const ping = Date.now() - data.sent;
     gameState.averagePing = (gameState.averagePing * 0.8) + (ping * 0.2);
     
-    if (gameState.averagePing < 100) {
-        gameState.networkQuality = 'good';
-    } else if (gameState.averagePing < 300) {
-        gameState.networkQuality = 'medium';
-    } else {
-        gameState.networkQuality = 'poor';
+    if (elements.pingDisplay) {
+        elements.pingDisplay.textContent = `${Math.round(gameState.averagePing)}ms`;
+        
+        if (gameState.averagePing < 100) {
+            gameState.networkQuality = 'good';
+            elements.pingDisplay.style.color = '#2ecc71';
+        } else if (gameState.averagePing < 300) {
+            gameState.networkQuality = 'medium';
+            elements.pingDisplay.style.color = '#f39c12';
+        } else {
+            gameState.networkQuality = 'poor';
+            elements.pingDisplay.style.color = '#e74c3c';
+        }
+        
+        if (elements.networkStatus) {
+            elements.networkStatus.textContent = 
+                gameState.networkQuality === 'good' ? 'Yaxshi' :
+                gameState.networkQuality === 'medium' ? 'O\'rtacha' : 'Yomon';
+        }
     }
 }
 
-// ==================== PING O'LCHASH ==================== 
+// ==================== PING O'LCHASH ====================
 function startPingMeasurement() {
     if (gameState.pingInterval) {
         clearInterval(gameState.pingInterval);
@@ -1257,7 +1070,7 @@ function startPingMeasurement() {
     }, 5000);
 }
 
-// ==================== ULanish STATUSI ==================== 
+// ==================== ULanish STATUSI ====================
 function updateConnectionStatus() {
     if (!elements.connectionStatusBadge) return;
     
@@ -1271,10 +1084,11 @@ function updateConnectionStatus() {
     elements.connectionStatusBadge.textContent = statusText[gameState.connectionStatus];
     elements.connectionStatusBadge.className = `connection-status ${gameState.connectionStatus}`;
     
+    // Navbat tugmasini yangilash
     updateQueueButton();
 }
 
-// ==================== NAVBATGA KIRISH ==================== 
+// ==================== NAVBATGA KIRISH ====================
 function enterQueue() {
     console.log('🎮 Navbatga kirish funksiyasi');
     
@@ -1284,13 +1098,9 @@ function enterQueue() {
     }
     
     if (!gameState.socket || !gameState.isConnected) {
-        showNotification('Diqqat', 'Serverga ulanmadingiz. Test rejimida ishlayapman.');
-        
-        // Test rejimida ishlash
-        gameState.isConnected = true;
-        gameState.connectionStatus = 'connected';
-        updateConnectionStatus();
-        simulateServerConnection();
+        showNotification('Xato', 'Avval serverga ulanishingiz kerak');
+        connectToServer();
+        return;
     }
     
     if (!userState.hasSelectedGender) {
@@ -1307,42 +1117,33 @@ function enterQueue() {
     console.log('🔄 Navbatga kirish...');
     gameState.isInQueue = true;
     updateQueueButton();
-    
-    // Haqiqiy serverga yoki test rejimiga
-    if (gameState.socket && gameState.isConnected) {
-        gameState.socket.emit('enter_rps_queue');
-    } else {
-        // Test rejimi - simulyatsiya qilish
-        const testEvent = new CustomEvent('enterQueueSimulated');
-        document.dispatchEvent(testEvent);
-    }
-    
+    gameState.socket.emit('enter_queue');
     showScreen('queue');
     updateBackButtonVisibility();
     showNotification('Navbatda', 'Yangi duel qidirilmoqda...');
     
+    // O'yin statistikasini yangilash
     gameState.lastActivity = Date.now();
 }
 
-// ==================== O'YINNI BOSHLASH ==================== 
+// ==================== O'YINNI BOSHLASH ====================
 function startGame() {
-    console.log('🎮 Oyni boshlash');
+    console.log('🎮 O\'yinni boshlash');
     connectToServer();
 }
 
-// ==================== USER STATE LOCALSTORAGE GA SAQLASH ==================== 
+// ==================== USER STATE LOCALSTORAGE GA SAQLASH ====================
 function saveUserStateToLocalStorage() {
     localStorage.setItem('userGender', userState.currentGender || '');
     localStorage.setItem('hasSelectedGender', userState.hasSelectedGender.toString());
     localStorage.setItem('userCoins', userState.coins.toString());
     localStorage.setItem('userLevel', userState.level.toString());
     localStorage.setItem('userRating', userState.rating.toString());
-    localStorage.setItem('userTotalGames', userState.totalGames.toString());
+    localStorage.setItem('userMatches', userState.matches.toString());
+    localStorage.setItem('userDuels', userState.duels.toString());
     localStorage.setItem('userWins', userState.wins.toString());
-    localStorage.setItem('userDraws', userState.draws.toString());
-    localStorage.setItem('userLosses', userState.losses.toString());
-    localStorage.setItem('userWinStreak', userState.winStreak.toString());
-    localStorage.setItem('userMaxWinStreak', userState.maxWinStreak.toString());
+    localStorage.setItem('userTotalLikes', userState.totalLikes.toString());
+    localStorage.setItem('userDailySuperLikes', userState.dailySuperLikes.toString());
     localStorage.setItem('userBio', userState.bio.toString());
     localStorage.setItem('userFilter', userState.filter.toString());
     localStorage.setItem('mutualMatchesCount', userState.mutualMatchesCount.toString());
@@ -1354,12 +1155,13 @@ function saveUserStateToLocalStorage() {
     localStorage.setItem('userAchievements', JSON.stringify(userState.achievements));
 }
 
-// ==================== KUNLIK LOGIN STREAK ==================== 
+// ==================== KUNLIK LOGIN STREAK ====================
 function checkDailyLoginStreak() {
     const today = new Date().toDateString();
     const lastLogin = userState.lastLogin ? new Date(userState.lastLogin).toDateString() : null;
     
     if (lastLogin === today) {
+        // Bugun allaqachon login qilgan
         return;
     }
     
@@ -1368,18 +1170,22 @@ function checkDailyLoginStreak() {
     const yesterdayStr = yesterday.toDateString();
     
     if (lastLogin === yesterdayStr) {
+        // Ketma-ket login
         userState.streakDays++;
         showNotification('🔥 Streak!', `Ketma-ket ${userState.streakDays} kun login qildingiz!`);
     } else if (lastLogin && lastLogin !== yesterdayStr) {
+        // Streak uzildi
         userState.streakDays = 1;
         showNotification('📅 Yangi streak', 'Yangi login streak boshlandi!');
     } else {
+        // Birinchi login
         userState.streakDays = 1;
     }
     
     userState.lastLogin = new Date().toISOString();
     saveUserStateToLocalStorage();
     
+    // Streak mukofotini tekshirish
     checkStreakRewards();
 }
 
@@ -1397,14 +1203,40 @@ function checkStreakRewards() {
         saveUserStateToLocalStorage();
         updateUIFromUserState();
         
-        showNotification('🎁 Streak mukofoti!',
+        showNotification('🎁 Streak mukofoti!', 
             `${userState.streakDays} kunlik streak uchun ${reward} coin qo'shildi!`);
     }
 }
 
-// ==================== TUGMALARNI RESET QILISH ==================== 
-function enableRPSButtons() {
-    const buttons = [elements.noBtn, elements.rockBtn, elements.scissorsBtn, elements.paperBtn];
+function updateStreakRewardButton() {
+    if (!elements.streakRewardBtn) return;
+    
+    const nextReward = getNextStreakReward();
+    if (nextReward) {
+        elements.streakRewardBtn.textContent = `${nextReward.days} kun: ${nextReward.reward} coin`;
+        elements.streakRewardBtn.disabled = userState.streakDays < nextReward.days;
+    } else {
+        elements.streakRewardBtn.textContent = 'Streak mukofoti';
+        elements.streakRewardBtn.disabled = true;
+    }
+}
+
+function getNextStreakReward() {
+    const streakRewards = [
+        { days: 3, reward: 50 },
+        { days: 7, reward: 100 },
+        { days: 14, reward: 200 },
+        { days: 30, reward: 500 }
+    ];
+    
+    return streakRewards.find(reward => userState.streakDays < reward.days);
+}
+
+// ==================== TUGMALARNI RESET QILISH ====================
+function resetVoteButtons() {
+    console.log('🔄 Tugmalar reset qilinmoqda...');
+    
+    const buttons = [elements.noBtn, elements.likeBtn, elements.superLikeBtn];
     buttons.forEach(b => {
         if (b) {
             b.disabled = false;
@@ -1413,448 +1245,340 @@ function enableRPSButtons() {
             b.style.transform = 'scale(1)';
         }
     });
+    
+    if (elements.noBtn) {
+        elements.noBtn.textContent = '✖';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+    }
+    
+    if (elements.likeBtn) {
+        elements.likeBtn.textContent = '❤️';
+        elements.likeBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.textContent = '💖';
+        elements.superLikeBtn.style.background = 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)';
+        elements.superLikeBtn.disabled = userState.dailySuperLikes <= 0;
+        if (userState.dailySuperLikes <= 0) {
+            elements.superLikeBtn.style.opacity = '0.5';
+            elements.superLikeBtn.style.cursor = 'not-allowed';
+        }
+    }
 }
 
-function disableRPSButtons() {
-    const buttons = [elements.noBtn, elements.rockBtn, elements.scissorsBtn, elements.paperBtn];
-    buttons.forEach(b => {
+// ==================== OVOZ BERISH ====================
+function handleVote(choice) {
+    if (!gameState.socket || !gameState.isInDuel) {
+        showNotification('Xato', 'Siz hozir duelda emassiz');
+        return;
+    }
+    
+    console.log(`🗳️ Ovoz berish: ${choice}`);
+    
+    // Tugmalarni block qilish
+    [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
         if (b) {
             b.disabled = true;
             b.style.opacity = '0.6';
             b.style.cursor = 'not-allowed';
         }
     });
-}
-
-// ==================== TO'SH-QAYCHI-QOG'OZ TANLOV QILISH ==================== 
-function handleRPSChoice(choice) {
-    if (!gameState.isInDuel || !gameState.socket || !gameState.currentDuelId) {
-        showNotification('Xato', 'Siz hozir duelda emassiz');
+    
+    // Super like limitini tekshirish
+    if (choice === 'super_like' && userState.dailySuperLikes <= 0) {
+        showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
+        resetVoteButtons();
         return;
     }
-
-    console.log(`🎮 Tanlov qabul qilindi: ${choice}`);
-
-    // Tugmalarni bloklash
-    disableRPSButtons();
-
-    // O'z tanlovini ko'rsatish
-    showPlayerChoice(choice);
-
+    
+    // Animation
+    const button = choice === 'skip' ? elements.noBtn : 
+                   choice === 'like' ? elements.likeBtn : elements.superLikeBtn;
+    if (button) {
+        button.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            if (button) button.style.transform = 'scale(1)';
+        }, 150);
+    }
+    
     // Serverga yuborish
-    gameState.socket.emit('rps_vote', {
-        duelId: gameState.currentDuelId,
-        choice: choice
+    gameState.socket.emit('vote', { 
+        duelId: gameState.currentDuelId, 
+        choice: choice 
     });
-
+    
     clearInterval(gameState.timerInterval);
-
+    
     // UI ni yangilash
     switch(choice) {
-        case 'rock':
-            if (elements.timer) elements.timer.textContent = '🪨';
-            updateDuelStatus('TOSH tanladingiz. Raqib javobini kutish...');
-            playSound('rock');
+        case 'like':
+            if (elements.timer) elements.timer.textContent = '❤️';
+            updateDuelStatus('LIKE berdingiz. Raqib javobini kutish...');
+            playSound('like');
             break;
-        case 'scissors':
-            if (elements.timer) elements.timer.textContent = '✂️';
-            updateDuelStatus('QAYCHI tanladingiz. Raqib javobini kutish...');
-            playSound('scissors');
-            break;
-        case 'paper':
-            if (elements.timer) elements.timer.textContent = '📄';
-            updateDuelStatus('QOG\'OZ tanladingiz. Raqib javobini kutish...');
-            playSound('paper');
+        case 'super_like':
+            if (elements.timer) elements.timer.textContent = '💖';
+            updateDuelStatus('SUPER LIKE! Raqib javobini kutish...');
+            userState.dailySuperLikes--;
+            if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
+            saveUserStateToLocalStorage();
+            playSound('super_like');
             break;
         case 'skip':
             if (elements.timer) elements.timer.textContent = '✖';
-            updateDuelStatus('Duel tugatildi...');
+            updateDuelStatus('O\'tkazib yubordingiz...');
             gameState.matchCompleted = true;
             playSound('skip');
-
+            
             setTimeout(() => {
-                handleSkipResult();
-            }, 500);
+                showNoMatchOptions();
+            }, 1500);
             break;
     }
-
+    
+    // O'yin statistikasini yangilash
     updateGameStats(choice);
 }
 
-function showPlayerChoice(choice) {
-    if (elements.playerChoiceIcon) {
-        elements.playerChoiceIcon.textContent = RPSGame.choiceIcons[choice] || '❓';
-        elements.playerChoiceIcon.style.color = RPSGame.choiceColors[choice] || '#fff';
-        elements.playerChoiceIcon.style.animation = 'bounce 0.5s ease';
+// ==================== MATCH HANDLERS ====================
+function handleMatchResult(data) {
+    console.log('🎉 MATCH!', data);
+    
+    clearInterval(gameState.timerInterval);
+    
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.currentPartner = data.partner;
+    gameState.lastOpponent = data.partner?.id;
+    gameState.waitingForOpponent = false;
+    gameState.inMatchScreen = true;
+    
+    resetVoteButtons();
+    updateBackButtonVisibility();
+    
+    showScreen('match');
+    
+    // Match turlari bo'yicha UI
+    updateMatchUI(data);
+    
+    // Mukofotlarni qo'shish
+    if (data.rewards) {
+        applyMatchRewards(data.rewards);
+    }
+    
+    // Match options
+    createMatchOptions(data);
+    
+    // Confetti
+    if (typeof confetti === 'function') {
+        confetti({ 
+            particleCount: 300, 
+            spread: 100, 
+            origin: { y: 0.6 } 
+        });
+    }
+    
+    // Sound effect
+    playSound('match');
+    
+    // Achievement tekshirish
+    if (data.isMutual) {
+        checkAchievement('first_mutual_match');
+    }
+    if (data.isSuperLike) {
+        checkAchievement('first_super_like');
     }
 }
 
-// ==================== SKIP NATIJASI ==================== 
-function handleSkipResult() {
-    console.log('✖ Duel tugatildi (foydalanuvchi tomonidan)');
+function updateMatchUI(data) {
+    if (elements.partnerName) elements.partnerName.textContent = data.partner?.name || 'Raqib';
     
+    let matchHTML = '';
+    let matchClass = '';
+    
+    if (data.isMutual && data.isSuperLike) {
+        matchHTML = `
+            <div class="match-icon">💖</div>
+            <div class="match-title">O'ZARO SUPER LIKE!</div>
+            <div class="match-description">${data.partner?.name || 'Raqib'} bilan SUPER LIKE bo'ldingiz!</div>
+            <div class="match-subtext">
+                <i class="fas fa-check-circle"></i> Endi siz do'stlaringiz ro'yxatidasiz!
+            </div>
+        `;
+        matchClass = 'super-match';
+    } else if (data.isMutual) {
+        matchHTML = `
+            <div class="match-icon">🎉</div>
+            <div class="match-title">O'ZARO MATCH!</div>
+            <div class="match-description">${data.partner?.name || 'Raqib'} bilan bir-biringizni yoqtirdingiz!</div>
+        `;
+        matchClass = 'mutual-match';
+    } else {
+        matchHTML = `
+            <div class="match-icon">❤️</div>
+            <div class="match-title">Bir tomonli Like</div>
+            <div class="match-description">Siz ${data.partner?.name || 'Raqib'} ni yoqtirdingiz</div>
+            <div class="match-subtext">
+                <i class="fas fa-info-circle"></i> O'zaro match bo'lmadi
+            </div>
+        `;
+        matchClass = 'one-sided-match';
+    }
+    
+    if (elements.matchText) {
+        elements.matchText.innerHTML = matchHTML;
+        elements.matchText.className = `match-text ${matchClass}`;
+    }
+}
+
+function applyMatchRewards(rewards) {
+    if (elements.rewardCoins) elements.rewardCoins.textContent = rewards.coins || 0;
+    if (elements.rewardXP) elements.rewardXP.textContent = rewards.xp || 0;
+    
+    userState.coins += rewards.coins || 0;
+    userState.rating = rewards.newRating || userState.rating;
+    userState.matches++;
+    
+    // Level ko'tarilishini tekshirish
+    const oldLevel = userState.level;
+    userState.level = Math.floor(userState.rating / 100) + 1;
+    
+    if (userState.level > oldLevel) {
+        showLevelUpNotification(oldLevel, userState.level);
+    }
+    
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
+    
+    // Kunlik vazifalarni yangilash
+    updateDailyQuest('play_duel');
+    if (rewards.coins > 0) {
+        updateDailyQuest('earn_coins', rewards.coins);
+    }
+}
+
+function createMatchOptions(data) {
+    if (!elements.matchOptions) return;
+    
+    elements.matchOptions.innerHTML = '';
+    
+    const options = [];
+    
+    if (data.isMutual && data.isSuperLike) {
+        options.push({
+            action: 'open_chat', 
+            label: '💬 Chatga o\'tish', 
+            icon: 'fa-comments',
+            style: 'background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);',
+            priority: 1
+        });
+    }
+    
+    options.push(
+        {
+            action: 'rematch', 
+            label: '🔄 Qayta duel', 
+            icon: 'fa-redo',
+            style: 'background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);',
+            priority: 2,
+            disabled: !data.partner?.id
+        },
+        {
+            action: 'continue_match_screen', 
+            label: '➡️ Yangi duel', 
+            icon: 'fa-play',
+            style: 'background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);',
+            priority: 3
+        },
+        {
+            action: 'return_to_menu', 
+            label: '🏠 Bosh menyu', 
+            icon: 'fa-home',
+            style: 'background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);',
+            priority: 4
+        }
+    );
+    
+    // Priority bo'yicha saralash
+    options.sort((a, b) => a.priority - b.priority);
+    
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'match-option-btn';
+        if (opt.disabled) {
+            btn.classList.add('disabled');
+            btn.disabled = true;
+        }
+        btn.innerHTML = `<i class="fas ${opt.icon}"></i> ${opt.label}`;
+        btn.style.cssText = opt.style;
+        btn.onclick = () => handleMatchOption(opt.action, data.partner);
+        elements.matchOptions.appendChild(btn);
+    });
+}
+
+function handleMatchOption(action, partner) {
+    console.log(`Match option: ${action} for partner:`, partner);
+    
+    switch(action) {
+        case 'open_chat':
+            openChat(partner);
+            return;
+        case 'rematch':
+            requestRematch(partner);
+            break;
+        case 'continue_match_screen':
+            showNextDuelConfirmModal();
+            break;
+        case 'return_to_menu':
+            returnToMenu();
+            break;
+        default:
+            returnToMenu();
+    }
+}
+
+function handleNoMatchResult(data) {
+    console.log('❌ Match bo\'lmadi');
+    
+    clearInterval(gameState.timerInterval);
     gameState.isInDuel = false;
     gameState.currentDuelId = null;
     gameState.waitingForOpponent = false;
     gameState.inMatchScreen = false;
     
-    showNoMatchOptions();
+    resetVoteButtons();
+    
+    if (elements.timer) elements.timer.textContent = '✖';
+    
+    setTimeout(() => {
+        showNoMatchModal();
+    }, 1500);
+    
+    playSound('no_match');
 }
 
-// ==================== O'YIN HOLATI YANGILASH ====================
-function updateRPSGameState(result, playerChoice, opponentChoice, rewards, partner = null) {
-    console.log('🔄 Tosh-Qaychi-Qog\'oz natijasi yangilanmoqda:', {
-        result,
-        playerChoice,
-        opponentChoice,
-        rewards,
-        partner: partner?.name
-    });
+function handleTimeoutResult(data) {
+    console.log('⏰ Vaqt tugadi');
     
-    // O'yin statistikasini yangilash
-    updateGameStats(result, playerChoice, opponentChoice);
-    
-    // Foydalanuvchi ma'lumotlarini yangilash
-    userState.totalGames = (userState.totalGames || 0) + 1;
-    
-    if (result === 'win') {
-        userState.wins = (userState.wins || 0) + 1;
-        userState.winStreak = (userState.winStreak || 0) + 1;
-        
-        // Maksimal streakni yangilash
-        if (userState.winStreak > (userState.maxWinStreak || 0)) {
-            userState.maxWinStreak = userState.winStreak;
-        }
-    } else if (result === 'lose') {
-        userState.losses = (userState.losses || 0) + 1;
-        userState.winStreak = 0;
-    } else if (result === 'draw') {
-        userState.draws = (userState.draws || 0) + 1;
-    }
-    
-    // Coin va XP ni qo'shish
-    userState.coins = (userState.coins || 0) + (rewards?.coins || 0);
-    
-    // Levelni yangilash
-    const oldLevel = userState.level || 1;
-    userState.level = Math.floor(userState.rating / 100) + 1;
-    
-    // Level o'zgarsa bildirishnoma ko'rsatish
-    if (userState.level > oldLevel) {
-        showLevelUpNotification(oldLevel, userState.level);
-    }
-    
-    // LocalStorage ga saqlash
-    saveUserStateToLocalStorage();
-    
-    // UI ni yangilash
-    updateUIFromUserState();
-    
-    return {
-        success: true,
-        result: result,
-        playerChoice: playerChoice,
-        opponentChoice: opponentChoice,
-        rewards: rewards,
-        partner: partner,
-        updatedStats: {
-            coins: userState.coins,
-            rating: userState.rating,
-            level: userState.level,
-            totalGames: userState.totalGames,
-            winStreak: userState.winStreak
-        }
-    };
-}
-
-// ==================== O'YIN STATISTIKASI ====================
-function updateGameStats(result, playerChoice, opponentChoice) {
-    const statsKey = 'rps_game_stats';
-    let stats = JSON.parse(localStorage.getItem(statsKey)) || {
-        totalGames: 0,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        choiceStats: {
-            rock: { wins: 0, uses: 0 },
-            scissors: { wins: 0, uses: 0 },
-            paper: { wins: 0, uses: 0 }
-        },
-        recentGames: [],
-        winStreak: 0,
-        maxWinStreak: 0
-    };
-    
-    // Umumiy statistika
-    stats.totalGames++;
-    
-    // Natija bo'yicha statistika
-    switch(result) {
-        case 'win':
-            stats.wins++;
-            stats.winStreak++;
-            if (stats.winStreak > stats.maxWinStreak) {
-                stats.maxWinStreak = stats.winStreak;
-            }
-            break;
-        case 'lose':
-            stats.losses++;
-            stats.winStreak = 0;
-            break;
-        case 'draw':
-            stats.draws++;
-            break;
-    }
-    
-    // Tanlov bo'yicha statistika
-    if (playerChoice && stats.choiceStats[playerChoice]) {
-        stats.choiceStats[playerChoice].uses++;
-        if (result === 'win') {
-            stats.choiceStats[playerChoice].wins++;
-        }
-    }
-    
-    // So'nggi o'yinlar
-    stats.recentGames.unshift({
-        timestamp: new Date().toISOString(),
-        result: result,
-        playerChoice: playerChoice,
-        opponentChoice: opponentChoice
-    });
-    
-    // Faqat so'nggi 20 ta o'yinni saqlash
-    if (stats.recentGames.length > 20) {
-        stats.recentGames = stats.recentGames.slice(0, 20);
-    }
-    
-    // LocalStorage ga saqlash
-    localStorage.setItem(statsKey, JSON.stringify(stats));
-    
-    return stats;
-}
-
-// ==================== VISUAL EFEKTLAR ====================
-function showRPSAnimation(playerChoice, opponentChoice, result) {
-    if (elements.playerChoiceIcon) {
-        elements.playerChoiceIcon.textContent = RPSGame.choiceIcons[playerChoice] || '❓';
-        elements.playerChoiceIcon.style.color = RPSGame.choiceColors[playerChoice] || '#fff';
-        elements.playerChoiceIcon.style.animation = 'bounce 0.5s ease';
-    }
-    
-    if (elements.opponentChoiceIcon) {
-        elements.opponentChoiceIcon.textContent = RPSGame.choiceIcons[opponentChoice] || '❓';
-        elements.opponentChoiceIcon.style.color = RPSGame.choiceColors[opponentChoice] || '#fff';
-        elements.opponentChoiceIcon.style.animation = 'bounce 0.5s ease';
-    }
-    
-    if (elements.matchResultTitle) {
-        switch(result) {
-            case 'win':
-                elements.matchResultTitle.textContent = '🏆 G\'ALABA!';
-                elements.matchResultTitle.style.color = '#2ecc71';
-                break;
-            case 'lose':
-                elements.matchResultTitle.textContent = '😔 MAG\'LUBIYAT';
-                elements.matchResultTitle.style.color = '#e74c3c';
-                break;
-            case 'draw':
-                elements.matchResultTitle.textContent = '🤝 DURANG!';
-                elements.matchResultTitle.style.color = '#f39c12';
-                break;
-            default:
-                elements.matchResultTitle.textContent = 'O\'YIN TUGADI';
-                elements.matchResultTitle.style.color = '#95a5a6';
-        }
-    }
-    
-    // Maxsus animatsiyalar
-    if (result === 'win' && typeof confetti === 'function') {
-        confetti({
-            particleCount: 150,
-            spread: 70,
-            origin: { y: 0.6 }
-        });
-    }
-}
-
-function showRPSResult(result, playerChoice, opponentChoice, partner) {
-    const statusElement = elements.duelStatus;
-    
-    if (!statusElement) return;
-    
-    const ruleText = RPSGame.getRuleText(playerChoice, opponentChoice, result);
-    
-    switch(result) {
-        case 'win':
-            statusElement.innerHTML = `🏆 G'ALABA!<br>${ruleText}`;
-            statusElement.style.color = '#2ecc71';
-            break;
-        case 'lose':
-            statusElement.innerHTML = `😔 MAG'LUBIYAT<br>${ruleText}`;
-            statusElement.style.color = '#e74c3c';
-            break;
-        case 'draw':
-            statusElement.innerHTML = `🤝 DURANG<br>${ruleText}`;
-            statusElement.style.color = '#f39c12';
-            break;
-        case 'no_match':
-            statusElement.innerHTML = `👋 Match bo'lmadi<br>${partner ? partner.name + ' bilan' : ''}`;
-            statusElement.style.color = '#95a5a6';
-            break;
-    }
-}
-
-function applyRPSRewards(rewards, result) {
-    if (elements.rewardCoins) elements.rewardCoins.textContent = rewards.coins || 0;
-    if (elements.rewardXP) elements.rewardXP.textContent = rewards.xp || 0;
-    
-    // Streak bonusini tekshirish
-    if (result === 'win') {
-        const winStreak = parseInt(localStorage.getItem('winStreak')) || 0;
-        const newStreak = winStreak + 1;
-        localStorage.setItem('winStreak', newStreak.toString());
-        
-        // Streak bonusini ko'rsatish
-        if (newStreak >= 3) {
-            showStreakBonusNotification(newStreak);
-        }
-    } else if (result === 'lose' || result === 'draw') {
-        localStorage.setItem('winStreak', '0');
-    }
-}
-
-function showMatchScreen(result, partner, rewards) {
-    if (!elements.matchScreen || !elements.matchText) return;
-    
-    // Ekran ko'rsatish
-    gameState.inMatchScreen = true;
+    clearInterval(gameState.timerInterval);
     gameState.isInDuel = false;
-    showScreen('match');
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.inMatchScreen = false;
     
-    // Match matni
-    let matchContent = '';
-    const ruleText = RPSGame.getRuleText(gameState.currentChoice, gameState.opponentChoice, result);
+    resetVoteButtons();
     
-    switch(result) {
-        case 'win':
-            matchContent = `
-                <div class="match-icon">🏆</div>
-                <div class="match-title">TABRIKLAYMIZ!</div>
-                <div class="match-message">Siz ${partner ? partner.name : 'Raqib'} ni yutdingiz!</div>
-                <div class="match-note">${ruleText}</div>
-                <div class="match-rewards">
-                    <div><i class="fas fa-coins"></i> +${rewards?.coins || 0} coin</div>
-                    <div><i class="fas fa-star"></i> +${rewards?.xp || 0} XP</div>
-                </div>
-            `;
-            break;
-        case 'lose':
-            matchContent = `
-                <div class="match-icon">😔</div>
-                <div class="match-title">AFSUSKI...</div>
-                <div class="match-message">${partner ? partner.name : 'Raqib'} sizni yutdi!</div>
-                <div class="match-note">${ruleText}</div>
-                <div class="match-rewards">
-                    <div><i class="fas fa-coins"></i> +${rewards?.coins || 0} coin</div>
-                    <div><i class="fas fa-star"></i> +${rewards?.xp || 0} XP</div>
-                </div>
-            `;
-            break;
-        case 'draw':
-            matchContent = `
-                <div class="match-icon">🤝</div>
-                <div class="match-title">DURANG!</div>
-                <div class="match-message">Siz va ${partner ? partner.name : 'Raqib'} durang qildingiz!</div>
-                <div class="match-note">${ruleText}</div>
-                <div class="match-rewards">
-                    <div><i class="fas fa-coins"></i> +${rewards?.coins || 0} coin</div>
-                    <div><i class="fas fa-star"></i> +${rewards?.xp || 0} XP</div>
-                </div>
-            `;
-            break;
-        case 'no_match':
-            matchContent = `
-                <div class="match-icon">👋</div>
-                <div class="match-title">MATCH BO'LMADI</div>
-                <div class="match-message">${partner ? partner.name + ' bilan' : 'Raqib bilan'} match bo'lmadi</div>
-                <div class="match-rewards">
-                    <div><i class="fas fa-coins"></i> +${rewards?.coins || 0} coin</div>
-                    <div><i class="fas fa-star"></i> +${rewards?.xp || 0} XP</div>
-                </div>
-            `;
-            break;
-    }
+    if (elements.timer) elements.timer.textContent = '⏰';
     
-    elements.matchText.innerHTML = matchContent;
+    setTimeout(() => {
+        showTimeoutOptions();
+    }, 1500);
     
-    // Tugmalar
-    if (elements.matchOptions) {
-        elements.matchOptions.innerHTML = `
-            ${partner ? `
-                <button class="match-option-btn" onclick="requestRPSRematch('${partner.id}')" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
-                    🔄 Qayta o'ynash
-                </button>
-            ` : ''}
-            <button class="match-option-btn" onclick="continueToNextRPS()" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);">
-                ➡️ Yangi duel
-            </button>
-            <button class="match-option-btn" onclick="returnToRPSMenu()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
-                🏠 Bosh menyu
-            </button>
-        `;
-    }
+    playSound('timeout');
 }
 
-// ==================== TIMER FUNKSIYASI ==================== 
-function startTimer() {
-    if (gameState.timerInterval) {
-        clearInterval(gameState.timerInterval);
-    }
-    
-    gameState.duelTimer = 30;
-    
-    if (elements.timer) {
-        elements.timer.textContent = gameState.duelTimer;
-        elements.timer.style.color = '#fff';
-        elements.timer.style.fontSize = '3rem';
-        elements.timer.style.animation = '';
-    }
-    
-    gameState.timerInterval = setInterval(() => {
-        gameState.duelTimer--;
-        
-        if (elements.timer) {
-            elements.timer.textContent = gameState.duelTimer;
-            
-            if (gameState.duelTimer <= 10) {
-                elements.timer.style.color = '#e74c3c';
-                elements.timer.style.animation = 'pulse 1s infinite';
-            } else if (gameState.duelTimer <= 20) {
-                elements.timer.style.color = '#f1c40f';
-            }
-        }
-        
-        if (gameState.duelTimer <= 0) {
-            clearInterval(gameState.timerInterval);
-            handleDuelTimeout();
-        }
-    }, 1000);
-}
-
-function handleDuelTimeout() {
-    console.log('⏱️ Duel vaqti tugadi');
-    
-    if (gameState.socket && gameState.currentDuelId) {
-        gameState.socket.emit('rps_vote', {
-            duelId: gameState.currentDuelId,
-            choice: 'skip'
-        });
-    }
-    
-    handleSkipResult();
-}
-
-// ==================== RAQIB MA'LUMOTLARI ==================== 
+// ==================== RAQIB MA'LUMOTLARI ====================
 function updateOpponentInfo(opponent) {
     if (!opponent) return;
     
@@ -1862,7 +1586,7 @@ function updateOpponentInfo(opponent) {
     
     if (elements.opponentAvatar) {
         elements.opponentAvatar.src = opponent.photo || 
-            `https://ui-avatars.com/api/?name=${opponent.name || 'O'}&background=${genderColor.replace('#', '')}&color=fff`;
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(opponent.name || 'O')}&background=${genderColor.replace('#', '')}&color=fff`;
         elements.opponentAvatar.style.borderColor = genderColor;
     }
     
@@ -1876,96 +1600,416 @@ function updateOpponentInfo(opponent) {
     }
     
     if (elements.opponentRating) elements.opponentRating.textContent = opponent.rating || 1500;
-    if (elements.opponentGames) elements.opponentGames.textContent = opponent.totalGames || 0;
+    if (elements.opponentMatches) elements.opponentMatches.textContent = opponent.matches || 0;
     if (elements.opponentLevel) elements.opponentLevel.textContent = opponent.level || 1;
 }
 
-// ==================== STREAK BONUSI ====================
-function showStreakBonusNotification(streak) {
-    const bonusCoins = Math.min(Math.floor(streak / 3) * 5, 25);
+// ==================== CHAT FUNKSIYALARI ====================
+function openChat(partner) {
+    if (!partner) return;
     
-    const notification = document.getElementById('streakNotification');
-    if (notification) {
-        document.getElementById('streakTitle').textContent = `${streak} KETMA-KET G'ALABA!`;
-        document.getElementById('streakMessage').textContent = `Streak bonus: ${bonusCoins} coin qo'shildi!`;
-        notification.style.display = 'block';
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 300);
-        }, 3000);
+    gameState.isChatModalOpen = true;
+    
+    if (elements.chatPartnerAvatar) {
+        elements.chatPartnerAvatar.src = partner.photo || 
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.name)}&background=3498db&color=fff`;
+    }
+    
+    if (elements.chatPartnerName) {
+        elements.chatPartnerName.textContent = partner.name;
+    }
+    
+    if (elements.chatUsername) {
+        elements.chatUsername.textContent = partner.username ? `@${partner.username}` : '';
+    }
+    
+    if (elements.chatTitle) {
+        elements.chatTitle.textContent = `${partner.name} bilan chat`;
+    }
+    
+    if (elements.chatModal) {
+        elements.chatModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Telegram username borligini tekshirish
+    if (elements.chatOpenTelegramBtn) {
+        elements.chatOpenTelegramBtn.disabled = !partner.username;
+        elements.chatOpenTelegramBtn.title = partner.username ? 
+            'Telegramda ochish' : 'Telegram username mavjud emas';
     }
 }
 
-// ==================== LEVEL UP NOTIFIKATSIYASI ====================
-function showLevelUpNotification(oldLevel, newLevel) {
-    const notification = document.getElementById('levelUpNotification');
-    if (notification) {
-        document.getElementById('levelUpText').textContent = `${oldLevel} → ${newLevel}`;
-        notification.style.display = 'block';
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 300);
-        }, 3000);
-        
-        userState.coins += 100;
-        saveUserStateToLocalStorage();
-        updateUIFromUserState();
-        
-        playSound('level_up');
+function openTelegramChat(username) {
+    if (!username) {
+        showNotification('Xato', 'Bu foydalanuvchining Telegram username\'i mavjud emas');
+        return;
+    }
+    
+    const telegramUrl = `https://t.me/${username.replace('@', '')}`;
+    
+    if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+        Telegram.WebApp.openTelegramLink(telegramUrl);
+    } else {
+        window.open(telegramUrl, '_blank', 'noopener,noreferrer');
     }
 }
 
-// ==================== ACHIEVEMENT NOTIFIKATSIYASI ====================
-function showAchievementNotification(achievement) {
-    const notification = document.getElementById('achievementNotification');
-    if (notification) {
-        document.getElementById('achievementIcon').textContent = achievement.icon;
-        document.getElementById('achievementTitle').textContent = achievement.title;
-        document.getElementById('achievementReward').textContent = `${achievement.reward} coin qo'shildi!`;
-        notification.style.display = 'block';
-        
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 300);
-        }, 3000);
-        
-        playSound('achievement');
+function closeChatModal() {
+    console.log('💬 Chat modali yopilmoqda');
+    
+    gameState.isChatModalOpen = false;
+    if (elements.chatModal) {
+        elements.chatModal.classList.remove('active');
+    }
+    document.body.style.overflow = 'auto';
+    
+    if (gameState.inMatchScreen) {
+        showScreen('match');
+    } else {
+        returnToMenu();
     }
 }
 
-// ==================== NAVBATGA QAYTISH ==================== 
-function continueToNextRPS() {
+// ==================== YANGI DUEL BOSHLASH ====================
+function showNextDuelConfirmModal() {
+    const modalHTML = `
+        <div class="modal active" id="nextDuelConfirmModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-play"></i> Yangi Duel</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Yangi duel o'ynashni xohlaysizmi?</p>
+                    <div class="info-box">
+                        <p><i class="fas fa-info-circle"></i> <strong>Eslatma:</strong></p>
+                        <ul>
+                            <li>Yangi duel boshlaganingizda, navbatga qo'shilasiz</li>
+                            <li>Yangi sherik topilgach, duel boshlanadi</li>
+                            <li>Chat, profil va boshqa funksiyalar faol bo'lib qoladi</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="startNewDuelFromMatch()">
+                        <i class="fas fa-play"></i> Ha, Yangi Duel
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="hideNextDuelConfirmModal()">
+                        <i class="fas fa-times"></i> Bekor qilish
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('nextDuelConfirmModal', modalHTML);
+}
+
+function hideNextDuelConfirmModal() {
+    hideModal('nextDuelConfirmModal');
+}
+
+function startNewDuelFromMatch() {
+    console.log('🔄 Matchdan yangi duelga o\'tish');
+    
+    hideNextDuelConfirmModal();
+    closeChatModal();
+    skipToNextDuel();
+}
+
+// ==================== MODAL FUNKSIYALARI ====================
+function showModal(modalId, content) {
+    let modalContainer = document.getElementById('modalContainer');
+    if (!modalContainer) {
+        modalContainer = document.createElement('div');
+        modalContainer.id = 'modalContainer';
+        document.body.appendChild(modalContainer);
+    }
+    
+    modalContainer.innerHTML = content;
+}
+
+function hideModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.remove();
+    }
+    
+    const modalContainer = document.getElementById('modalContainer');
+    if (modalContainer && modalContainer.children.length === 0) {
+        modalContainer.remove();
+    }
+}
+
+function hideAllModals() {
+    const modals = ['timeoutModal', 'opponentLeftModal', 'noMatchModal', 'nextDuelConfirmModal', 'statsModal'];
+    modals.forEach(modalId => hideModal(modalId));
+    
+    // Profile edit modal
+    if (elements.profileEditModal) {
+        elements.profileEditModal.classList.remove('active');
+    }
+    
+    // Chat modal
+    closeChatModal();
+    
+    // Gender modal
+    hideGenderModal();
+}
+
+function showNoMatchOptions() {
+    const modalHTML = `
+        <div class="modal active" id="noMatchModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-times"></i> Match bo'lmadi</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Sizning ovozingiz: ✖</p>
+                    <p>Keyingi duelga o'tishni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="skipToNextDuel()">
+                        <i class="fas fa-forward"></i> Yangi duel
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="returnToMenu()">
+                        <i class="fas fa-home"></i> Bosh menyu
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('noMatchModal', modalHTML);
+}
+
+function showOpponentLeftModal() {
+    const modalHTML = `
+        <div class="modal active" id="opponentLeftModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-door-open"></i> Raqib chiqib ketdi</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Raqibingiz duel davomida chiqib ketdi. Keyingi duelga o'tishni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="skipToNextDuel()">
+                        <i class="fas fa-forward"></i> Keyingi duel
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="returnToMenu()">
+                        <i class="fas fa-home"></i> Bosh menyu
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('opponentLeftModal', modalHTML);
+}
+
+function showNoMatchModal() {
+    const modalHTML = `
+        <div class="modal active" id="noMatchModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-times"></i> Match bo'lmadi</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Yangi duel o'ynashni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="skipToNextDuel()">
+                        <i class="fas fa-forward"></i> Yangi duel
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="returnToMenu()">
+                        <i class="fas fa-home"></i> Bosh menyu
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('noMatchModal', modalHTML);
+}
+
+function showTimeoutOptions() {
+    const modalHTML = `
+        <div class="modal active" id="timeoutModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-clock"></i> Vaqt tugadi</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Yangi duel o'ynashni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="skipToNextDuel()">
+                        <i class="fas fa-forward"></i> Yangi duel
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="returnToMenu()">
+                        <i class="fas fa-home"></i> Bosh menyu
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('timeoutModal', modalHTML);
+}
+
+// ==================== KUTISH HOLATI ====================
+function handleWaitingForResponse(data) {
+    console.log('⏳ Raqib javobini kutish...');
+    
+    clearInterval(gameState.timerInterval);
+    gameState.waitingForOpponent = true;
+    gameState.timeLeft = 120;
+    
+    if (elements.timer) {
+        elements.timer.textContent = '2:00';
+        elements.timer.style.color = '#ff9500';
+        elements.timer.style.animation = 'pulse 2s infinite';
+    }
+    
+    updateDuelStatus('⏳ Raqib javobini kutish... (2 daqiqa)');
+    
+    // Tugmalarni sozlash
+    if (elements.likeBtn) {
+        elements.likeBtn.disabled = true;
+        elements.likeBtn.style.opacity = '0.5';
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.disabled = true;
+        elements.superLikeBtn.style.opacity = '0.5';
+    }
+    
+    if (elements.noBtn) {
+        elements.noBtn.disabled = false;
+        elements.noBtn.style.opacity = '1';
+        elements.noBtn.textContent = '⏭️ Keyingisi';
+        elements.noBtn.style.background = 'linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%)';
+        elements.noBtn.onclick = () => skipWaitingForResponse();
+    }
+    
+    // Yangi timer boshlash
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        
+        const minutes = Math.floor(gameState.timeLeft / 60);
+        const seconds = gameState.timeLeft % 60;
+        
+        if (elements.timer) {
+            elements.timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        if (gameState.timeLeft <= 30) {
+            if (elements.timer) {
+                elements.timer.style.color = '#ff4444';
+                elements.timer.style.animation = 'pulse 0.5s infinite';
+            }
+        }
+        
+        if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            showOpponentTimeoutModal();
+        }
+    }, 1000);
+}
+
+function skipWaitingForResponse() {
+    if (!gameState.socket || !gameState.currentDuelId) return;
+    
+    gameState.socket.emit('skip_waiting', { duelId: gameState.currentDuelId });
+    skipToNextDuel();
+}
+
+function showOpponentTimeoutModal() {
+    const modalHTML = `
+        <div class="modal active" id="timeoutModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-clock"></i> Raqib javob bermadi</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Raqibingiz 2 daqiqa ichida javob bermadi. O'yinni tugatishni xohlaysizmi?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="skipToNextDuel()">
+                        <i class="fas fa-forward"></i> Keyingi duel
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="returnToMenu()">
+                        <i class="fas fa-home"></i> Bosh menyu
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('timeoutModal', modalHTML);
+}
+
+// ==================== TIMER FUNKSIYASI ====================
+function startTimer() {
+    clearInterval(gameState.timerInterval);
+    gameState.timeLeft = 20;
+    
+    if (elements.timer) {
+        elements.timer.textContent = '20';
+        elements.timer.style.color = '#fff';
+        elements.timer.style.animation = '';
+    }
+    
+    gameState.timerInterval = setInterval(() => {
+        gameState.timeLeft--;
+        
+        if (elements.timer) {
+            elements.timer.textContent = gameState.timeLeft.toString();
+            
+            if (gameState.timeLeft <= 5) {
+                elements.timer.style.color = '#e74c3c';
+                elements.timer.style.animation = 'pulse 1s infinite';
+                
+                // Ogohlantirish tovushi
+                if (gameState.timeLeft <= 3) {
+                    playSound('timer_warning');
+                }
+            }
+        }
+        
+        if (gameState.timeLeft <= 0) {
+            clearInterval(gameState.timerInterval);
+            if (gameState.socket && gameState.isInDuel) {
+                gameState.socket.emit('vote', { 
+                    duelId: gameState.currentDuelId, 
+                    choice: 'skip' 
+                });
+                if (elements.timer) {
+                    elements.timer.textContent = '⏰';
+                }
+                updateDuelStatus('Vaqt tugadi...');
+            }
+        }
+    }, 1000);
+}
+
+// ==================== NAVBATGA QAYTISH ====================
+function skipToNextDuel() {
     console.log('🔄 Keyingi duelga o\'tish');
     
     hideAllModals();
+    closeChatModal();
     
     clearInterval(gameState.timerInterval);
     
     if (elements.timer) {
-        elements.timer.textContent = '30';
+        elements.timer.textContent = '20';
         elements.timer.style.color = '#fff';
         elements.timer.style.animation = '';
     }
+    
+    resetVoteButtons();
     
     gameState.waitingForOpponent = false;
     gameState.matchCompleted = false;
@@ -1974,7 +2018,7 @@ function continueToNextRPS() {
     enterQueue();
 }
 
-// ==================== NAVBATDAN CHIQISH ==================== 
+// ==================== NAVBATDAN CHIQISH ====================
 function leaveQueue() {
     console.log('🚪 Navbatdan chiqish');
     
@@ -1995,10 +2039,11 @@ function leaveQueue() {
     showNotification('Navbatdan chiqdingiz', 'Yana o\'ynash uchun "Navbatga Kirish" tugmasini bosing');
 }
 
-function returnToRPSMenu() {
+function returnToMenu() {
     console.log('🏠 Bosh menyuga qaytish');
     
     hideAllModals();
+    closeChatModal();
     
     clearInterval(gameState.timerInterval);
     
@@ -2014,11 +2059,12 @@ function returnToRPSMenu() {
     gameState.inMatchScreen = false;
     
     if (elements.timer) {
-        elements.timer.textContent = '30';
+        elements.timer.textContent = '20';
         elements.timer.style.color = '#fff';
         elements.timer.style.animation = '';
     }
     
+    resetVoteButtons();
     updateQueueButton();
     updateBackButtonVisibility();
     
@@ -2027,48 +2073,35 @@ function returnToRPSMenu() {
     showNotification('Bosh menyuga qaytildi', 'Yana o\'ynash uchun "Navbatga Kirish" tugmasini bosing');
 }
 
-// ==================== QAYTA O'YIN FUNKSIYALARI ====================
-function requestRPSRematch(opponentId) {
-    if (!gameState.socket || !opponentId) {
-        showNotification('Xato', 'Qayta o\'ynash mumkin emas');
-        return;
-    }
-    
-    gameState.socket.emit('rps_rematch', {
-        opponentId: opponentId
-    });
-    
-    showNotification('So\'rov yuborildi', 'Qayta o\'ynash so\'rovi yuborildi');
-}
-
-// ==================== DO'STLAR FUNKSIYALARI ==================== 
+// ==================== DO'STLAR FUNKSIYALARI ====================
 function loadFriendsList() {
     if (gameState.socket && gameState.isConnected) {
         gameState.socket.emit('get_friends_list');
     } else {
+        // Test ma'lumotlari
         const testFriends = [
             {
                 id: 'test_1',
                 name: 'Ali',
                 username: 'ali_test',
-                photo: '',
+                photo: 'https://ui-avatars.com/api/?name=Ali&background=3498db&color=fff',
                 online: true,
                 lastActive: new Date(),
                 gender: 'male',
                 rating: 1600,
-                games: 15,
+                matches: 15,
                 isMutual: true
             },
             {
                 id: 'test_2',
                 name: 'Malika',
                 username: 'malika_test',
-                photo: '',
+                photo: 'https://ui-avatars.com/api/?name=Malika&background=f5576c&color=fff',
                 online: false,
                 lastActive: new Date(Date.now() - 3600000),
                 gender: 'female',
                 rating: 1750,
-                games: 22,
+                matches: 22,
                 isMutual: true
             }
         ];
@@ -2092,7 +2125,7 @@ function updateFriendsListUI(data) {
                 elements.noFriends.classList.remove('hidden');
                 elements.noFriends.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">👥</div>
+                        <i class="fas fa-users"></i>
                         <h3>Do'stlaringiz yo'q</h3>
                         <p>O'zaro SUPER LIKE qilgan foydalanuvchilar bu yerda ko'rinadi</p>
                     </div>
@@ -2102,32 +2135,33 @@ function updateFriendsListUI(data) {
             if (elements.noFriends) elements.noFriends.classList.add('hidden');
             
             elements.friendsList.innerHTML = friends.map(friend => `
-                <div class="friend-item">
+                <div class="friend-item ${friend.isMutual ? 'mutual' : ''} ${friend.online ? 'online' : 'offline'}">
+                    <img src="${friend.photo}" 
+                         alt="${friend.name}" class="friend-avatar">
                     <div class="friend-info">
-                        <img src="${friend.photo || `https://ui-avatars.com/api/?name=${friend.name}&background=667eea&color=fff`}" 
-                             alt="${friend.name}" class="friend-avatar">
-                        <div class="friend-details">
-                            <div class="friend-name">
-                                ${friend.name}
-                                ${friend.isMutual ? ' <span class="mutual-badge">Do\'st</span>' : ''}
-                                ${friend.online ? '<span class="online-badge"></span>' : ''}
-                            </div>
-                            <div class="friend-username">@${friend.username}</div>
-                            <div class="friend-stats">
-                                <span class="friend-stat">⭐ ${friend.rating}</span>
-                                <span class="friend-stat">🎮 ${friend.games}</span>
-                                <span class="friend-stat">${friend.online ? 'Onlayn' : formatLastActive(friend.lastActive)}</span>
-                            </div>
+                        <div class="friend-name">
+                            ${friend.name}
+                            ${friend.isMutual ? '<span class="mutual-badge"><i class="fas fa-heart"></i> Do\'st</span>' : ''}
+                            <span class="friend-gender gender-${friend.gender}-badge">
+                                <i class="fas fa-${friend.gender === 'male' ? 'mars' : 'venus'}"></i>
+                            </span>
+                        </div>
+                        <div class="friend-username">@${friend.username}</div>
+                        <div class="friend-stats">
+                            <span><i class="fas fa-trophy"></i> ${friend.rating}</span>
+                            <span><i class="fas fa-heart"></i> ${friend.matches}</span>
+                            <span class="friend-status ${friend.online ? 'status-online' : 'status-offline'}">
+                                <i class="fas fa-circle"></i> ${friend.online ? 'Onlayn' : formatLastActive(friend.lastActive)}
+                            </span>
                         </div>
                     </div>
                     <div class="friend-actions">
                         ${friend.isMutual ? 
-                            `<button class="friend-action-btn chat-btn" onclick="openChat(${JSON.stringify(friend).replace(/"/g, '&quot;')})">
-                                💬 Chat
-                            </button>` 
-                            : 
-                            `<button class="friend-action-btn disabled">
-                                ⏳ Kutish
+                            `<button class="btn btn-small btn-primary" onclick="openChat(${JSON.stringify(friend).replace(/"/g, '&quot;')})">
+                                <i class="fas fa-comment"></i> Chat
+                            </button>` : 
+                            `<button class="btn btn-small btn-secondary" disabled>
+                                <i class="fas fa-clock"></i> Kutish
                             </button>`
                         }
                     </div>
@@ -2160,64 +2194,80 @@ function formatLastActive(timestamp) {
     return lastActive.toLocaleDateString('uz-UZ');
 }
 
-// ==================== DO'KON FUNKSIYALARI ==================== 
+// ==================== DO'KON FUNKSIYALARI ====================
 function loadShopItems() {
     const items = [
-        {
-            id: 1,
-            name: '100 Coin',
-            price: 0.99,
-            icon: '💰',
-            description: '100 ta coin',
-            type: 'coin_pack',
-            realMoney: true
+        { 
+            id: 1, 
+            name: '10 Super Like', 
+            price: 100, 
+            icon: '💖', 
+            description: '10 ta kunlik SUPER LIKE',
+            type: 'super_like'
         },
-        {
-            id: 2,
-            name: '500 Coin',
-            price: 3.99,
-            icon: '💵',
-            description: '500 ta coin (50% ko\'proq)',
-            type: 'coin_pack',
-            realMoney: true
+        { 
+            id: 2, 
+            name: '50 Super Like', 
+            price: 450, 
+            icon: '💎', 
+            description: '50 ta kunlik SUPER LIKE (10% chegirma)',
+            type: 'super_like'
         },
-        {
-            id: 3,
-            name: '1000 Coin',
-            price: 6.99,
-            icon: '💎',
-            description: '1000 ta coin (2x ko\'proq)',
-            type: 'coin_pack',
-            realMoney: true
+        { 
+            id: 3, 
+            name: '100 Super Like', 
+            price: 800, 
+            icon: '👑', 
+            description: '100 ta kunlik SUPER LIKE (20% chegirma)',
+            type: 'super_like'
         },
-        {
-            id: 4,
-            name: 'Premium Profil',
-            price: 300,
-            icon: '⭐',
+        { 
+            id: 4, 
+            name: 'Premium Profil', 
+            price: 300, 
+            icon: '⭐', 
             description: '30 kunlik premium status',
             type: 'premium'
+        },
+        { 
+            id: 5, 
+            name: '1000 Coin', 
+            price: 0.99, 
+            icon: '💰', 
+            description: '1000 coin (real pul bilan)',
+            type: 'coin_pack',
+            realMoney: true
+        },
+        { 
+            id: 6, 
+            name: '5000 Coin', 
+            price: 3.99, 
+            icon: '💵', 
+            description: '5000 coin (50% ko\'proq)',
+            type: 'coin_pack',
+            realMoney: true
         }
     ];
     
     if (elements.shopItemsList) {
         elements.shopItemsList.innerHTML = items.map(item => `
-            <div class="shop-item" onclick="buyItem(${item.id})">
+            <div class="shop-item ${item.realMoney ? 'real-money' : ''}">
                 <div class="shop-item-icon">${item.icon}</div>
                 <div class="shop-item-info">
                     <div class="shop-item-name">${item.name}</div>
                     <div class="shop-item-description">${item.description}</div>
                     ${item.realMoney ? 
-                        '<div class="shop-item-real-money">💰 Real pul</div>' : 
+                        '<div class="shop-item-tag"><i class="fas fa-dollar-sign"></i> Real pul</div>' : 
                         ''
                     }
                 </div>
-                <div class="shop-item-price">
+                <button class="shop-item-buy" onclick="buyItem(${item.id})" 
+                        ${(!item.realMoney && userState.coins < item.price) ? 'disabled' : ''}>
                     ${item.realMoney ? 
-                        `$${item.price}` : 
-                        `${item.price} coin`
+                        `<i class="fas fa-dollar-sign"></i> ${item.price}` :
+                        `<i class="fas fa-coins"></i> ${item.price}`
                     }
-                </div>
+                </button>
             </div>
         `).join('');
     }
@@ -2225,16 +2275,19 @@ function loadShopItems() {
 
 function buyItem(itemId) {
     const items = [
-        { id: 1, price: 0.99, type: 'coin_pack', value: 100, realMoney: true },
-        { id: 2, price: 3.99, type: 'coin_pack', value: 500, realMoney: true },
-        { id: 3, price: 6.99, type: 'coin_pack', value: 1000, realMoney: true },
-        { id: 4, price: 300, type: 'premium', value: 30 }
+        { id: 1, price: 100, type: 'super_like', value: 10 },
+        { id: 2, price: 450, type: 'super_like', value: 50 },
+        { id: 3, price: 800, type: 'super_like', value: 100 },
+        { id: 4, price: 300, type: 'premium', value: 30 },
+        { id: 5, price: 0.99, type: 'coin_pack', value: 1000, realMoney: true },
+        { id: 6, price: 3.99, type: 'coin_pack', value: 5000, realMoney: true }
     ];
     
     const item = items.find(i => i.id === itemId);
     if (!item) return;
     
     if (item.realMoney) {
+        // Real pul bilan xarid
         showNotification('Kechirasiz', 'Real pul bilan xarid hozircha mavjud emas');
         return;
     }
@@ -2242,46 +2295,54 @@ function buyItem(itemId) {
     if (userState.coins >= item.price) {
         userState.coins -= item.price;
         
-        if (item.type === 'premium') {
+        if (item.type === 'super_like') {
+            userState.dailySuperLikes += item.value;
+            showNotification('✅ Xarid qilindi', `${item.value} ta SUPER LIKE qo\'shildi!`);
+        } else if (item.type === 'premium') {
             showNotification('✅ Xarid qilindi', 'Premium profil faollashtirildi!');
         }
         
         saveUserStateToLocalStorage();
         updateUIFromUserState();
+        
+        // Achievement tekshirish
+        if (item.type === 'super_like') {
+            checkAchievement('buy_super_likes');
+        }
     } else {
         showNotification('⚠️ Yetarli emas', 'Coinlaringiz yetarli emas!');
     }
 }
 
-// ==================== LIDERLAR FUNKSIYALARI ==================== 
+// ==================== LIDERLAR FUNKSIYALARI ====================
 function loadLeaderboard() {
+    // Test ma'lumotlari
     const leaders = [
-        { rank: 1, name: 'Ali', rating: 1850, games: 45, wins: 32, streak: 7, gender: 'male', level: 19 },
-        { rank: 2, name: 'Malika', rating: 1790, games: 38, wins: 28, streak: 5, gender: 'female', level: 18 },
-        { rank: 3, name: 'Sanjar', rating: 1720, games: 32, wins: 25, streak: 3, gender: 'male', level: 18 },
-        { rank: 4, name: 'Dilnoza', rating: 1680, games: 29, wins: 20, streak: 2, gender: 'female', level: 17 },
-        { rank: 5, name: 'Sardor', rating: 1620, games: 25, wins: 18, streak: 4, gender: 'male', level: 17 },
-        { rank: 6, name: 'Kamola', rating: 1590, games: 28, wins: 19, streak: 1, gender: 'female', level: 16 },
-        { rank: 7, name: 'Javohir', rating: 1550, games: 22, wins: 15, streak: 6, gender: 'male', level: 16 },
-        { rank: 8, name: 'Nargiza', rating: 1520, games: 20, wins: 14, streak: 2, gender: 'female', level: 16 },
-        { rank: 9, name: 'Bekzod', rating: 1480, games: 18, wins: 12, streak: 3, gender: 'male', level: 15 },
-        { rank: 10, name: 'Sevara', rating: 1450, games: 16, wins: 10, streak: 1, gender: 'female', level: 15 }
+        { rank: 1, name: 'Ali', rating: 1850, matches: 45, friends: 12, gender: 'male', level: 19 },
+        { rank: 2, name: 'Malika', rating: 1790, matches: 38, friends: 8, gender: 'female', level: 18 },
+        { rank: 3, name: 'Sanjar', rating: 1720, matches: 32, friends: 5, gender: 'male', level: 18 },
+        { rank: 4, name: 'Dilnoza', rating: 1680, matches: 29, friends: 15, gender: 'female', level: 17 },
+        { rank: 5, name: 'Sardor', rating: 1620, matches: 25, friends: 7, gender: 'male', level: 17 },
+        { rank: 6, name: 'Kamola', rating: 1590, matches: 28, friends: 9, gender: 'female', level: 16 },
+        { rank: 7, name: 'Javohir', rating: 1550, matches: 22, friends: 4, gender: 'male', level: 16 },
+        { rank: 8, name: 'Nargiza', rating: 1520, matches: 20, friends: 11, gender: 'female', level: 16 },
+        { rank: 9, name: 'Bekzod', rating: 1480, matches: 18, friends: 6, gender: 'male', level: 15 },
+        { rank: 10, name: 'Sevara', rating: 1450, matches: 16, friends: 8, gender: 'female', level: 15 }
     ];
     
     if (elements.leaderboardList) {
         elements.leaderboardList.innerHTML = leaders.map(leader => `
-            <div class="leaderboard-item">
+            <div class="leaderboard-item ${leader.gender === 'female' ? 'female' : 'male'}">
                 <div class="leaderboard-rank">${leader.rank}</div>
-                <div class="leaderboard-user">
+                <div class="leaderboard-info">
                     <div class="leaderboard-name">
                         ${leader.name}
                         <span class="leaderboard-level">Level ${leader.level}</span>
                     </div>
                     <div class="leaderboard-stats">
-                        <span class="leaderboard-stat">⭐ ${leader.rating}</span>
-                        <span class="leaderboard-stat">🎮 ${leader.games}</span>
-                        <span class="leaderboard-stat">🏆 ${leader.wins}</span>
-                        <span class="leaderboard-stat">🔥 ${leader.streak}</span>
+                        <span><i class="fas fa-trophy"></i> ${leader.rating}</span>
+                        <span><i class="fas fa-heart"></i> ${leader.matches}</span>
+                        <span><i class="fas fa-users"></i> ${leader.friends}</span>
                     </div>
                 </div>
                 <div class="leaderboard-rating">
@@ -2296,87 +2357,98 @@ function loadLeaderboard() {
     }
 }
 
-// ==================== KUNLIK VAZIFALAR ==================== 
+// ==================== KUNLIK VAZIFALAR ====================
 function loadDailyQuests() {
     const defaultQuests = [
-        {
-            id: 'play_3_duels',
-            title: '3 ta duel o\'ynash',
-            progress: Math.min(userState.totalGames, 3),
-            total: 3,
+        { 
+            id: 'play_3_duels', 
+            title: '3 ta duel o\'ynash', 
+            progress: Math.min(userState.duels, 3), 
+            total: 3, 
             reward: 50,
-            type: 'play_duel',
-            completed: userState.totalGames >= 3
+            type: 'play',
+            completed: userState.duels >= 3
         },
-        {
-            id: 'win_1_duel',
-            title: '1 ta duel yutish',
-            progress: Math.min(userState.wins, 1),
-            total: 1,
+        { 
+            id: 'give_5_likes', 
+            title: '5 ta like berish', 
+            progress: Math.min(userState.totalLikes, 5), 
+            total: 5, 
+            reward: 30,
+            type: 'like',
+            completed: userState.totalLikes >= 5
+        },
+        { 
+            id: 'get_1_match', 
+            title: '1 ta match olish', 
+            progress: Math.min(userState.matches, 1), 
+            total: 1, 
             reward: 100,
-            type: 'win_duel',
-            completed: userState.wins >= 1
+            type: 'match',
+            completed: userState.matches >= 1
         },
-        {
-            id: 'make_1_friend',
-            title: '1 ta do\'st orttirish',
-            progress: Math.min(userState.mutualMatchesCount, 1),
-            total: 1,
+        { 
+            id: 'make_1_friend', 
+            title: '1 ta do\'st orttirish', 
+            progress: Math.min(userState.mutualMatchesCount, 1), 
+            total: 1, 
             reward: 200,
-            type: 'make_friend',
+            type: 'friend',
             completed: userState.mutualMatchesCount >= 1
-        },
-        {
-            id: 'earn_100_coins',
-            title: '100 coin yig\'ish',
-            progress: Math.min(userState.coins, 100),
-            total: 100,
-            reward: 50,
-            type: 'earn_coins',
-            completed: userState.coins >= 100
         }
     ];
     
+    // Agar serverdan kelgan questlar bo'lsa, ularni ishlatish
     const quests = userState.dailyQuests.length > 0 ? userState.dailyQuests : defaultQuests;
     
     if (elements.profileQuestsList) {
         elements.profileQuestsList.innerHTML = quests.map(quest => `
-            <div class="quest-item">
+            <div class="quest-item ${quest.completed ? 'completed' : ''}">
                 <div class="quest-info">
                     <div class="quest-title">
                         ${quest.title}
                         ${quest.completed ? 
-                            '<span class="quest-completed">✅</span>' : 
-                            '<span class="quest-incomplete">⏳</span>'
+                            '<span class="quest-completed-badge"><i class="fas fa-check"></i></span>' : 
+                            ''
                         }
                     </div>
                     <div class="quest-progress">
-                        <span class="quest-progress-text">${quest.progress}/${quest.total}</span>
-                        <span class="quest-reward">${quest.reward} coin</span>
+                        <span>${quest.progress}/${quest.total}</span>
+                        <span class="quest-reward-amount"><i class="fas fa-coins"></i> ${quest.reward}</span>
                     </div>
-                    <div class="quest-progress-bar">
-                        <div class="progress-fill" style="width: ${(quest.progress/quest.total)*100}%"></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${(quest.progress / quest.total) * 100}%"></div>
                     </div>
                 </div>
-                <div class="quest-action">
-                    ${quest.completed && !quest.claimed ? 
-                        '<button class="btn btn-success" onclick="claimQuestReward(\'' + quest.id + '\')">📥 Olish</button>' : 
-                        quest.claimed ? 
-                        '<button class="btn btn-disabled" disabled>✅ Olingan</button>' :
-                        '<button class="btn btn-disabled" disabled>⏳ Davom eting</button>'
+                <button class="quest-claim-btn" 
+                        onclick="claimQuestReward('${quest.id}')"
+                        ${quest.completed && !quest.claimed ? '' : 'disabled'}>
+                    ${quest.claimed ? 
+                        '<i class="fas fa-check"></i>' : 
+                        '<i class="fas fa-gift"></i>'
                     }
-                </div>
+                </button>
             </div>
         `).join('');
     }
 }
 
+function updateDailyQuest(questType, value = 1) {
+    if (!gameState.socket || !gameState.isConnected) return;
+    
+    gameState.socket.emit('update_quest', {
+        questType: questType,
+        value: value
+    });
+}
+
 function claimQuestReward(questId) {
     if (!gameState.socket || !gameState.isConnected) return;
+    
     gameState.socket.emit('claim_quest_reward', { questId: questId });
 }
 
-// ==================== ACHIEVEMENTS ==================== 
+// ==================== ACHIEVEMENTS ====================
 function loadAchievements() {
     const defaultAchievements = [
         {
@@ -2384,224 +2456,192 @@ function loadAchievements() {
             title: 'Birinchi Duel',
             description: 'Birinchi duelni o\'ynash',
             icon: '🎮',
-            unlocked: userState.totalGames > 0,
-            progress: Math.min(userState.totalGames, 1),
+            unlocked: userState.duels > 0,
+            progress: Math.min(userState.duels, 1),
             required: 1,
             reward: 100
         },
         {
-            id: 'first_win',
-            title: 'Birinchi G\'alaba',
-            description: 'Birinchi g\'alabani qo\'lga kiriting',
-            icon: '🏆',
-            unlocked: userState.wins > 0,
-            progress: Math.min(userState.wins, 1),
+            id: 'first_match',
+            title: 'Birinchi Match',
+            description: 'Birinchi matchni olish',
+            icon: '❤️',
+            unlocked: userState.matches > 0,
+            progress: Math.min(userState.matches, 1),
             required: 1,
             reward: 200
         },
         {
-            id: 'win_streak_3',
-            title: '3 ketma-ket g\'alaba',
-            description: '3 marta ketma-ket g\'alaba qozoning',
-            icon: '🔥',
-            unlocked: userState.winStreak >= 3,
-            progress: Math.min(userState.winStreak, 3),
-            required: 3,
+            id: 'first_friend',
+            title: 'Birinchi Do\'st',
+            description: 'Birinchi do\'st orttirish',
+            icon: '🤝',
+            unlocked: userState.friendsCount > 0,
+            progress: Math.min(userState.friendsCount, 1),
+            required: 1,
+            reward: 300
+        },
+        {
+            id: 'like_master',
+            title: 'Like Ustasi',
+            description: '10 ta like berish',
+            icon: '💖',
+            unlocked: userState.totalLikes >= 10,
+            progress: Math.min(userState.totalLikes, 10),
+            required: 10,
             reward: 150
         },
         {
-            id: 'play_10_games',
-            title: '10 ta duel',
-            description: '10 ta duel o\'ynang',
-            icon: '🎯',
-            unlocked: userState.totalGames >= 10,
-            progress: Math.min(userState.totalGames, 10),
-            required: 10,
-            reward: 250
-        },
-        {
-            id: 'play_50_games',
-            title: '50 ta duel',
-            description: '50 ta duel o\'ynang',
-            icon: '💎',
-            unlocked: userState.totalGames >= 50,
-            progress: Math.min(userState.totalGames, 50),
-            required: 50,
+            id: 'duel_expert',
+            title: 'Duel Eksperti',
+            description: '25 ta duel o\'ynash',
+            icon: '⚔️',
+            unlocked: userState.duels >= 25,
+            progress: Math.min(userState.duels, 25),
+            required: 25,
             reward: 500
         }
     ];
     
+    // Agar serverdan kelgan achievements bo'lsa, ularni ishlatish
     const achievements = userState.achievements.length > 0 ? userState.achievements : defaultAchievements;
     
-    // Achievements listini yaratish
-    // Bu yerda siz achievements ro'yxatini ko'rsatishingiz mumkin
+    if (elements.achievementsList) {
+        elements.achievementsList.innerHTML = achievements.map(achievement => `
+            <div class="achievement-item ${achievement.unlocked ? 'unlocked' : 'locked'}">
+                <div class="achievement-icon">${achievement.icon}</div>
+                <div class="achievement-info">
+                    <div class="achievement-title">${achievement.title}</div>
+                    <div class="achievement-description">${achievement.description}</div>
+                    <div class="achievement-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${(achievement.progress / achievement.required) * 100}%"></div>
+                        </div>
+                        <div class="progress-text">${achievement.progress}/${achievement.required}</div>
+                    </div>
+                </div>
+                <div class="achievement-reward">
+                    <div class="reward-amount">${achievement.reward}</div>
+                    <div class="reward-icon"><i class="fas fa-coins"></i></div>
+                </div>
+            </div>
+        `).join('');
+    }
 }
 
-// ==================== STATISTIKA KO'RSATISH ==================== 
-function showRPSStatistics() {
-    const stats = JSON.parse(localStorage.getItem('rps_game_stats')) || {};
+function checkAchievement(achievementId) {
+    if (!gameState.socket || !gameState.isConnected) return;
     
-    const statsHTML = `
-        <div class="modal" id="rpsStatsModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>📊 Tosh-Qaychi-Qog'oz Statistika</h2>
-                    <button class="close-btn" onclick="hideModal('rpsStatsModal')">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="stats-summary">
-                        <div class="stat-item">
-                            <div class="stat-label">Jami O'yinlar</div>
-                            <div class="stat-value">${stats.totalGames || 0}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">G'alabalar</div>
-                            <div class="stat-value">${stats.wins || 0}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Mag'lubiyatlar</div>
-                            <div class="stat-value">${stats.losses || 0}</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-label">Duranglar</div>
-                            <div class="stat-value">${stats.draws || 0}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stats-details">
-                        <h3>Tanlovlar bo'yicha statistika:</h3>
-                        <div class="choice-stats">
-                            ${Object.entries(stats.choiceStats || {}).map(([choice, data]) => `
-                                <div class="choice-stat">
-                                    <div class="choice-icon">${RPSGame.choiceIcons[choice]}</div>
-                                    <div class="choice-name">${RPSGame.choiceNames[choice]}</div>
-                                    <div class="choice-data">
-                                        <span>${data.wins || 0}/${data.uses || 0}</span>
-                                        <span class="win-rate">
-                                            ${data.uses ? Math.round((data.wins / data.uses) * 100) : 0}%
-                                        </span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <h3>So'nggi 5 ta o'yin:</h3>
-                        <div class="recent-games">
-                            ${(stats.recentGames || []).slice(0, 5).map(game => `
-                                <div class="recent-game">
-                                    <div class="game-result">
-                                        ${game.result === 'win' ? '🏆' : game.result === 'lose' ? '😔' : '🤝'}
-                                    </div>
-                                    <div class="game-choices">
-                                        ${RPSGame.choiceIcons[game.playerChoice] || '?'} vs 
-                                        ${RPSGame.choiceIcons[game.opponentChoice] || '?'}
-                                    </div>
-                                    <div class="game-time">
-                                        ${new Date(game.timestamp).toLocaleTimeString('uz-UZ', {hour: '2-digit', minute:'2-digit'})}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button onclick="hideModal('rpsStatsModal')" class="btn btn-primary">Yopish</button>
+    gameState.socket.emit('check_achievement', { achievementId: achievementId });
+}
+
+function showAchievementNotification(achievement) {
+    const notification = document.createElement('div');
+    notification.className = 'achievement-notification';
+    notification.innerHTML = `
+        <div class="achievement-notification-content">
+            <div class="achievement-icon-large">${achievement.icon}</div>
+            <div class="achievement-notification-info">
+                <div class="achievement-notification-title">🏆 Achievement Ochildi!</div>
+                <div class="achievement-notification-name">${achievement.title}</div>
+                <div class="achievement-notification-reward">
+                    <i class="fas fa-coins"></i> ${achievement.reward} coin qo'shildi!
                 </div>
             </div>
         </div>
     `;
     
-    showModal('rpsStatsModal', statsHTML);
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+    
+    // Tovush
+    playSound('achievement');
 }
 
+// ==================== STATISTIKA ====================
 function showDetailedStats() {
-    const winRate = userState.totalGames > 0 ? Math.round((userState.wins / userState.totalGames) * 100) : 0;
-    const drawRate = userState.totalGames > 0 ? Math.round((userState.draws / userState.totalGames) * 100) : 0;
-    const loseRate = userState.totalGames > 0 ? Math.round((userState.losses / userState.totalGames) * 100) : 0;
-    
     const statsHTML = `
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">⭐</div>
+                <div class="stat-icon"><i class="fas fa-trophy"></i></div>
                 <div class="stat-value">${userState.rating}</div>
                 <div class="stat-label">Reyting</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🎮</div>
-                <div class="stat-value">${userState.totalGames}</div>
-                <div class="stat-label">Jami Duel</div>
+                <div class="stat-icon"><i class="fas fa-heart"></i></div>
+                <div class="stat-value">${userState.matches}</div>
+                <div class="stat-label">Matchlar</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🏆</div>
+                <div class="stat-icon"><i class="fas fa-gamepad"></i></div>
+                <div class="stat-value">${userState.duels}</div>
+                <div class="stat-label">Duellar</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-crown"></i></div>
                 <div class="stat-value">${userState.wins}</div>
                 <div class="stat-label">G'alabalar</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🤝</div>
-                <div class="stat-value">${userState.draws}</div>
-                <div class="stat-label">Durang</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">📊</div>
-                <div class="stat-value">${winRate}%</div>
+                <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                <div class="stat-value">${userState.duels > 0 ? Math.round((userState.wins / userState.duels) * 100) : 0}%</div>
                 <div class="stat-label">G'alaba %</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🔥</div>
-                <div class="stat-value">${userState.winStreak}</div>
-                <div class="stat-label">Joriy Streak</div>
+                <div class="stat-icon"><i class="fas fa-fire"></i></div>
+                <div class="stat-value">${userState.totalLikes}</div>
+                <div class="stat-label">Total Like</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">👑</div>
-                <div class="stat-value">${userState.maxWinStreak}</div>
-                <div class="stat-label">Max Streak</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">👥</div>
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
                 <div class="stat-value">${userState.friendsCount}</div>
                 <div class="stat-label">Do'stlar</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🤝</div>
+                <div class="stat-icon"><i class="fas fa-bolt"></i></div>
                 <div class="stat-value">${userState.mutualMatchesCount}</div>
-                <div class="stat-label">O'zaro Match</div>
+                <div class="stat-label">O'zaro SUPER LIKE</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🪙</div>
+                <div class="stat-icon"><i class="fas fa-coins"></i></div>
                 <div class="stat-value">${userState.coins}</div>
                 <div class="stat-label">Coin</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📈</div>
+                <div class="stat-icon"><i class="fas fa-level-up-alt"></i></div>
                 <div class="stat-value">${userState.level}</div>
                 <div class="stat-label">Level</div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">📅</div>
+                <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
                 <div class="stat-value">${userState.streakDays}</div>
                 <div class="stat-label">Streak (kun)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-star"></i></div>
+                <div class="stat-value">${userState.dailySuperLikes}</div>
+                <div class="stat-label">Super Like (qolgan)</div>
             </div>
         </div>
         
         <div class="stats-details">
-            <div class="stats-section">
-                <h3>Statistika taqsimoti:</h3>
-                <div class="stat-distribution">
-                    <div class="stat-dist-item win">G'alaba: ${winRate}%</div>
-                    <div class="stat-dist-item draw">Durang: ${drawRate}%</div>
-                    <div class="stat-dist-item lose">Mag'lubiyat: ${loseRate}%</div>
-                </div>
-            </div>
-            <div class="stats-section">
-                <h3>Filter sozlamalari:</h3>
-                <p>Jins: ${userState.currentGender === 'male' ? 'Erkak' : userState.currentGender === 'female' ? 'Ayol' : 'Ko\'rsatilmagan'}</p>
-                <p>Qidiruv filteri: ${getFilterText(userState.filter)}</p>
-            </div>
-            <div class="stats-section">
-                <h3>Faollik:</h3>
-                <p>Oxirgi login: ${userState.lastLogin ? new Date(userState.lastLogin).toLocaleString('uz-UZ') : 'Ma\'lumot yo\'q'}</p>
-                <p>Umumiy o'yin vaqti: ${Math.floor(userState.totalPlayTime / 60)} daqiqa</p>
-            </div>
+            <h3>Filter sozlamalari:</h3>
+            <p>Jins: ${userState.currentGender === 'male' ? 'Erkak' : userState.currentGender === 'female' ? 'Ayol' : 'Ko\'rsatilmagan'}</p>
+            <p>Qidiruv filteri: ${getFilterText(userState.filter)}</p>
+            
+            <h3>Faollik:</h3>
+            <p>Oxirgi login: ${userState.lastLogin ? new Date(userState.lastLogin).toLocaleString('uz-UZ') : 'Ma\'lumot yo\'q'}</p>
+            <p>Umumiy o'yin vaqti: ${Math.floor(userState.totalPlayTime / 60)} daqiqa</p>
         </div>
     `;
     
@@ -2622,7 +2662,31 @@ function closeStatsModal() {
     document.body.style.overflow = 'auto';
 }
 
-// ==================== STATUS YANGILASH ==================== 
+// ==================== O'YIN STATISTIKASI ====================
+function updateGameStats(action) {
+    // O'yin vaqtini hisoblash
+    const now = Date.now();
+    const timePlayed = Math.floor((now - gameState.lastActivity) / 1000); // sekundlarda
+    userState.totalPlayTime += timePlayed;
+    gameState.lastActivity = now;
+    
+    // Action bo'yicha statistika
+    switch(action) {
+        case 'like':
+            userState.totalLikes++;
+            break;
+        case 'super_like':
+            userState.totalLikes++;
+            break;
+        case 'skip':
+            // Skip uchun alohida statistika
+            break;
+    }
+    
+    saveUserStateToLocalStorage();
+}
+
+// ==================== STATUS YANGILASH ====================
 function updateQueueStatus(msg) {
     if (elements.queueStatus) {
         elements.queueStatus.textContent = msg;
@@ -2644,16 +2708,16 @@ function updateQueueButton() {
             elements.enterQueueBtn.classList.remove('disabled');
             
             if (gameState.isInQueue) {
-                elements.enterQueueBtn.innerHTML = '🔄 Navbatdasiz';
+                elements.enterQueueBtn.innerHTML = '<i class="fas fa-check"></i> Navbatdasiz';
                 elements.enterQueueBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
             } else {
-                elements.enterQueueBtn.innerHTML = '🎮 Navbatga Kirish';
+                elements.enterQueueBtn.innerHTML = '<i class="fas fa-gamepad"></i> Navbatga Kirish';
                 elements.enterQueueBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             }
         } else {
             elements.enterQueueBtn.disabled = true;
             elements.enterQueueBtn.classList.add('disabled');
-            elements.enterQueueBtn.innerHTML = '🔌 Navbatga kirish';
+            elements.enterQueueBtn.innerHTML = '<i class="fas fa-gamepad"></i> Navbatga kirish';
             elements.enterQueueBtn.style.background = 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)';
         }
     }
@@ -2661,10 +2725,10 @@ function updateQueueButton() {
     if (elements.startBtn) {
         elements.startBtn.disabled = !gameState.isConnected;
         if (gameState.isConnected) {
-            elements.startBtn.innerHTML = '✅ Ulandi';
+            elements.startBtn.innerHTML = '<i class="fas fa-check"></i> Ulandi';
             elements.startBtn.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
         } else {
-            elements.startBtn.innerHTML = '🔗 Serverga Ulanish';
+            elements.startBtn.innerHTML = '<i class="fas fa-plug"></i> Serverga Ulanish';
             elements.startBtn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
         }
     }
@@ -2676,12 +2740,11 @@ function updateStatsFromServer(data) {
     if (data.coins !== undefined) userState.coins = data.coins;
     if (data.level !== undefined) userState.level = data.level;
     if (data.rating !== undefined) userState.rating = data.rating;
-    if (data.totalGames !== undefined) userState.totalGames = data.totalGames;
+    if (data.matches !== undefined) userState.matches = data.matches;
+    if (data.duels !== undefined) userState.duels = data.duels;
     if (data.wins !== undefined) userState.wins = data.wins;
-    if (data.draws !== undefined) userState.draws = data.draws;
-    if (data.losses !== undefined) userState.losses = data.losses;
-    if (data.winStreak !== undefined) userState.winStreak = data.winStreak;
-    if (data.maxWinStreak !== undefined) userState.maxWinStreak = data.maxWinStreak;
+    if (data.totalLikes !== undefined) userState.totalLikes = data.totalLikes;
+    if (data.dailySuperLikes !== undefined) userState.dailySuperLikes = data.dailySuperLikes;
     if (data.bio !== undefined) userState.bio = data.bio;
     if (data.filter !== undefined) userState.filter = data.filter;
     if (data.mutualMatchesCount !== undefined) userState.mutualMatchesCount = data.mutualMatchesCount;
@@ -2694,7 +2757,7 @@ function updateStatsFromServer(data) {
     updateUIFromUserState();
 }
 
-// ==================== NOTIFIKATSIYA ==================== 
+// ==================== NOTIFIKATSIYA ====================
 function showNotification(title, message) {
     if (!elements.notification) return;
     
@@ -2702,6 +2765,7 @@ function showNotification(title, message) {
     elements.notificationMessage.textContent = message;
     elements.notification.classList.add('active');
     
+    // Tovush
     playSound('notification');
     
     setTimeout(() => {
@@ -2709,42 +2773,73 @@ function showNotification(title, message) {
     }, 3000);
 }
 
-// ==================== TOVUSH FUNKSIYALARI ==================== 
+function showLevelUpNotification(oldLevel, newLevel) {
+    const notification = document.createElement('div');
+    notification.className = 'level-up-notification';
+    notification.innerHTML = `
+        <div class="level-up-content">
+            <div class="level-up-icon">🎉</div>
+            <div class="level-up-info">
+                <div class="level-up-title">LEVEL UP!</div>
+                <div class="level-up-message">${oldLevel} → ${newLevel}</div>
+                <div class="level-up-reward">
+                    <i class="fas fa-coins"></i> 100 coin bonus!
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+    
+    // Bonus coin
+    userState.coins += 100;
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
+    
+    // Tovush
+    playSound('level_up');
+}
+
+// ==================== TOVUSH FUNKSIYALARI ====================
 function playSound(soundName) {
+    // Tovush sozlamalari localStorage dan o'qish
     const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
     
     if (!soundEnabled) return;
     
-    // Soddalashtirilgan tovushlar
     const sounds = {
-        'rock': 'https://assets.mixkit.co/sfx/preview/mixkit-rock-hit-759.mp3',
-        'scissors': 'https://assets.mixkit.co/sfx/preview/mixkit-cutting-with-scissors-767.mp3',
-        'paper': 'https://assets.mixkit.co/sfx/preview/mixkit-page-paper-1093.mp3',
-        'win': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
-        'lose': 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3',
-        'draw': 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
-        'skip': 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
-        'duel_start': 'https://assets.mixkit.co/sfx/preview/mixkit-game-start-1664.mp3',
+        'like': 'https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3',
+        'super_like': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
+        'match': 'https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.mp3',
+        'duel_start': 'https://assets.mixkit.co/sfx/preview/mixkit-game-show-intro-uplift-465.mp3',
         'notification': 'https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3',
-        'level_up': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3',
-        'achievement': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3'
+        'level_up': 'https://assets.mixkit.co/sfx/preview/mixkit-winning-trumpet-2018.mp3',
+        'achievement': 'https://assets.mixkit.co/sfx/preview/mixkit-video-game-treasure-2066.mp3',
+        'timer_warning': 'https://assets.mixkit.co/sfx/preview/mixkit-warning-alarm-buzzer-958.mp3',
+        'skip': 'https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3',
+        'no_match': 'https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3',
+        'timeout': 'https://assets.mixkit.co/sfx/preview/mixkit-warning-timer-software-903.mp3'
     };
     
     if (sounds[soundName]) {
-        try {
-            const audio = new Audio(sounds[soundName]);
-            audio.volume = 0.3;
-            audio.play().catch(e => {
-                console.log('Tovushni ijro etishda xato:', e);
-                // Tovush bo'lmasa, hech narsa qilma
-            });
-        } catch (error) {
-            console.log('Audio yaratishda xato:', error);
-        }
+        const audio = new Audio(sounds[soundName]);
+        audio.volume = 0.3;
+        audio.play().catch(e => console.log('Tovushni ijro etishda xato:', e));
     }
 }
 
-// ==================== EKRANLARNI ALMASHTIRISH ==================== 
+// ==================== EKRANLARNI ALMASHTIRISH ====================
 function showScreen(screen) {
     console.log(`📱 Ekran o'zgartirildi: ${screen}`);
     
@@ -2755,21 +2850,24 @@ function showScreen(screen) {
         'match': elements.matchScreen
     };
     
+    // Barcha ekranlarni yashirish
     Object.values(screens).forEach(screenElement => {
         if (screenElement) {
             screenElement.classList.add('hidden');
         }
     });
     
+    // Tanlangan ekranni ko'rsatish
     const selectedScreen = screens[screen];
     if (selectedScreen) {
         selectedScreen.classList.remove('hidden');
     }
     
+    // BackButton visibility
     updateBackButtonVisibility();
 }
 
-// ==================== TAB NAVIGATSIYASI ==================== 
+// ==================== TAB NAVIGATSIYASI ====================
 function initTabNavigation() {
     const tabs = document.querySelectorAll('.nav-tab');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -2778,9 +2876,11 @@ function initTabNavigation() {
         tab.addEventListener('click', () => {
             const tabName = tab.dataset.tab;
             
+            // Tab aktivligini yangilash
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             
+            // Kontentni yangilash
             tabContents.forEach(content => {
                 content.classList.remove('active');
                 if (content.id === tabName + 'Tab') {
@@ -2790,6 +2890,7 @@ function initTabNavigation() {
             
             gameState.currentTab = tabName;
             
+            // Tab bo'yicha ma'lumotlarni yuklash
             switch(tabName) {
                 case 'friends':
                     loadFriendsList();
@@ -2802,14 +2903,16 @@ function initTabNavigation() {
                     break;
                 case 'profile':
                     loadProfileQuests();
+                    loadAchievements();
                     break;
             }
         });
     });
 }
 
-// ==================== SOZLAMALAR ==================== 
+// ==================== SOZLAMALAR ====================
 function initSettings() {
+    // Sozlamalarni localStorage dan yuklash
     const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
     const vibrationEnabled = localStorage.getItem('vibrationEnabled') !== 'false';
     const notificationsEnabled = localStorage.getItem('notificationsEnabled') !== 'false';
@@ -2843,7 +2946,198 @@ function saveSettings() {
     showNotification('✅ Sozlamalar', 'Sozlamalar saqlandi');
 }
 
-// ==================== PROFIL TAXRIRLASH ==================== 
+// ==================== QAYTA DUEL ====================
+function requestRematch(partner) {
+    if (!partner || !gameState.socket || !gameState.isConnected) {
+        showNotification('Xato', 'Qayta duel so\'rash mumkin emas');
+        return;
+    }
+    
+    gameState.socket.emit('request_rematch', {
+        opponentId: partner.id,
+        duelId: gameState.lastMatchData?.duelId
+    });
+    
+    showNotification('Qayta duel so\'raldi', `${partner.name} ga qayta duel so\'rovi yuborildi`);
+    
+    // Modalni yopish
+    hideAllModals();
+    returnToMenu();
+}
+
+// ==================== DUELDAN CHIQISH ====================
+function showExitDuelConfirm() {
+    const modalHTML = `
+        <div class="modal active" id="exitDuelModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-sign-out-alt"></i> Duelni tark etish</h3>
+                </div>
+                <div class="modal-body">
+                    <p>Duelni tark etishni xohlaysizmi? Bu sizning reytingingizga salbiy ta'sir ko'rsatishi mumkin.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn primary-btn" onclick="exitDuel()">
+                        <i class="fas fa-check"></i> Ha, chiqish
+                    </button>
+                    <button class="modal-btn secondary-btn" onclick="hideModal('exitDuelModal')">
+                        <i class="fas fa-times"></i> Bekor qilish
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showModal('exitDuelModal', modalHTML);
+}
+
+function exitDuel() {
+    if (gameState.socket && gameState.currentDuelId) {
+        gameState.socket.emit('leave_duel', { duelId: gameState.currentDuelId });
+    }
+    
+    hideModal('exitDuelModal');
+    returnToMenu();
+}
+
+// ==================== DOM YUKLANGANDA ====================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM yuklandi, dastur ishga tushmoqda...');
+    
+    try {
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand();
+            console.log('✅ Telegram WebApp faollashtirildi');
+        }
+    } catch (error) {
+        console.log('ℹ️ Telegram Web App mavjud emas, test rejimida');
+    }
+    
+    // Foydalanuvchi profilini yuklash
+    initUserProfile();
+    
+    // Tab navigatsiyasini ishga tushirish
+    initTabNavigation();
+    
+    // Sozlamalarni yuklash
+    initSettings();
+    
+    // Event listenerlar
+    setupEventListeners();
+    
+    // Ma'lumotlarni yuklash
+    loadProfileQuests();
+    loadShopItems();
+    loadLeaderboard();
+    loadFriendsList();
+    loadAchievements();
+    
+    // Faollikni kuzatish
+    setupActivityTracking();
+    
+    console.log('✅ main.js to\'liq yuklandi - Barcha funksiyalar aktiv');
+});
+
+function setupEventListeners() {
+    // Gender tanlash
+    if (elements.selectMaleBtn) {
+        elements.selectMaleBtn.onclick = () => selectGender('male');
+    }
+    
+    if (elements.selectFemaleBtn) {
+        elements.selectFemaleBtn.onclick = () => selectGender('female');
+    }
+    
+    if (elements.selectAllBtn) {
+        elements.selectAllBtn.onclick = () => selectGender('not_specified');
+    }
+    
+    // Asosiy tugmalar
+    if (elements.startBtn) {
+        elements.startBtn.addEventListener('click', startGame);
+    }
+    
+    if (elements.enterQueueBtn) {
+        elements.enterQueueBtn.addEventListener('click', enterQueue);
+    }
+    
+    if (elements.leaveQueueBtn) {
+        elements.leaveQueueBtn.addEventListener('click', leaveQueue);
+    }
+    
+    // Ovoz berish tugmalari
+    if (elements.noBtn) {
+        elements.noBtn.addEventListener('click', () => handleVote('skip'));
+    }
+    
+    if (elements.likeBtn) {
+        elements.likeBtn.addEventListener('click', () => handleVote('like'));
+    }
+    
+    if (elements.superLikeBtn) {
+        elements.superLikeBtn.addEventListener('click', () => handleVote('super_like'));
+    }
+    
+    // Profile edit
+    if (elements.editProfileBtn) {
+        elements.editProfileBtn.addEventListener('click', openProfileEdit);
+    }
+    
+    if (elements.closeProfileEditBtn) {
+        elements.closeProfileEditBtn.addEventListener('click', closeProfileEdit);
+    }
+    
+    if (elements.saveProfileBtn) {
+        elements.saveProfileBtn.addEventListener('click', saveProfile);
+    }
+    
+    // Chat
+    if (elements.closeChatBtn) {
+        elements.closeChatBtn.addEventListener('click', closeChatModal);
+    }
+    
+    if (elements.chatOpenTelegramBtn) {
+        elements.chatOpenTelegramBtn.addEventListener('click', () => {
+            if (gameState.currentPartner && gameState.currentPartner.username) {
+                openTelegramChat(gameState.currentPartner.username);
+            }
+        });
+    }
+    
+    // Statistika
+    if (elements.viewStatsBtn) {
+        elements.viewStatsBtn.addEventListener('click', showDetailedStats);
+    }
+    
+    if (elements.closeStatsBtn) {
+        elements.closeStatsBtn.addEventListener('click', closeStatsModal);
+    }
+    
+    // Streak
+    if (elements.streakRewardBtn) {
+        elements.streakRewardBtn.addEventListener('click', claimStreakReward);
+    }
+    
+    // Do'stlarni yangilash
+    if (elements.refreshFriendsBtn) {
+        elements.refreshFriendsBtn.addEventListener('click', loadFriendsList);
+    }
+    
+    // Sozlamalar
+    if (elements.openSettingsBtn) {
+        elements.openSettingsBtn.addEventListener('click', openSettings);
+    }
+    
+    if (elements.closeSettingsBtn) {
+        elements.closeSettingsBtn.addEventListener('click', closeSettings);
+    }
+    
+    if (elements.saveSettingsBtn) {
+        elements.saveSettingsBtn.addEventListener('click', saveSettings);
+    }
+}
+
 function openProfileEdit() {
     if (elements.editBio) elements.editBio.value = userState.bio || '';
     if (elements.editGender) {
@@ -2893,122 +3187,21 @@ function saveProfile() {
     showNotification('✅ Profil yangilandi', 'O\'zgarishlar saqlandi');
 }
 
-// ==================== MODAL FUNKSIYALARI ==================== 
-function showModal(modalId, content) {
-    let modalContainer = document.getElementById('modalContainer');
-    if (!modalContainer) {
-        modalContainer = document.createElement('div');
-        modalContainer.id = 'modalContainer';
-        document.body.appendChild(modalContainer);
+function claimStreakReward() {
+    const nextReward = getNextStreakReward();
+    if (!nextReward || userState.streakDays < nextReward.days) {
+        showNotification('Kechirasiz', 'Streak mukofotini olish uchun hali vaqt emas');
+        return;
     }
     
-    modalContainer.innerHTML = content;
+    userState.coins += nextReward.reward;
+    saveUserStateToLocalStorage();
+    updateUIFromUserState();
     
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
+    showNotification('🎁 Streak mukofoti!', 
+        `${nextReward.days} kunlik streak uchun ${nextReward.reward} coin qo'shildi!`);
 }
 
-function hideModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.classList.remove('active');
-        modal.remove();
-    }
-    
-    const modalContainer = document.getElementById('modalContainer');
-    if (modalContainer && modalContainer.children.length === 0) {
-        modalContainer.remove();
-        document.body.style.overflow = 'auto';
-    }
-}
-
-function hideAllModals() {
-    const modals = ['rulesModal', 'rpsStatsModal', 'opponentLeftModal', 'noMatchModal', 'profileEditModal', 'statsModal', 'settingsModal'];
-    modals.forEach(modalId => hideModal(modalId));
-    
-    if (elements.genderModal) {
-        elements.genderModal.classList.remove('active');
-    }
-}
-
-function showNoMatchOptions() {
-    const modalHTML = `
-        <div class="modal" id="noMatchModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Match bo'lmadi</h2>
-                </div>
-                <div class="modal-body">
-                    <p>Sizning ovozingiz: ✖</p>
-                    <p>Keyingi duelga o'tishni xohlaysizmi?</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="continueToNextRPS()">Yangi duel</button>
-                    <button class="btn btn-secondary" onclick="returnToRPSMenu()">Bosh menyu</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    showModal('noMatchModal', modalHTML);
-}
-
-function showOpponentLeftModal() {
-    const modalHTML = `
-        <div class="modal" id="opponentLeftModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Raqib chiqib ketdi</h2>
-                </div>
-                <div class="modal-body">
-                    <p>Raqibingiz duel davomida chiqib ketdi. Keyingi duelga o'tishni xohlaysizmi?</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" onclick="continueToNextRPS()">Keyingi duel</button>
-                    <button class="btn btn-secondary" onclick="returnToRPSMenu()">Bosh menyu</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    showModal('opponentLeftModal', modalHTML);
-}
-
-// ==================== DUELDAN CHIQISH ==================== 
-function showExitDuelConfirm() {
-    const modalHTML = `
-        <div class="modal" id="exitDuelModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Duelni tark etish</h2>
-                </div>
-                <div class="modal-body">
-                    <p>Duelni tark etishni xohlaysizmi? Bu sizning reytingingizga salbiy ta'sir ko'rsatishi mumkin.</p>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-danger" onclick="exitDuel()">Ha, chiqish</button>
-                    <button class="btn btn-secondary" onclick="hideModal('exitDuelModal')">Bekor qilish</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    showModal('exitDuelModal', modalHTML);
-}
-
-function exitDuel() {
-    if (gameState.socket && gameState.currentDuelId) {
-        gameState.socket.emit('leave_duel', { duelId: gameState.currentDuelId });
-    }
-    
-    hideModal('exitDuelModal');
-    returnToRPSMenu();
-}
-
-// ==================== OPEN SETTINGS ==================== 
 function openSettings() {
     if (elements.settingsModal) {
         elements.settingsModal.classList.add('active');
@@ -3023,130 +3216,8 @@ function closeSettings() {
     document.body.style.overflow = 'auto';
 }
 
-// ==================== DOM YUKLANGANDA ==================== 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 TOSH-QAYCHI-QOG\'OZ DUEL - DOM yuklandi');
-    
-    try {
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-            Telegram.WebApp.ready();
-            Telegram.WebApp.expand();
-            console.log('✅ Telegram WebApp faollashtirildi');
-        }
-    } catch (error) {
-        console.log('ℹ️ Telegram Web App mavjud emas, test rejimida');
-    }
-    
-    initUserProfile();
-    initTabNavigation();
-    initSettings();
-    setupEventListeners();
-    loadProfileQuests();
-    loadShopItems();
-    loadLeaderboard();
-    loadFriendsList();
-    setupActivityTracking();
-    
-    // Test tugmalarini qo'shish (faqat test rejimida)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        addTestButtons();
-    }
-    
-    console.log('✅ Tosh-Qaychi-Qog\'oz Duel to\'liq yuklandi!');
-});
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 TOSH-QAYCHI-QOG\'OZ DUEL - DOM yuklandi');
-    
-    try {
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-            Telegram.WebApp.ready();
-            Telegram.WebApp.expand();
-            console.log('✅ Telegram WebApp faollashtirildi');
-        }
-    } catch (error) {
-        console.log('ℹ️ Telegram Web App mavjud emas, test rejimida');
-    }
-    
-    initUserProfile();
-    initTabNavigation();
-    initSettings();
-    setupEventListeners();
-    loadProfileQuests();
-    loadShopItems();
-    loadLeaderboard();
-    loadFriendsList();
-    setupActivityTracking();
-    
-    console.log('✅ Tosh-Qaychi-Qog\'oz Duel to\'liq yuklandi!');
-});
-
-function setupEventListeners() {
-    if (elements.selectMaleBtn) {
-        elements.selectMaleBtn.onclick = () => selectGender('male');
-    }
-    
-    if (elements.selectFemaleBtn) {
-        elements.selectFemaleBtn.onclick = () => selectGender('female');
-    }
-    
-    if (elements.selectAllBtn) {
-        elements.selectAllBtn.onclick = () => selectGender('not_specified');
-    }
-    
-    if (elements.startBtn) {
-        elements.startBtn.addEventListener('click', startGame);
-    }
-    
-    if (elements.enterQueueBtn) {
-        elements.enterQueueBtn.addEventListener('click', enterQueue);
-    }
-    
-    if (elements.leaveQueueBtn) {
-        elements.leaveQueueBtn.addEventListener('click', leaveQueue);
-    }
-    
-    if (elements.rockBtn) {
-        elements.rockBtn.addEventListener('click', () => handleRPSChoice('rock'));
-    }
-    
-    if (elements.scissorsBtn) {
-        elements.scissorsBtn.addEventListener('click', () => handleRPSChoice('scissors'));
-    }
-    
-    if (elements.paperBtn) {
-        elements.paperBtn.addEventListener('click', () => handleRPSChoice('paper'));
-    }
-    
-    if (elements.noBtn) {
-        elements.noBtn.addEventListener('click', () => handleRPSChoice('skip'));
-    }
-    
-    if (elements.rulesBtn) {
-        elements.rulesBtn.addEventListener('click', showRulesModal);
-    }
-    
-    if (elements.editProfileBtn) {
-        elements.editProfileBtn.addEventListener('click', openProfileEdit);
-    }
-    
-    if (elements.saveProfileBtn) {
-        elements.saveProfileBtn.addEventListener('click', saveProfile);
-    }
-    
-    if (elements.saveSettingsBtn) {
-        elements.saveSettingsBtn.addEventListener('click', saveSettings);
-    }
-    
-    if (elements.refreshFriendsBtn) {
-        elements.refreshFriendsBtn.addEventListener('click', loadFriendsList);
-    }
-}
-
-function loadProfileQuests() {
-    loadDailyQuests();
-}
-
 function setupActivityTracking() {
+    // Faollikni kuzatish
     document.addEventListener('click', () => {
         gameState.lastActivity = Date.now();
     });
@@ -3155,28 +3226,29 @@ function setupActivityTracking() {
         gameState.lastActivity = Date.now();
     });
     
+    // 5 daqiqa davomida faollik bo'lmasa, notifikatsiya
     setInterval(() => {
         const inactiveTime = Date.now() - gameState.lastActivity;
-        if (inactiveTime > 300000 && gameState.isInDuel) {
+        if (inactiveTime > 300000 && gameState.isInDuel) { // 5 daqiqa
             showNotification('Faollik yo\'q', '5 daqiqa davomida faol emassiz. Duelda qolish uchun faol bo\'ling.');
         }
-    }, 60000);
+    }, 60000); // Har daqiqa tekshirish
 }
 
-// ==================== GLOBAL FUNKSIYALAR ==================== 
+// ==================== GLOBAL FUNKSIYALAR ====================
 window.selectGender = selectGender;
 window.hideGenderModal = hideGenderModal;
-window.showRulesModal = showRulesModal;
-window.hideRulesModal = hideRulesModal;
+window.openTelegramChat = openTelegramChat;
 window.selectFilter = selectFilter;
-window.continueToNextRPS = continueToNextRPS;
-window.returnToRPSMenu = returnToRPSMenu;
+window.skipToNextDuel = skipToNextDuel;
+window.returnToMenu = returnToMenu;
 window.buyItem = buyItem;
 window.hideAllModals = hideAllModals;
-window.hideModal = hideModal;
+window.closeChatModal = closeChatModal;
+window.startNewDuelFromMatch = startNewDuelFromMatch;
+window.hideNextDuelConfirmModal = hideNextDuelConfirmModal;
 window.enterQueue = enterQueue;
 window.leaveQueue = leaveQueue;
-window.showRPSStatistics = showRPSStatistics;
 window.showDetailedStats = showDetailedStats;
 window.closeStatsModal = closeStatsModal;
 window.claimQuestReward = claimQuestReward;
@@ -3184,11 +3256,9 @@ window.openSettings = openSettings;
 window.closeSettings = closeSettings;
 window.saveSettings = saveSettings;
 window.exitDuel = exitDuel;
-window.openProfileEdit = openProfileEdit;
-window.closeProfileEdit = closeProfileEdit;
-window.saveProfile = saveProfile;
+window.hideModal = hideModal;
 
-// ==================== TEST FOYDALANUVCHI ==================== 
+// ==================== TEST FOYDALANUVCHI ====================
 if (!tgUserGlobal) {
     tgUserGlobal = {
         id: 'test_' + Date.now(),
@@ -3199,4 +3269,4 @@ if (!tgUserGlobal) {
     console.log('🔄 Test foydalanuvchi yaratildi:', tgUserGlobal.id);
 }
 
-console.log('🎮 TOSH-QAYCHI-QOG\'OZ DUEL - TAKOMILLASHTIRILGAN VERSIYA!');
+console.log('🎮 LIKE DUEL - TAKOMILLASHTIRILGAN VERSIYA!');

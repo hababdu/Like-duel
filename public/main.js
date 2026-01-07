@@ -645,7 +645,7 @@ function connectToServer() {
     updateQueueStatus('Serverga ulanmoqda...');
     showNotification('Ulanish', 'Serverga ulanmoqda...');
     
-    const serverUrl = 'https://like-duel.onrender.com';
+    const servers = 'https://like-duel.onrender.com';
     
     let currentServerIndex = 0;
     let connected = false;

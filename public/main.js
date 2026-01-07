@@ -1950,48 +1950,109 @@ function showOpponentTimeoutModal() {
     showModal('timeoutModal', modalHTML);
 }
 
-// ==================== TIMER FUNKSIYASI ====================
+// ==================== TIMER FUNKSIYASINI O'ZGARTIRISH ====================
 function startTimer() {
-    clearInterval(gameState.timerInterval);
-    gameState.timeLeft = 20;
-    
+    // Timer o'rniga "Vaqt chegarasi yo'q" ko'rsatish
     if (elements.timer) {
-        elements.timer.textContent = '20';
+        elements.timer.textContent = '∞';
         elements.timer.style.color = '#fff';
+        elements.timer.style.fontSize = '3rem';
         elements.timer.style.animation = '';
     }
     
-    gameState.timerInterval = setInterval(() => {
-        gameState.timeLeft--;
-        
-        if (elements.timer) {
-            elements.timer.textContent = gameState.timeLeft.toString();
-            
-            if (gameState.timeLeft <= 5) {
-                elements.timer.style.color = '#e74c3c';
-                elements.timer.style.animation = 'pulse 1s infinite';
-                
-                // Ogohlantirish tovushi
-                if (gameState.timeLeft <= 3) {
-                    playSound('timer_warning');
-                }
-            }
+    // Eski timer intervalini tozalash
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+    }
+}
+
+// ==================== OVOZ BERISH FUNKSIYASINI YANGILASH ====================
+function handleVote(choice) {
+    if (!gameState.socket || !gameState.isInDuel) {
+        showNotification('Xato', 'Siz hozir duelda emassiz');
+        return;
+    }
+
+    console.log(`🗳️ Ovoz berish: ${choice}`);
+
+    // Tugmalarni block qilish
+    [elements.noBtn, elements.likeBtn, elements.superLikeBtn].forEach(b => {
+        if (b) {
+            b.disabled = true;
+            b.style.opacity = '0.6';
+            b.style.cursor = 'not-allowed';
         }
-        
-        if (gameState.timeLeft <= 0) {
-            clearInterval(gameState.timerInterval);
-            if (gameState.socket && gameState.isInDuel) {
-                gameState.socket.emit('vote', { 
-                    duelId: gameState.currentDuelId, 
-                    choice: 'skip' 
-                });
-                if (elements.timer) {
-                    elements.timer.textContent = '⏰';
-                }
-                updateDuelStatus('Vaqt tugadi...');
-            }
-        }
-    }, 1000);
+    });
+
+    // Super like limitini tekshirish
+    if (choice === 'super_like' && userState.dailySuperLikes <= 0) {
+        showNotification('Limit tugadi', 'Kunlik SUPER LIKE limitingiz tugadi');
+        resetVoteButtons();
+        return;
+    }
+
+    // Animation
+    const button = choice === 'skip' ? elements.noBtn :
+                   choice === 'like' ? elements.likeBtn : elements.superLikeBtn;
+    if (button) {
+        button.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            if (button) button.style.transform = 'scale(1)';
+        }, 150);
+    }
+
+    // Serverga yuborish
+    gameState.socket.emit('vote', {
+        duelId: gameState.currentDuelId,
+        choice: choice
+    });
+
+    // UI ni yangilash
+    switch(choice) {
+        case 'like':
+            if (elements.timer) elements.timer.textContent = '❤️';
+            updateDuelStatus('LIKE berdingiz. Raqib javobini kutish...');
+            playSound('like');
+            break;
+        case 'super_like':
+            if (elements.timer) elements.timer.textContent = '💖';
+            updateDuelStatus('SUPER LIKE! Raqib javobini kutish...');
+            userState.dailySuperLikes--;
+            if (elements.superLikeCount) elements.superLikeCount.textContent = userState.dailySuperLikes;
+            saveUserStateToLocalStorage();
+            playSound('super_like');
+            break;
+        case 'skip':
+            if (elements.timer) elements.timer.textContent = '✖';
+            updateDuelStatus('Duel tugatildi...');
+            gameState.matchCompleted = true;
+            playSound('skip');
+
+            // "X" bosilganda darhol duel tugashi
+            setTimeout(() => {
+                handleSkipResult();
+            }, 500);
+            break;
+    }
+
+    // O'yin statistikasini yangilash
+    updateGameStats(choice);
+}
+
+// ==================== SKIP NATIJASI ====================
+function handleSkipResult() {
+    console.log('✖ Duel tugatildi (foydalanuvchi tomonidan)');
+    
+    gameState.isInDuel = false;
+    gameState.currentDuelId = null;
+    gameState.waitingForOpponent = false;
+    gameState.inMatchScreen = false;
+    
+    resetVoteButtons();
+    
+    // Darhol navbatga qaytish oynasini ko'rsatish
+    showNoMatchOptions();
 }
 
 // ==================== NAVBATGA QAYTISH ====================

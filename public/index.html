@@ -3,2515 +3,1198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tosh-Qaychi-Qog'oz Duel | Super Like Dating</title>
+    <title>❤️ Like Duel - O'zaro Match va Do'stlar Tizimi</title>
     
-    <!-- Socket.io client -->
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    
-    <!-- Telegram Web App -->
+    <!-- CDN kutubxonalari -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Confetti efekti -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    
-    <!-- Font Awesome -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Mahalliy fayllar -->
+    <link rel="stylesheet" href="style.css">
     <style>
-        :root {
-            --primary-color: #667eea;
-            --primary-dark: #5a67d8;
-            --secondary-color: #764ba2;
-            --accent-color: #f5576c;
-            --success-color: #2ecc71;
-            --warning-color: #f39c12;
-            --danger-color: #e74c3c;
-            --dark-color: #0f0f23;
-            --darker-color: #0a0a15;
-            --light-color: #f8f9fa;
-            --gray-color: #95a5a6;
-            --border-radius: 16px;
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            --transition: all 0.3s ease;
-            
-            --tg-bg-color: #0f0f23;
-            --tg-text-color: #ffffff;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: var(--tg-bg-color);
-            color: var(--tg-text-color);
-            line-height: 1.6;
-            overflow-x: hidden;
-            min-height: 100vh;
-            background: linear-gradient(135deg, var(--dark-color) 0%, var(--darker-color) 100%);
-        }
-        
-        .app-container {
-            max-width: 500px;
-            margin: 0 auto;
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-        }
-        
-        /* ==================== HEADER ==================== */
-        .app-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            padding: 20px;
-            text-align: center;
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
-            box-shadow: var(--shadow);
-            position: relative;
-            z-index: 10;
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-        
-        .logo-icon {
-            font-size: 2.5rem;
-            background: rgba(255, 255, 255, 0.2);
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .tagline {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            margin-bottom: 5px;
-        }
-        
-        .stats-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 12px 20px;
-            border-radius: var(--border-radius);
-            margin-top: 15px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .stat-icon {
-            font-size: 1.2rem;
-        }
-        
-        .stat-value {
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        
-        .stat-label {
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-        
-        /* ==================== MAIN CONTENT ==================== */
-        .main-content {
-            padding: 20px;
-            padding-bottom: 100px;
-        }
-        
-        .screen {
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        /* ==================== WELCOME SCREEN ==================== */
-        .welcome-section {
-            text-align: center;
-            margin-top: 20px;
-        }
-        
-        .profile-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-            border-radius: var(--border-radius);
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .profile-header {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-        
-        .avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 4px solid var(--primary-color);
-            object-fit: cover;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        }
-        
-        .profile-info {
-            text-align: left;
-            flex: 1;
-        }
-        
-        .profile-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .gender-badge {
-            font-size: 0.8rem;
-            padding: 3px 10px;
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .gender-male-badge {
-            background: rgba(102, 126, 234, 0.2);
-            color: #667eea;
-            border: 1px solid rgba(102, 126, 234, 0.5);
-        }
-        
-        .gender-female-badge {
-            background: rgba(245, 87, 108, 0.2);
-            color: #f5576c;
-            border: 1px solid rgba(245, 87, 108, 0.5);
-        }
-        
-        .profile-username {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 15px;
-        }
-        
-        .profile-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 20px;
-        }
-        
-        .stat-card {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .stat-name {
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-        
-        .start-btn {
+        /* Gift Modal Styling */
+        .gift-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 18px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: var(--transition);
-            margin-top: 20px;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .start-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-        }
-        
-        .start-btn:active {
-            transform: translateY(0);
-        }
-        
-        .start-btn.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        /* ==================== QUEUE SCREEN ==================== */
-        .queue-content {
-            text-align: center;
-            padding: 40px 20px;
-        }
-        
-        .queue-icon {
-            font-size: 5rem;
-            margin-bottom: 20px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        .queue-status {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-        
-        .queue-stats {
-            display: flex;
-            justify-content: space-around;
-            margin: 30px 0;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 20px;
-            border-radius: var(--border-radius);
-        }
-        
-        .queue-stat {
-            text-align: center;
-        }
-        
-        .queue-stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .queue-stat-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .queue-actions {
-            margin-top: 40px;
-        }
-        
-        /* ==================== DUEL SCREEN ==================== */
-        .duel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .opponent-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(20px);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .opponent-avatar {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            border: 5px solid var(--accent-color);
-            object-fit: cover;
-            margin: 0 auto 15px;
-            background: linear-gradient(135deg, var(--accent-color) 0%, #ff5e3a 100%);
-        }
-        
-        .opponent-info {
-            text-align: center;
-        }
-        
-        .opponent-name {
-            font-size: 1.4rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .opponent-stats {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 15px;
-            font-size: 0.9rem;
-        }
-        
-        .opponent-stat {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 8px 15px;
-            border-radius: 20px;
-        }
-        
-        .duel-timer {
-            text-align: center;
-            margin: 30px 0;
-        }
-        
-        .timer-display {
-            font-size: 5rem;
-            font-weight: 800;
-            margin: 20px 0;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-        }
-        
-        .duel-status {
-            text-align: center;
-            font-size: 1.1rem;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-        }
-        
-        .choices-container {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-top: 30px;
-        }
-        
-        .choice-btn {
-            padding: 25px 15px;
-            font-size: 2.5rem;
-            border: none;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            color: white;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        .choice-btn:hover:not(:disabled) {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-        }
-        
-        .choice-btn:active:not(:disabled) {
-            transform: translateY(0);
-        }
-        
-        .choice-label {
-            font-size: 1rem;
-            font-weight: 600;
-            margin-top: 5px;
-        }
-        
-        .choice-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        /* ==================== MATCH SCREEN ==================== */
-        .match-content {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .match-result {
-            margin-bottom: 40px;
-        }
-        
-        .match-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-        }
-        
-        .match-title {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 10px;
-        }
-        
-        .match-message {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 20px;
-        }
-        
-        .match-note {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 15px;
-            border-radius: var(--border-radius);
-            margin: 20px 0;
-        }
-        
-        .match-choices {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            margin: 40px 0;
-        }
-        
-        .player-choice, .opponent-choice {
-            text-align: center;
-        }
-        
-        .choice-icon {
-            font-size: 4rem;
-            margin-bottom: 10px;
-        }
-        
-        .choice-label-small {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .vs-text {
-            font-size: 2rem;
-            font-weight: 800;
-            opacity: 0.5;
-        }
-        
-        .match-rewards {
-            background: linear-gradient(135deg, rgba(46, 204, 113, 0.2) 0%, rgba(39, 174, 96, 0.2) 100%);
-            border: 1px solid rgba(46, 204, 113, 0.3);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            margin: 30px 0;
-        }
-        
-        .reward-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .reward-item:last-child {
-            border-bottom: none;
-        }
-        
-        .reward-label {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .reward-icon {
-            font-size: 1.2rem;
-        }
-        
-        .reward-value {
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
-        
-        .match-options {
-            display: grid;
-            gap: 15px;
-            margin-top: 30px;
-        }
-        
-        .match-option-btn {
-            padding: 18px;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .match-option-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        
-        .match-option-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        
-        /* ==================== NAVIGATION TABS ==================== */
-        .tab-navigation {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(15, 15, 35, 0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 100;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        
-        .nav-tabs {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            padding: 10px 5px;
-        }
-        
-        .nav-tab {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            padding: 10px 5px;
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: var(--transition);
-            border-radius: 10px;
-        }
-        
-        .nav-tab.active {
-            color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.1);
-        }
-        
-        .nav-tab i {
-            font-size: 1.2rem;
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* ==================== PROFILE TAB ==================== */
-        .profile-content {
-            padding-bottom: 80px;
-        }
-        
-        .profile-header-full {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .profile-avatar-large {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            border: 5px solid var(--primary-color);
-            object-fit: cover;
-            margin: 0 auto 20px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        }
-        
-        .section-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin: 30px 0 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .section-title i {
-            color: var(--primary-color);
-        }
-        
-        .bio-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        
-        .bio-text {
-            line-height: 1.8;
-            opacity: 0.9;
-        }
-        
-        .no-bio {
-            opacity: 0.6;
-            font-style: italic;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        
-        .profile-stat {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .profile-stat-value {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 5px;
-        }
-        
-        .profile-stat-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        /* ==================== FRIENDS TAB ==================== */
-        .friends-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .friends-stats {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .friend-stat {
-            text-align: center;
-        }
-        
-        .friend-stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .friend-stat-label {
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-        
-        .friends-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .friend-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: var(--transition);
-        }
-        
-        .friend-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .friend-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex: 1;
-        }
-        
-        .friend-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        }
-        
-        .friend-details {
-            flex: 1;
-        }
-        
-        .friend-name {
-            font-weight: 600;
-            margin-bottom: 3px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .mutual-badge {
-            background: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        
-        .online-badge {
-            width: 8px;
-            height: 8px;
-            background: #2ecc71;
-            border-radius: 50%;
-            display: inline-block;
-        }
-        
-        .friend-username {
-            font-size: 0.8rem;
-            opacity: 0.7;
-            margin-bottom: 5px;
-        }
-        
-        .friend-stats {
-            display: flex;
-            gap: 10px;
-            font-size: 0.8rem;
-        }
-        
-        .friend-stat {
-            opacity: 0.8;
-        }
-        
-        .friend-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .friend-action-btn {
-            padding: 8px 15px;
-            background: rgba(102, 126, 234, 0.2);
-            color: var(--primary-color);
-            border: 1px solid rgba(102, 126, 234, 0.3);
-            border-radius: 20px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        
-        .friend-action-btn:hover:not(.disabled) {
-            background: rgba(102, 126, 234, 0.3);
-        }
-        
-        .friend-action-btn.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .chat-btn {
-            background: rgba(52, 152, 219, 0.2) !important;
-            color: #3498db !important;
-            border-color: rgba(52, 152, 219, 0.3) !important;
-        }
-        
-        .chat-btn:hover {
-            background: rgba(52, 152, 219, 0.3) !important;
-        }
-        
-        /* ==================== SHOP TAB ==================== */
-        .shop-items {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .shop-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        
-        .shop-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-3px);
-        }
-        
-        .shop-item-icon {
-            font-size: 2.5rem;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-        }
-        
-        .shop-item-info {
-            flex: 1;
-        }
-        
-        .shop-item-name {
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .shop-item-description {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 5px;
-        }
-        
-        .shop-item-real-money {
-            font-size: 0.8rem;
-            color: #f1c40f;
-            background: rgba(241, 196, 15, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-            display: inline-block;
-        }
-        
-        .shop-item-price {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--primary-color);
-        }
-        
-        /* ==================== LEADERBOARD TAB ==================== */
-        .leaderboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .updated-time {
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
-        
-        .leaderboard-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .leaderboard-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            transition: var(--transition);
-        }
-        
-        .leaderboard-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .leaderboard-rank {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 1.2rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-        
-        .leaderboard-item:nth-child(1) .leaderboard-rank {
-            background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
-            color: #000;
-        }
-        
-        .leaderboard-item:nth-child(2) .leaderboard-rank {
-            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-        }
-        
-        .leaderboard-item:nth-child(3) .leaderboard-rank {
-            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-        }
-        
-        .leaderboard-user {
-            flex: 1;
-        }
-        
-        .leaderboard-name {
-            font-weight: 700;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .leaderboard-level {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        
-        .leaderboard-stats {
-            display: flex;
-            gap: 10px;
-            font-size: 0.8rem;
-        }
-        
-        .leaderboard-stat {
-            opacity: 0.8;
-        }
-        
-        .leaderboard-rating {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: var(--primary-color);
-        }
-        
-        /* ==================== SETTINGS TAB ==================== */
-        .settings-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .setting-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .setting-info {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-        
-        .setting-name {
-            font-weight: 600;
-        }
-        
-        .setting-description {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 34px;
-        }
-        
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.2);
-            transition: .4s;
-            border-radius: 34px;
-        }
-        
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 26px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .slider {
-            background-color: var(--primary-color);
-        }
-        
-        input:checked + .slider:before {
-            transform: translateX(26px);
-        }
-        
-        /* ==================== MODAL STYLES ==================== */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .modal.active {
             display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
-        
-        .modal-content {
-            background: var(--dark-color);
-            border-radius: var(--border-radius);
-            width: 100%;
-            max-width: 400px;
-            max-height: 90vh;
+
+        .gift-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .gift-modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
             overflow-y: auto;
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: modalSlideIn 0.3s ease;
+            padding: 20px;
+            border: 2px solid #667eea;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
-        
-        @keyframes modalSlideIn {
-            from { transform: translateY(50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .modal-header {
-            padding: 25px 25px 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        .gift-modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .modal-header h2 {
+
+        .gift-modal-header h2 {
+            color: #fff;
             font-size: 1.5rem;
-            font-weight: 700;
+            margin: 0;
         }
-        
-        .close-btn {
+
+        .gift-close-btn {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 2rem;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: var(--transition);
-        }
-        
-        .close-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-        
-        .modal-body {
-            padding: 25px;
-        }
-        
-        .modal-footer {
-            padding: 20px 25px 25px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            gap: 15px;
-        }
-        
-        /* ==================== GENDER MODAL ==================== */
-        .gender-options {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin: 25px 0;
-        }
-        
-        .gender-option {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 25px 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-            border: 2px solid transparent;
-        }
-        
-        .gender-option:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-5px);
-        }
-        
-        .gender-option.selected {
-            border-color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.1);
-        }
-        
-        .gender-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        
-        .gender-name {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .gender-desc {
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-        
-        .gender-warning {
-            background: rgba(231, 76, 60, 0.1);
-            border: 1px solid rgba(231, 76, 60, 0.3);
-            border-radius: var(--border-radius);
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .warning-icon {
-            color: #e74c3c;
+            color: #fff;
             font-size: 1.5rem;
-            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 5px;
         }
-        
-        /* ==================== CHAT MODAL ==================== */
-        .chat-header {
+
+        .gift-receiver-info {
             display: flex;
             align-items: center;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
         }
-        
-        .chat-avatar {
+
+        .gift-receiver-info img {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--primary-color);
+            border: 3px solid #667eea;
         }
-        
-        .chat-info {
-            flex: 1;
-        }
-        
-        .chat-name {
-            font-weight: 700;
+
+        .gift-receiver-details h3 {
+            color: #fff;
+            margin: 0 0 5px 0;
             font-size: 1.2rem;
-            margin-bottom: 5px;
         }
-        
-        .chat-username {
-            opacity: 0.8;
+
+        .gift-receiver-details p {
+            color: #ccc;
+            margin: 0;
             font-size: 0.9rem;
         }
-        
-        .chat-messages {
-            height: 300px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            padding-right: 10px;
+
+        .gifts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
         }
-        
-        .chat-message {
-            margin-bottom: 15px;
-            max-width: 80%;
-        }
-        
-        .message-bubble {
+
+        .gift-item {
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px 15px;
-            border-radius: 20px;
-            border-top-left-radius: 5px;
-            display: inline-block;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
         }
-        
-        .message-time {
-            font-size: 0.7rem;
-            opacity: 0.6;
-            margin-top: 5px;
-            text-align: right;
+
+        .gift-item:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
         }
-        
-        .message-outgoing {
-            margin-left: auto;
-            text-align: right;
+
+        .gift-item.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.2);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
-        
-        .message-outgoing .message-bubble {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-top-left-radius: 20px;
-            border-top-right-radius: 5px;
+
+        .gift-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
-        
-        /* ==================== NOTIFICATION ==================== */
-        .notification {
+
+        .gift-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            line-height: 1;
+        }
+
+        .gift-name {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .gift-price {
+            color: #f1c40f;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .gift-balance {
+            text-align: center;
+            padding: 15px;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(241, 196, 15, 0.3);
+        }
+
+        .gift-balance p {
+            color: #fff;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .gift-balance span {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+
+        .confirm-gift-btn {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .confirm-gift-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        .confirm-gift-btn:disabled {
+            background: linear-gradient(135deg, #7f8c8d 0%, #95a5a6 100%);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .gift-history-btn {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        /* Gift Notification */
+        .gift-notification {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            max-width: 350px;
-            z-index: 10000;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
             transform: translateX(400px);
             transition: transform 0.3s ease;
-            border-left: 5px solid var(--accent-color);
+            max-width: 350px;
         }
-        
-        .notification.active {
+
+        .gift-notification.show {
             transform: translateX(0);
         }
-        
-        .notification-title {
-            font-weight: 700;
-            margin-bottom: 8px;
+
+        .gift-notification-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .gift-icon-large {
+            font-size: 2.5rem;
+        }
+
+        .gift-notification-text h3 {
+            margin: 0 0 5px 0;
             font-size: 1.1rem;
         }
-        
-        .notification-message {
+
+        .gift-notification-text p {
+            margin: 0;
+            font-size: 0.9rem;
             opacity: 0.9;
-            font-size: 0.95rem;
         }
-        
-        /* ==================== BUTTON STYLES ==================== */
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: var(--border-radius);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            flex: 1;
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
-        }
-        
-        .btn-disabled {
-            opacity: 0.6;
-            cursor: not-allowed !important;
-        }
-        
-        .btn-disabled:hover {
-            transform: none !important;
-            box-shadow: none !important;
-        }
-        
-        /* ==================== CONNECTION STATUS ==================== */
-        .connection-status {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-left: 10px;
-        }
-        
-        .connection-status.connected {
-            background: rgba(46, 204, 113, 0.2);
-            color: #2ecc71;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-        }
-        
-        .connection-status.connecting,
-        .connection-status.reconnecting {
-            background: rgba(241, 196, 15, 0.2);
-            color: #f1c40f;
-            border: 1px solid rgba(241, 196, 15, 0.3);
-        }
-        
-        .connection-status.disconnected {
-            background: rgba(231, 76, 60, 0.2);
-            color: #e74c3c;
-            border: 1px solid rgba(231, 76, 60, 0.3);
-        }
-        
-        .network-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            font-size: 0.8rem;
-            opacity: 0.8;
-            margin-top: 10px;
-        }
-        
-        /* ==================== PROGRESS BAR ==================== */
-        .progress-bar {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        
-        .progress-fill {
+
+        /* Gift History Modal */
+        .gift-history-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 4px;
-            transition: width 0.5s ease;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
-        
-        .progress-text {
-            font-size: 0.8rem;
-            opacity: 0.8;
-            text-align: right;
+
+        .gift-history-modal.active {
+            opacity: 1;
+            visibility: visible;
         }
-        
-        /* ==================== FILTER STYLES ==================== */
-        .gender-filter-container {
-            margin: 20px 0;
+
+        .gift-history-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 25px;
+            border: 2px solid #9b59b6;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
-        
-        .filter-options {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
+
+        .gift-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .gender-filter-option {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 15px 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: var(--transition);
-            border: 2px solid transparent;
-        }
-        
-        .gender-filter-option:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        
-        .gender-filter-option.active {
-            border-color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.1);
-        }
-        
-        .filter-icon {
+
+        .gift-history-header h2 {
+            color: #fff;
             font-size: 1.5rem;
-            margin-bottom: 5px;
+            margin: 0;
         }
-        
-        .filter-text {
+
+        .gift-history-section {
+            margin-bottom: 30px;
+        }
+
+        .gift-history-section h3 {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            padding-left: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .gift-history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .gift-history-item.received {
+            border-left-color: #2ecc71;
+        }
+
+        .gift-history-icon {
+            font-size: 2rem;
+        }
+
+        .gift-history-info {
+            flex: 1;
+        }
+
+        .gift-history-name {
+            color: #fff;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .gift-history-receiver,
+        .gift-history-sender {
+            color: #ccc;
+            font-size: 0.85rem;
+            margin-bottom: 3px;
+        }
+
+        .gift-history-time {
+            color: #95a5a6;
             font-size: 0.8rem;
         }
-        
-        .filter-info {
+
+        .gift-history-price {
+            color: #e74c3c;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .empty-history {
             text-align: center;
-            font-size: 0.9rem;
-            opacity: 0.8;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-        }
-        
-        /* ==================== RULES MODAL ==================== */
-        .rules-list {
-            margin: 20px 0;
-        }
-        
-        .rule-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .rule-number {
-            width: 30px;
-            height: 30px;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
-            flex-shrink: 0;
-        }
-        
-        .rule-text {
-            flex: 1;
-        }
-        
-        /* ==================== QUEST ITEMS ==================== */
-        .quest-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            margin-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .quest-info {
-            flex: 1;
-        }
-        
-        .quest-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .quest-completed {
-            color: #2ecc71;
-        }
-        
-        .quest-incomplete {
-            color: #f39c12;
-        }
-        
-        .quest-progress {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .quest-progress-text {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .quest-reward {
-            color: #f1c40f;
-            font-weight: 600;
-        }
-        
-        /* ==================== ACHIEVEMENTS ==================== */
-        .achievement-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            opacity: 0.7;
-        }
-        
-        .achievement-item.unlocked {
-            opacity: 1;
-        }
-        
-        .achievement-icon {
-            font-size: 2rem;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-        }
-        
-        .achievement-item.unlocked .achievement-icon {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        }
-        
-        .achievement-info {
-            flex: 1;
-        }
-        
-        .achievement-title {
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .achievement-description {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 10px;
-        }
-        
-        .achievement-reward {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #f1c40f;
-            font-weight: 700;
-        }
-        
-        /* ==================== ACHIEVEMENT NOTIFICATION ==================== */
-        .achievement-notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.8);
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-            border-radius: var(--border-radius);
             padding: 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            z-index: 10000;
-            max-width: 400px;
-            width: 90%;
-            border: 2px solid var(--primary-color);
-            opacity: 0;
-            transition: all 0.3s ease;
+            color: #ccc;
+            font-size: 1rem;
         }
-        
-        .achievement-notification.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-        
-        .achievement-notification-content {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .achievement-icon {
+
+        .empty-history i {
             font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
         }
-        
-        .achievement-text h3 {
-            color: var(--primary-color);
-            margin-bottom: 10px;
-        }
-        
-        .achievement-reward-text {
-            color: #f1c40f;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-        
-        /* ==================== LEVEL UP NOTIFICATION ==================== */
-        .level-up-notification {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.8);
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            border-radius: var(--border-radius);
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(46, 204, 113, 0.3);
-            z-index: 10000;
-            max-width: 400px;
-            width: 90%;
-            color: white;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-        
-        .level-up-notification.show {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
-        
-        .level-up-content {
-            text-align: center;
-        }
-        
-        .level-up-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-        }
-        
-        .level-up-text h3 {
-            font-size: 2rem;
-            margin-bottom: 10px;
-        }
-        
-        .level-up-reward {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-        
-        /* ==================== EMPTY STATE ==================== */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            opacity: 0.6;
-        }
-        
-        .empty-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-        }
-        
-        .empty-state h3 {
-            margin-bottom: 10px;
-        }
-        
-        /* ==================== RESPONSIVE ==================== */
+
+        /* Responsive Design */
         @media (max-width: 480px) {
-            .app-header {
+            .gifts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .gift-modal-content {
+                width: 95%;
                 padding: 15px;
             }
             
-            .logo-icon {
+            .gift-receiver-info {
+                padding: 12px;
+            }
+            
+            .gift-receiver-info img {
                 width: 50px;
                 height: 50px;
-                font-size: 2rem;
             }
-            
-            .logo-text {
-                font-size: 1.5rem;
-            }
-            
-            .stats-bar {
-                padding: 10px 15px;
-            }
-            
-            .main-content {
-                padding: 15px;
-                padding-bottom: 100px;
-            }
-            
-            .profile-card {
-                padding: 20px;
-            }
-            
-            .profile-header {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-            }
-            
-            .profile-info {
-                text-align: center;
-            }
-            
-            .avatar {
-                width: 70px;
-                height: 70px;
-            }
-            
-            .choices-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .gender-options {
-                grid-template-columns: 1fr;
-            }
-            
-            .filter-options {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav-tab span {
-                display: none;
-            }
-            
-            .nav-tab i {
-                font-size: 1.5rem;
-            }
-            
-            .timer-display {
-                font-size: 4rem;
-            }
-        }
-        
-        /* ==================== ANIMATIONS ==================== */
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        
-        .bounce {
-            animation: bounce 0.5s ease;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-        
-        .shake {
-            animation: shake 0.5s ease;
         }
     </style>
 </head>
 <body>
     <div class="app-container">
-        <!-- Header Section -->
-        <header class="app-header">
-            <div class="logo">
-                <div class="logo-icon">⚔️</div>
-                <div class="logo-text">Tosh-Qaychi-Qog'oz Duel</div>
+        <!-- NAVIGATION TABS (PASTDA) -->
+        <div class="nav-tabs-bottom">
+            <div class="nav-tab active" data-tab="duel">
+                <i class="fas fa-gamepad"></i>
+                <span>Duel</span>
             </div>
-            <div class="tagline">Super Like Dating - G'alaba uchun kurash!</div>
-            
-            <div class="stats-bar">
-                <div class="stat-item">
-                    <div class="stat-icon">🪙</div>
-                    <div>
-                        <div class="stat-value" id="coinsCount">100</div>
-                        <div class="stat-label">Coin</div>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-icon">⭐</div>
-                    <div>
-                        <div class="stat-value" id="levelCount">1</div>
-                        <div class="stat-label">Level</div>
-                    </div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-icon" id="connectionStatusBadge">Ulanmagan</div>
-                </div>
+            <div class="nav-tab" data-tab="profile">
+                <i class="fas fa-user"></i>
+                <span>Profil</span>
             </div>
-        </header>
+            <div class="nav-tab" data-tab="friends">
+                <i class="fas fa-users"></i>
+                <span>Do'stlar</span>
+            </div>
+            <div class="nav-tab" data-tab="shop">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Do'kon</span>
+            </div>
+            <div class="nav-tab" data-tab="leaderboard">
+                <i class="fas fa-trophy"></i>
+                <span>Liderlar</span>
+            </div>
+        </div>
 
-        <!-- Main Content - Screens -->
-        <main class="main-content">
-            <!-- Welcome Screen -->
-            <section id="welcomeScreen" class="screen">
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <img src="" alt="Avatar" class="avatar" id="myAvatar">
-                        <div class="profile-info">
-                            <h2 class="profile-name" id="myName">Foydalanuvchi</h2>
-                            <div class="profile-username" id="myUsername">@username</div>
-                            <div class="network-info">
-                                <span id="pingDisplay">0ms</span>
-                                <span id="networkStatus">Yaxshi</span>
+        <!-- ASOSIY KONTENT -->
+        <div class="main-content">
+            <!-- HEADER -->
+            <div class="app-header">
+                <div class="header-title">
+                    <i class="fas fa-heart"></i>
+                    <span>Like Duel</span>
+                </div>
+                <div class="header-stats">
+                    <div class="stat-item" id="coinsStat">
+                        <i class="fas fa-coins"></i>
+                        <span id="coinsCount">100</span>
+                    </div>
+                    <div class="stat-item" id="levelStat">
+                        <i class="fas fa-star"></i>
+                        <span id="levelCount">1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DUEL TAB -->
+            <div class="tab-content active" id="duelTab">
+                <!-- WELCOME SCREEN -->
+                <div class="duel-container" id="welcomeScreen">
+                    <div class="profile-card" id="profileCard">
+                        <img src="" alt="Siz" class="profile-avatar" id="myAvatar">
+                        <div class="profile-name" id="myName">Foydalanuvchi</div>
+                        <div class="profile-username" id="myUsername">@username</div>
+
+                        <div class="stats" style="display: flex; justify-content: space-around; margin: 20px 0;">
+                            <div class="stat">
+                                <div class="stat-value" id="myMatches">0</div>
+                                <div class="stat-label">Matchlar</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="mutualMatchesCount">0</div>
+                                <div class="stat-label">O'zaro Match</div>
+                            </div>
+                            <div class="stat">
+                                <div class="stat-value" id="myLikes">0</div>
+                                <div class="stat-label">Likelar</div>
+                            </div>
+                        </div>
+
+                        <!-- Gender Filter -->
+                        <div id="genderFilterContainer"></div>
+
+                        <!-- IKKITA ASOSIY TUGMA -->
+                        <div class="action-buttons">
+                            <button id="startBtn" class="start-btn">
+                                🔗 Serverga Ulanish
+                            </button>
+                            <button id="enterQueueBtn" class="start-btn" disabled>
+                                Navbatga kirish
+                            </button>
+                        </div>
+
+                        <!-- QO'SHIMCHA TUGMALAR -->
+                        <div class="additional-actions">
+                            <button class="secondary-btn" onclick="showGenderModal(true)">
+                                <i class="fas fa-venus-mars"></i> 
+                            </button>
+                            <button class="secondary-btn" id="editProfileBtn">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="secondary-btn" id="viewStatsBtn">
+                                <i class="fas fa-chart-bar"></i>
+                            </button>
+                            <button class="secondary-btn" onclick="showGiftHistory()" title="Sovg'a tarixi">
+                                <i class="fas fa-gift"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QUEUE SCREEN -->
+                <div class="duel-container hidden" id="queueScreen">
+                    <div class="loader"></div>
+                    <div class="waiting-info" style="font-size: 1.2rem; margin-bottom: 15px; color: #fff;">Navbat kutish...</div>
+                    <div class="waiting-count" id="waitingCount">0</div>
+                    <div class="position-info" id="positionInfo">
+                        Sizning o'rningiz: <span id="position">-</span>
+                    </div>
+                    <div class="status-message" id="queueStatus" style="color: #ccc;">
+                        Serverga ulanmoqda...
+                    </div>
+
+                    <div class="gender-warning hidden" id="genderWarning">
+                        <div class="gender-warning-content">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <div style="font-weight: bold; font-size: 1.1rem; color: #e74c3c;">Gender tanlanmagan!</div>
+                                <div style="color: #ccc;">Duel qilish uchun gender tanlashingiz kerak</div>
+                            </div>
+                        </div>
+                        <button id="selectGenderNowBtn" class="gender-select-btn">
+                            <i class="fas fa-user-edit"></i> Hozir tanlash
+                        </button>
+                    </div>
+
+                    <button class="start-btn" id="leaveQueueBtn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); margin-top: 20px;">
+                        🚪 Navbatdan Chiqish
+                    </button>
+                </div>
+
+                <!-- DUEL SCREEN -->
+                <div class="duel-container hidden" id="duelScreen">
+                    <img src="" alt="Raqib" class="opponent-avatar" id="opponentAvatar">
+                    <div class="opponent-info">
+                        <div class="opponent-name" id="opponentName">Raqib</div>
+                        <div class="opponent-username" id="opponentUsername">@username</div>
+
+                        <div class="opponent-stats">
+                            <span><i class="fas fa-trophy"></i> <span id="opponentRating">1500</span></span>
+                            <span><i class="fas fa-heart"></i> <span id="opponentMatches">0</span></span>
+                            <span><i class="fas fa-level-up-alt"></i> <span id="opponentLevel">1</span></span>
+                        </div>
+                    </div>
+
+                    <div class="super-like-indicator" id="superLikeIndicator">
+                        <i class="fas fa-gem"></i>
+                        Kunlik SUPER LIKE: <span id="superLikeCount">3</span> ta qoldi
+                    </div>
+
+                    <div class="timer-container">
+                        <div class="timer-circle">
+                            <div class="timer" id="timer">∞</div>
+                        </div>
+                    </div>
+
+                    <div class="vote-container">
+                        <div class="vote-buttons" id="voteButtons">
+                            <div class="vote-btn-group">
+                                <button class="vote-btn btn-no" id="noBtn">✖</button>
+                                <div class="vote-label">O'tkazish</div>
+                            </div>
+                            <div class="vote-btn-group">
+                                <button class="vote-btn btn-like" id="likeBtn">❤️</button>
+                                <div class="vote-label">Like</div>
+                            </div>
+                            <div class="vote-btn-group">
+                                <button class="vote-btn btn-super-like" id="superLikeBtn">💖</button>
+                                <div class="vote-label">Super Like</div>
                             </div>
                         </div>
                     </div>
-                    
+
+                    <div class="status-message" id="duelStatus" style="color: #ccc;">
+                        Ovoz bering: ❤️ yoki 💖 yoki ✖
+                    </div>
+                </div>
+
+                <!-- MATCH SCREEN -->
+                <div class="match-screen hidden" id="matchScreen">
+                    <div class="match-title">🎉 MATCH!</div>
+                    <div class="match-text" id="matchText">
+                        <span id="partnerName">Foydalanuvchi</span> bilan suhbatlashish
+                    </div>
+
+                    <div class="rewards" id="matchRewards">
+                        <div style="display: flex; justify-content: center; gap: 20px;">
+                            <div><i class="fas fa-coins"></i> +<span id="rewardCoins">50</span></div>
+                            <div><i class="fas fa-star"></i> +<span id="rewardXP">30</span> XP</div>
+                            <div><i class="fas fa-users"></i> <span style="color: #fff;">DO'ST BO'LDINGIZ!</span></div>
+                        </div>
+                    </div>
+
+                    <div class="match-options" id="matchOptions"></div>
+                </div>
+            </div>
+
+            <!-- PROFILE TAB -->
+            <div class="tab-content" id="profileTab">
+                <div class="profile-container">
+                    <div class="profile-header">
+                        <img src="" alt="Siz" class="profile-avatar" id="profileAvatar">
+                        <div class="profile-info">
+                            <h2 id="profileName">Foydalanuvchi</h2>
+                            <p id="profileUsername">@username</p>
+                            <p id="profileBio" style="font-size: 0.9rem; margin-top: 5px; color: #ccc;">Bio kiritilmagan</p>
+                        </div>
+                    </div>
+
                     <div class="profile-stats">
                         <div class="stat-card">
-                            <div class="stat-number" id="myMatches">0</div>
-                            <div class="stat-name">Duel</div>
+                            <div class="stat-value" id="statRating">1500</div>
+                            <div class="stat-label">Reyting</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="myWins">0</div>
-                            <div class="stat-name">G'alaba</div>
+                            <div class="stat-value" id="statMatches">0</div>
+                            <div class="stat-label">Matchlar</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="myDraws">0</div>
-                            <div class="stat-name">Durang</div>
+                            <div class="stat-value" id="statDuels">0</div>
+                            <div class="stat-label">Duellar</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="mutualMatchesProfile">0</div>
+                            <div class="stat-label">O'zaro Match</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statWinRate">0%</div>
+                            <div class="stat-label">G'alaba %</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statFriends">0</div>
+                            <div class="stat-label">Do'stlar</div>
                         </div>
                     </div>
-                    
-                    <!-- Gender Filter will be inserted here -->
-                    
-                    <button class="start-btn" id="startBtn">
-                        🔗 Serverga Ulanish
-                    </button>
-                    
-                    <button class="start-btn" id="enterQueueBtn" style="margin-top: 10px;">
-                        🎮 Navbatga Kirish
-                    </button>
-                </div>
-            </section>
 
-            <!-- Queue Screen -->
-            <section id="queueScreen" class="screen hidden">
-                <div class="queue-content">
-                    <div class="queue-icon">⏳</div>
-                    <div class="queue-status" id="queueStatus">
-                        Navbatda...
-                    </div>
-                    
-                    <div class="queue-stats">
-                        <div class="queue-stat">
-                            <div class="queue-stat-number" id="waitingCount">0</div>
-                            <div class="queue-stat-label">Navbatdagilar</div>
-                        </div>
-                        <div class="queue-stat">
-                            <div class="queue-stat-number" id="position">-</div>
-                            <div class="queue-stat-label" id="positionInfo" style="display: none;">O'rningiz</div>
-                        </div>
-                    </div>
-                    
-                    <div class="queue-actions">
-                        <button class="btn btn-danger" id="leaveQueueBtn">
-                            🚪 Navbatdan Chiqish
+                    <div class="profile-actions">
+                        <button class="match-option-btn" id="editProfileBtn" style="margin-bottom: 10px;">
+                            <i class="fas fa-edit"></i> Profilni Tahrirlash
+                        </button>
+                        <button class="match-option-btn" id="viewStatsBtn" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); margin-bottom: 10px;">
+                            <i class="fas fa-chart-bar"></i> Batafsil Statistika
+                        </button>
+                        <button class="match-option-btn" onclick="showGiftHistory()" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
+                            <i class="fas fa-gift"></i> Sovg'a Tarixi
                         </button>
                     </div>
                 </div>
-            </section>
 
-            <!-- Duel Screen -->
-            <section id="duelScreen" class="screen hidden">
-                <div class="duel-header">
-                    <div class="timer-display" id="timer">30</div>
+                <div class="quests-container">
+                    <h3><i class="fas fa-tasks"></i> Kunlik Vazifalar</h3>
+                    <div id="profileQuestsList"></div>
                 </div>
-                
-                <div class="opponent-card">
-                    <img src="" alt="Raqib avatar" class="opponent-avatar" id="opponentAvatar">
-                    <div class="opponent-info">
-                        <h3 class="opponent-name" id="opponentName">Raqib</h3>
-                        <div class="opponent-username" id="opponentUsername">@raqib</div>
-                        
-                        <div class="opponent-stats">
-                            <div class="opponent-stat">
-                                <i class="fas fa-star"></i> <span id="opponentRating">1500</span>
-                            </div>
-                            <div class="opponent-stat">
-                                <i class="fas fa-gamepad"></i> <span id="opponentGames">0</span>
-                            </div>
-                            <div class="opponent-stat">
-                                <i class="fas fa-level-up-alt"></i> <span id="opponentLevel">1</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="duel-status" id="duelStatus">
-                    Tosh, Qaychi yoki Qog'oz tanlang!
-                </div>
-                
-                <!-- Choice Indicators -->
-                <div style="display: flex; justify-content: space-around; margin: 30px 0;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 3rem;" id="playerChoiceIcon">?</div>
-                        <div style="font-size: 0.9rem; opacity: 0.8;">SIZ</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 3rem;" id="opponentChoiceIcon">?</div>
-                        <div style="font-size: 0.9rem; opacity: 0.8;">RAQIB</div>
-                    </div>
-                </div>
-                
-                <!-- Choice Buttons -->
-                <div class="choices-container">
-                    <button class="choice-btn" id="rockBtn" style="background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);">
-                        🪨
-                        <span class="choice-label">Tosh</span>
-                    </button>
-                    
-                    <button class="choice-btn" id="scissorsBtn" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
-                        ✂️
-                        <span class="choice-label">Qaychi</span>
-                    </button>
-                    
-                    <button class="choice-btn" id="paperBtn" style="background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);">
-                        📄
-                        <span class="choice-label">Qog'oz</span>
-                    </button>
-                    
-                    <button class="choice-btn" id="noBtn" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
-                        ✖
-                        <span class="choice-label">Tashlash</span>
-                    </button>
-                </div>
-                
-                <div style="text-align: center; margin-top: 30px;">
-                    <button class="btn btn-secondary" id="rulesBtn">
-                        📜 Qoidalarni ko'rish
-                    </button>
-                </div>
-            </section>
+            </div>
 
-            <!-- Match Screen -->
-            <section id="matchScreen" class="screen hidden">
-                <div class="match-content">
-                    <div class="match-result">
-                        <h2 class="match-title" id="matchResultTitle">MATCH!</h2>
-                        <div class="match-text" id="matchText">
-                            <!-- Match details will be inserted here -->
-                        </div>
-                    </div>
-                    
-                    <div class="match-choices">
-                        <div class="player-choice">
-                            <div class="choice-icon" id="playerResultChoice">?</div>
-                            <div class="choice-label-small">SIZ</div>
-                        </div>
-                        
-                        <div class="vs-text">VS</div>
-                        
-                        <div class="opponent-choice">
-                            <div class="choice-icon" id="opponentResultChoice">?</div>
-                            <div class="choice-label-small">RAQIB</div>
-                        </div>
-                    </div>
-                    
-                    <div class="match-rewards" id="matchRewards">
-                        <div class="reward-item">
-                            <div class="reward-label">
-                                <span class="reward-icon">🪙</span>
-                                <span>Coin mukofoti:</span>
+            <!-- FRIENDS TAB -->
+            <div class="tab-content" id="friendsTab">
+                <div class="friends-container">
+                    <div id="friendsStatus">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 1.1rem; color: #fff;">Do'stlar Ro'yxati</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8; color: #ccc;">
+                                    <span id="friendsCount">0</span> ta do'st •
+                                    <span id="onlineFriendsCount">0</span> ta onlayn
+                                </div>
                             </div>
-                            <div class="reward-value" id="rewardCoins">0</div>
-                        </div>
-                        <div class="reward-item">
-                            <div class="reward-label">
-                                <span class="reward-icon">⭐</span>
-                                <span>XP:</span>
-                            </div>
-                            <div class="reward-value" id="rewardXP">0</div>
+                            <button class="refresh-btn" id="refreshFriendsBtn">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="match-options" id="matchOptions">
-                        <!-- Match options will be inserted here -->
+
+                    <div class="friend-list" id="friendsList"></div>
+
+                    <div class="no-friends hidden" id="noFriends">
+                        <div style="font-size: 3rem; margin-bottom: 15px;">😔</div>
+                        <div style="font-weight: bold; margin-bottom: 10px; color: #fff;">Hali do'stlaringiz yo'q</div>
+                        <div style="opacity: 0.7; margin-bottom: 20px; color: #ccc;">O'zaro like bergan foydalanuvchilar bu yerda ko'rinadi</div>
+                        <button class="start-btn" onclick="gameState.currentTab = 'duel'; showScreen('welcome');">
+                            🎮 Duel O'ynash
+                        </button>
                     </div>
                 </div>
-            </section>
-        </main>
+            </div>
 
-        <!-- Tab Navigation -->
-        <nav class="tab-navigation">
-            <div class="nav-tabs">
-                <button class="nav-tab active" data-tab="duel">
-                    <i class="fas fa-gamepad"></i>
-                    <span>Duel</span>
+            <!-- SHOP TAB -->
+            <div class="tab-content" id="shopTab">
+                <div class="shop-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #fff;"><i class="fas fa-shopping-cart"></i> Do'kon</h3>
+                        <div class="stat-item" style="font-size: 1.1rem;">
+                            <i class="fas fa-coins"></i>
+                            <span id="shopCoinsCount">100</span>
+                        </div>
+                    </div>
+
+                    <div class="shop-items" id="shopItemsList"></div>
+                </div>
+            </div>
+
+            <!-- LEADERBOARD TAB -->
+            <div class="tab-content" id="leaderboardTab">
+                <div class="leaderboard-container">
+                    <h3 style="color: #fff;"><i class="fas fa-trophy"></i> Liderlar Doskasi</h3>
+
+                    <div class="leaderboard-tabs">
+                        <div class="leaderboard-tab active" data-leaderboard="rating">Reyting</div>
+                        <div class="leaderboard-tab" data-leaderboard="matches">Matchlar</div>
+                        <div class="leaderboard-tab" data-leaderboard="friends">Do'stlar</div>
+                    </div>
+
+                    <div class="leaderboard-list" id="leaderboardList"></div>
+
+                    <div class="leaderboard-updated" style="color: #ccc;">
+                        Yangilangan: <span id="leaderboardUpdated">hozir</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SOVG'A YUBORISH MODALI -->
+    <div class="gift-modal" id="giftModal">
+        <div class="gift-modal-content">
+            <div class="gift-modal-header">
+                <h2>🎁 Sovg'a yuborish</h2>
+                <button class="gift-close-btn" onclick="closeGiftModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="gift-receiver-info">
+                    <img id="giftReceiverAvatar" src="" alt="">
+                    <div class="gift-receiver-details">
+                        <h3 id="giftReceiverName">Foydalanuvchi</h3>
+                        <p id="giftReceiverUsername">@username</p>
+                    </div>
+                </div>
+                
+                <p style="color: #ccc; margin-bottom: 15px; text-align: center;">Quyidagi sovg'alardan birini tanlang:</p>
+                
+                <div class="gifts-grid" id="giftsGrid">
+                    <!-- Sovg'alar bu yerda JavaScript orqali yuklanadi -->
+                </div>
+                
+                <div class="gift-balance">
+                    <p>💳 Mavjud coinlar: <span id="giftBalanceCoins">0</span> <i class="fas fa-coins" style="color: #f1c40f;"></i></p>
+                </div>
+                
+                <button class="gift-history-btn" onclick="showGiftHistory()">
+                    <i class="fas fa-history"></i> Sovg'a tarixini ko'rish
                 </button>
-                <button class="nav-tab" data-tab="friends">
+            </div>
+        </div>
+    </div>
+
+    <!-- SOVG'A TARIXI MODALI -->
+    <div class="gift-history-modal" id="giftHistoryModal">
+        <div class="gift-history-content">
+            <div class="gift-history-header">
+                <h2>📜 Sovg'a tarixi</h2>
+                <button class="gift-close-btn" onclick="closeGiftHistoryModal()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="gift-history-section">
+                    <h3><i class="fas fa-paper-plane"></i> Yuborilgan sovg'alar</h3>
+                    <div id="sentGiftsList">
+                        <!-- Yuborilgan sovg'alar -->
+                    </div>
+                </div>
+                
+                <div class="gift-history-section">
+                    <h3><i class="fas fa-gift"></i> Qabul qilingan sovg'alar</h3>
+                    <div id="receivedGiftsList">
+                        <!-- Qabul qilingan sovg'alar -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gender tanlash (majburiy) -->
+    <div class="gender-modal mandatory-modal" id="genderModal">
+        <div class="modal-content">
+            <div style="font-size: 3rem; margin-bottom: 15px;">👤</div>
+            <h2 style="margin-bottom: 10px; color: #fff;">⚠️ MAJBURIY: Jinsni Tanlang</h2>
+            <p style="margin-bottom: 20px; opacity: 0.7; color: #e74c3c; font-weight: bold;">
+                Gender tanlamasangiz duel o'ynay olmaysiz!
+            </p>
+            <p style="margin-bottom: 20px; opacity: 0.7; color: #ccc;">
+                Bu sizning duel qilish sozlamangiz. Keyinchalik profil orqali o'zgartirishingiz mumkin.
+            </p>
+
+            <div class="gender-options">
+                <button class="gender-option-btn gender-male" id="selectMaleBtn">
+                    <i class="fas fa-mars"></i>
+                    <div style="text-align: left; flex: 1;">
+                        <div style="font-weight: bold;">Erkak</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Faqat ayollar bilan duel</div>
+                    </div>
+                </button>
+
+                <button class="gender-option-btn gender-female" id="selectFemaleBtn">
+                    <i class="fas fa-venus"></i>
+                    <div style="text-align: left; flex: 1;">
+                        <div style="font-weight: bold;">Ayol</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Faqat erkaklar bilan duel</div>
+                    </div>
+                </button>
+
+                <button class="gender-option-btn gender-all" id="selectAllBtn">
                     <i class="fas fa-users"></i>
-                    <span>Do'stlar</span>
-                </button>
-                <button class="nav-tab" data-tab="shop">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Do'kon</span>
-                </button>
-                <button class="nav-tab" data-tab="leaderboard">
-                    <i class="fas fa-trophy"></i>
-                    <span>Liderlar</span>
-                </button>
-                <button class="nav-tab" data-tab="profile">
-                    <i class="fas fa-user"></i>
-                    <span>Profil</span>
+                    <div style="text-align: left; flex: 1;">
+                        <div style="font-weight: bold;">Hammasi</div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Har qanday jins bilan duel</div>
+                    </div>
                 </button>
             </div>
-        </nav>
 
-        <!-- Tab Contents -->
-        <div class="tab-content-container">
-            <!-- Duel Tab (Already shown in main content) -->
-            
-            <!-- Friends Tab -->
-            <div id="friendsTab" class="tab-content">
-                <div class="friends-header">
-                    <div>
-                        <h3 class="section-title">
-                            <i class="fas fa-users"></i> Do'stlar
-                        </h3>
-                    </div>
-                    <div class="friends-stats">
-                        <div class="friend-stat">
-                            <div class="friend-stat-number" id="friendsCount">0</div>
-                            <div class="friend-stat-label">Do'st</div>
-                        </div>
-                        <div class="friend-stat">
-                            <div class="friend-stat-number" id="onlineFriendsCount">0</div>
-                            <div class="friend-stat-label">Onlayn</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="text-align: right; margin-bottom: 15px;">
-                    <button class="btn btn-secondary" id="refreshFriendsBtn" style="padding: 8px 15px;">
-                        <i class="fas fa-sync-alt"></i> Yangilash
-                    </button>
-                </div>
-                
-                <div class="friends-list" id="friendsList">
-                    <!-- Friends will be loaded here -->
-                </div>
-                
-                <div id="noFriends" class="hidden">
-                    <!-- Empty state shown when no friends -->
-                </div>
-            </div>
-            
-            <!-- Shop Tab -->
-            <div id="shopTab" class="tab-content">
-                <h3 class="section-title">
-                    <i class="fas fa-shopping-cart"></i> Do'kon
-                </h3>
-                
-                <div style="margin-bottom: 20px; text-align: center;">
-                    <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: var(--border-radius);">
-                        <div style="font-size: 0.9rem; opacity: 0.8;">Sizda:</div>
-                        <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="shopCoinsCount">100</div>
-                        <div style="font-size: 0.9rem; opacity: 0.8;">coin bor</div>
-                    </div>
-                </div>
-                
-                <div class="shop-items" id="shopItemsList">
-                    <!-- Shop items will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- Leaderboard Tab -->
-            <div id="leaderboardTab" class="tab-content">
-                <div class="leaderboard-header">
-                    <h3 class="section-title">
-                        <i class="fas fa-trophy"></i> Liderlar Reytingi
-                    </h3>
-                    <div class="updated-time">
-                        Yangilandi: <span id="leaderboardUpdated">--:--</span>
-                    </div>
-                </div>
-                
-                <div class="leaderboard-list" id="leaderboardList">
-                    <!-- Leaderboard items will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- Profile Tab -->
-            <div id="profileTab" class="tab-content">
-                <div class="profile-content">
-                    <div class="profile-header-full">
-                        <img src="" alt="Profil rasmi" class="profile-avatar-large" id="profileAvatar">
-                        <h2 class="profile-name" id="profileName">Foydalanuvchi</h2>
-                        <div class="profile-username" id="profileUsername">@username</div>
-                        
-                        <div style="margin-top: 15px;">
-                            <button class="btn btn-secondary" id="editProfileBtn" style="margin-right: 10px;">
-                                <i class="fas fa-edit"></i> Profilni tahrirlash
-                            </button>
-                            <button class="btn btn-secondary" id="openSettingsBtn">
-                                <i class="fas fa-cog"></i> Sozlamalar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Bio Section -->
-                    <h4 class="section-title">
-                        <i class="fas fa-info-circle"></i> Bio
-                    </h4>
-                    <div class="bio-section">
-                        <div class="bio-text" id="profileBio">
-                            Bio mavjud emas...
-                        </div>
-                    </div>
-                    
-                    <!-- Statistics -->
-                    <h4 class="section-title">
-                        <i class="fas fa-chart-line"></i> Statistika
-                    </h4>
-                    <div class="stats-grid">
-                        <div class="profile-stat">
-                            <div class="profile-stat-value" id="statRating">1500</div>
-                            <div class="profile-stat-label">Reyting</div>
-                        </div>
-                        <div class="profile-stat">
-                            <div class="profile-stat-value" id="statGames">0</div>
-                            <div class="profile-stat-label">Duel</div>
-                        </div>
-                        <div class="profile-stat">
-                            <div class="profile-stat-value" id="statWins">0</div>
-                            <div class="profile-stat-label">G'alaba</div>
-                        </div>
-                        <div class="profile-stat">
-                            <div class="profile-stat-value" id="statWinRate">0%</div>
-                            <div class="profile-stat-label">G'alaba %</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Level Progress -->
-                    <div style="margin: 25px 0;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <span>Level Progress</span>
-                            <span id="levelProgressText">Level 1 (0%)</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="levelProgress" style="width: 0%;"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Social Stats -->
-                    <div style="display: flex; justify-content: space-around; margin: 30px 0;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 2rem; margin-bottom: 5px;">🤝</div>
-                            <div style="font-size: 1.2rem; font-weight: 700;" id="mutualMatchesProfile">0</div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">O'zaro Match</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 2rem; margin-bottom: 5px;">👥</div>
-                            <div style="font-size: 1.2rem; font-weight: 700;" id="statFriends">0</div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">Do'st</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 2rem; margin-bottom: 5px;">🔥</div>
-                            <div style="font-size: 1.2rem; font-weight: 700;" id="streakDays">0</div>
-                            <div style="font-size: 0.9rem; opacity: 0.8;">Kun Streak</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Detailed Stats Button -->
-                    <div style="text-align: center; margin: 25px 0;">
-                        <button class="btn btn-primary" id="viewStatsBtn">
-                            <i class="fas fa-chart-bar"></i> Batafsil statistika
-                        </button>
-                    </div>
-                    
-                    <!-- Daily Quests -->
-                    <h4 class="section-title">
-                        <i class="fas fa-tasks"></i> Kunlik Vazifalar
-                    </h4>
-                    <div class="profile-quests" id="profileQuestsList">
-                        <!-- Daily quests will be loaded here -->
-                    </div>
-                    
-                    <!-- Achievements -->
-                    <h4 class="section-title">
-                        <i class="fas fa-trophy"></i> Yutuqlar
-                    </h4>
-                    <div class="achievements-list" id="achievementsList">
-                        <!-- Achievements will be loaded here -->
-                    </div>
-                </div>
+            <div style="margin-top: 20px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 10px;">
+                <p style="font-size: 0.8rem; opacity: 0.7; margin: 0; color: #ccc;">
+                    <i class="fas fa-info-circle"></i> Eslatma: Gender tanlaganingizdan keyin o'zgartirishingiz mumkin,
+                    lekin duel qilish uchun gender tanlash MAJBURIY!
+                </p>
             </div>
         </div>
     </div>
 
-    <!-- ==================== MODALS ==================== -->
-    
-    <!-- Gender Selection Modal -->
-    <div id="genderModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Jins tanlash</h2>
-                <button class="close-btn" onclick="hideGenderModal()">×</button>
+    <!-- Profil tahrirlash -->
+    <div class="chat-modal" id="profileEditModal">
+        <div class="chat-box">
+            <div class="chat-header">
+                <div style="color: #fff;">Profilni Tahrirlash</div>
+                <button id="closeProfileEditBtn"><i class="fas fa-times" style="color: #fff;"></i></button>
             </div>
-            <div class="modal-body">
-                <p>Iltimos, o'yinda ishlatish uchun jinsingizni tanlang. Bu sizning duel sherigingizni aniqlash uchun kerak.</p>
-                
-                <div id="genderWarning" class="gender-warning hidden">
-                    <div class="warning-icon">⚠️</div>
-                    <p><strong>Majburiy tanlash!</strong></p>
-                    <p>Duel o'ynash uchun jins tanlashingiz shart!</p>
-                    <button class="btn btn-primary" id="selectGenderNowBtn" style="width: 100%; margin-top: 10px;">
-                        HOZIR TANLASH
-                    </button>
+            <div class="chat-messages" style="height: auto; padding: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #fff;">Bio</label>
+                    <textarea id="editBio" placeholder="O'zingiz haqingizda yozing..." rows="4" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);"></textarea>
                 </div>
-                
-                <div class="gender-options">
-                    <div class="gender-option" onclick="selectGender('male')">
-                        <div class="gender-icon">👨</div>
-                        <div class="gender-name">Erkak</div>
-                        <div class="gender-desc">Erkak sifatida o'ynash</div>
-                    </div>
-                    
-                    <div class="gender-option" onclick="selectGender('female')">
-                        <div class="gender-icon">👩</div>
-                        <div class="gender-name">Ayol</div>
-                        <div class="gender-desc">Ayol sifatida o'ynash</div>
-                    </div>
-                    
-                    <div class="gender-option" onclick="selectGender('not_specified')">
-                        <div class="gender-icon">👤</div>
-                        <div class="gender-name">Ko'rsatmayman</div>
-                        <div class="gender-desc">Jinsimni ko'rsatmayman</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Rules Modal -->
-    <div id="rulesModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>O'yin Qoidalari</h2>
-                <button class="close-btn" onclick="hideRulesModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="rules-list">
-                    <div class="rule-item">
-                        <div class="rule-number">1</div>
-                        <div class="rule-text">
-                            <strong>Tosh (🪨)</strong> qaychini (✂️) yutadi. <em>(Tosh qaychini sindiradi)</em>
-                        </div>
-                    </div>
-                    
-                    <div class="rule-item">
-                        <div class="rule-number">2</div>
-                        <div class="rule-text">
-                            <strong>Qaychi (✂️)</strong> qog'ozni (📄) yutadi. <em>(Qaychi qog'ozni kesadi)</em>
-                        </div>
-                    </div>
-                    
-                    <div class="rule-item">
-                        <div class="rule-number">3</div>
-                        <div class="rule-text">
-                            <strong>Qog'oz (📄)</strong> toshni (🪨) yutadi. <em>(Qog'oz toshni o'rab oladi)</em>
-                        </div>
-                    </div>
-                    
-                    <div class="rule-item">
-                        <div class="rule-number">4</div>
-                        <div class="rule-text">
-                            Agar ikkala o'yinchi ham bir xil belgi tanlasa, <strong>durang</strong> hisoblanadi.
-                        </div>
-                    </div>
-                    
-                    <div class="rule-item">
-                        <div class="rule-number">5</div>
-                        <div class="rule-text">
-                            Har bir duelda <strong>30 soniya</strong> vaqt bor. Vaqt tugaguncha tanlov qilishingiz kerak.
-                        </div>
-                    </div>
-                    
-                    <div class="rule-item">
-                        <div class="rule-number">6</div>
-                        <div class="rule-text">
-                            G'alaba uchun <strong>50 coin</strong> va <strong>25 XP</strong> olasiz. Durang uchun ham ozgina mukofot bor.
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" onclick="hideRulesModal()" style="flex: 1;">
-                    Tushunarli
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Profile Edit Modal -->
-    <div id="profileEditModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Profilni tahrirlash</h2>
-                <button class="close-btn" id="closeProfileEditBtn">×</button>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 20px;">
-                    <label for="editBio" style="display: block; margin-bottom: 8px; font-weight: 600;">Bio:</label>
-                    <textarea id="editBio" rows="4" placeholder="O'zingiz haqingizda qisqacha..." style="width: 100%; padding: 12px; border-radius: var(--border-radius); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; font-family: inherit;"></textarea>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label for="editGender" style="display: block; margin-bottom: 8px; font-weight: 600;">Jins:</label>
-                    <select id="editGender" style="width: 100%; padding: 12px; border-radius: var(--border-radius); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white;">
-                        <option value="not_specified">Ko'rsatmayman</option>
-                        <option value="male">Erkak</option>
-                        <option value="female">Ayol</option>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #fff;">Jins</label>
+                    <select id="editGender" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <option value="not_specified">Ko'rsatilmaydi (hamma bilan)</option>
+                        <option value="male">Erkak (faqat ayollar bilan)</option>
+                        <option value="female">Ayol (faqat erkaklar bilan)</option>
                     </select>
                 </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label for="editFilter" style="display: block; margin-bottom: 8px; font-weight: 600;">Qidiruv filteri:</label>
-                    <select id="editFilter" style="width: 100%; padding: 12px; border-radius: var(--border-radius); background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white;">
-                        <option value="not_specified">Hamma bilan</option>
-                        <option value="male">Faqat erkaklar</option>
-                        <option value="female">Faqat ayollar</option>
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #fff;">Filter</label>
+                    <select id="editFilter" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        <option value="not_specified">Hamma bilan duel</option>
+                        <option value="male">Faqat erkaklar bilan</option>
+                        <option value="female">Faqat ayollar bilan</option>
                     </select>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="saveProfileBtn" style="flex: 1;">
-                    Saqlash
-                </button>
-                <button class="btn btn-secondary" id="closeProfileEditBtn2" style="flex: 1;">
-                    Bekor qilish
-                </button>
+                <button id="saveProfileBtn" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: #fff;">Saqlash</button>
             </div>
         </div>
     </div>
 
-    <!-- Chat Modal -->
-    <div id="chatModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="chat-header">
-                    <img src="" alt="Avatar" class="chat-avatar" id="chatPartnerAvatar">
-                    <div class="chat-info">
-                        <div class="chat-name" id="chatPartnerName">Sherik</div>
-                        <div class="chat-username" id="chatUsername">@username</div>
-                    </div>
-                </div>
-                <button class="close-btn" id="closeChatBtn">×</button>
+    <!-- Chat modal -->
+    <div class="chat-modal" id="chatModal">
+        <div class="chat-box">
+            <div class="chat-header">
+                <div id="chatTitle" style="color: #fff;">Telegram Chat</div>
+                <button id="closeChatBtn"><i class="fas fa-times" style="color: #fff;"></i></button>
             </div>
-            <div class="modal-body">
-                <div class="chat-messages" id="chatMessages">
-                    <!-- Chat messages will be loaded here -->
-                    <div class="chat-message">
-                        <div class="message-bubble">
-                            Salom! Tosh-qaychi-qog'oz duelida uchrashganimizdan xursandman!
-                        </div>
-                        <div class="message-time">hozirgina</div>
-                    </div>
-                    
-                    <div class="chat-message message-outgoing">
-                        <div class="message-bubble">
-                            Salom! Men ham xursandman. Qayta duel o'ynaymizmi?
-                        </div>
-                        <div class="message-time">hozirgina</div>
-                    </div>
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-primary" id="chatOpenTelegramBtn" style="width: 100%;">
-                        <i class="fab fa-telegram"></i> Telegramda ochish
-                    </button>
-                    <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 10px;">
-                        Eslatma: Chat Telegram orqali amalga oshiriladi
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
+            <div class="chat-content">
+                <img src="" alt="" class="chat-avatar" id="chatPartnerAvatar">
+                <div class="chat-name" id="chatPartnerName">Foydalanuvchi</div>
+                <div class="chat-username" id="chatUsername">@username</div>
 
-    <!-- Stats Modal -->
-    <div id="statsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Batafsil statistika</h2>
-                <button class="close-btn" id="closeStatsBtn">×</button>
-            </div>
-            <div class="modal-body">
-                <div id="detailedStatsContent">
-                    <!-- Detailed stats will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Sozlamalar</h2>
-                <button class="close-btn" id="closeSettingsBtn">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-list">
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-name">Tovush effektlari</div>
-                            <div class="setting-description">O'yin tovushlarini yoqish/o'chirish</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="soundToggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-name">Vibratsiya</div>
-                            <div class="setting-description">Qurilmangizni tebratish</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="vibrationToggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-name">Bildirishnomalar</div>
-                            <div class="setting-description">O'yin bildirishnomalari</div>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="notificationsToggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" id="saveSettingsBtn" style="flex: 1;">
-                    Saqlash
+                <button class="chat-button" id="chatOpenTelegramBtn">
+                    <i class="fab fa-telegram"></i> Telegramda ochish
                 </button>
+
+                <div class="chat-note">
+                    <p style="color: #ccc;"><i class="fas fa-info-circle"></i> Match bo'lganingiz uchun endi bir-biringiz bilan bemalol suhbatlashingiz mumkin!</p>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Notification -->
-    <div id="notification" class="notification">
-        <div class="notification-title" id="notificationTitle">Xabar</div>
-        <div class="notification-message" id="notificationMessage">Bu yerda xabar matni bo'ladi</div>
+    <div class="notification" id="notification">
+        <div id="notificationTitle" style="font-weight: bold; margin-bottom: 5px; color: #fff;"></div>
+        <div id="notificationMessage" style="color: #ccc;"></div>
     </div>
 
-    <!-- Game Script -->
+    <script>
+        // Sovg'a modalini ochish funksiyasi
+        function openGiftModal(receiver) {
+            if (!receiver) {
+                console.error('Receiver not provided');
+                return;
+            }
+            
+            console.log('Opening gift modal for:', receiver);
+            
+            // Modal elementlarini topish
+            const modal = document.getElementById('giftModal');
+            const avatar = document.getElementById('giftReceiverAvatar');
+            const name = document.getElementById('giftReceiverName');
+            const username = document.getElementById('giftReceiverUsername');
+            const balance = document.getElementById('giftBalanceCoins');
+            const grid = document.getElementById('giftsGrid');
+            
+            if (!modal || !avatar || !name || !username || !balance || !grid) {
+                console.error('Gift modal elements not found');
+                return;
+            }
+            
+            // Receiver ma'lumotlarini to'ldirish
+            avatar.src = receiver.photo || `https://ui-avatars.com/api/?name=${receiver.name || 'User'}&background=667eea&color=fff`;
+            name.textContent = receiver.name || 'Foydalanuvchi';
+            username.textContent = receiver.username ? `@${receiver.username}` : '';
+            
+            // Coin balance
+            const userCoins = parseInt(localStorage.getItem('userCoins')) || 100;
+            balance.textContent = userCoins;
+            
+            // Sovg'alarni yuklash
+            loadGiftsToModal(grid, userCoins, receiver);
+            
+            // Modalni ochish
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeGiftModal() {
+            const modal = document.getElementById('giftModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            document.body.style.overflow = 'auto';
+        }
+        
+        function closeGiftHistoryModal() {
+            const modal = document.getElementById('giftHistoryModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+            document.body.style.overflow = 'auto';
+        }
+        
+        function loadGiftsToModal(gridElement, userCoins, receiver) {
+            const gifts = [
+                { id: 1, name: 'Virtual Gul', price: 10, icon: '🌹', description: 'Sevgi ramzi' },
+                { id: 2, name: 'Yulduz', price: 25, icon: '⭐', description: 'Yorqin yulduz' },
+                { id: 3, name: 'Sevgi Qalbi', price: 50, icon: '💝', description: 'Maxsus sevgi' },
+                { id: 4, name: 'Tog\' Gozali', price: 100, icon: '🏔️', description: 'O\'zbekiston gozali' },
+                { id: 5, name: 'Paxta Gullari', price: 150, icon: '🌸', description: 'O\'zbekiston ramzi' },
+                { id: 6, name: 'Kumush', price: 200, icon: '🥈', description: 'Kumush sovg\'a' },
+                { id: 7, name: 'Oltin', price: 500, icon: '🥇', description: 'Oltin sovg\'a' },
+                { id: 8, name: 'Diamond', price: 1000, icon: '💎', description: 'Eng qimmat sovg\'a' }
+            ];
+            
+            gridElement.innerHTML = '';
+            
+            gifts.forEach(gift => {
+                const canAfford = userCoins >= gift.price;
+                const giftElement = document.createElement('div');
+                giftElement.className = `gift-item ${canAfford ? '' : 'disabled'}`;
+                giftElement.innerHTML = `
+                    <div class="gift-icon">${gift.icon}</div>
+                    <div class="gift-name">${gift.name}</div>
+                    <div class="gift-price">${gift.price} coin</div>
+                `;
+                
+                if (canAfford) {
+                    giftElement.addEventListener('click', () => {
+                        selectGift(gift, receiver);
+                    });
+                }
+                
+                gridElement.appendChild(giftElement);
+            });
+        }
+        
+        function selectGift(gift, receiver) {
+            console.log('Selected gift:', gift, 'for receiver:', receiver);
+            
+            // Oldingi tanlangan sovg'ani olib tashlash
+            const selectedItems = document.querySelectorAll('.gift-item.selected');
+            selectedItems.forEach(item => item.classList.remove('selected'));
+            
+            // Yangi sovg'ani tanlash
+            const giftItems = document.querySelectorAll('.gift-item');
+            giftItems.forEach(item => {
+                if (item.querySelector('.gift-name').textContent === gift.name) {
+                    item.classList.add('selected');
+                }
+            });
+            
+            // Tasdiqlash tugmasini yaratish/yangilash
+            let confirmBtn = document.querySelector('.confirm-gift-btn');
+            if (!confirmBtn) {
+                confirmBtn = document.createElement('button');
+                confirmBtn.className = 'confirm-gift-btn';
+                document.querySelector('.modal-body').appendChild(confirmBtn);
+            }
+            
+            confirmBtn.innerHTML = `✅ ${gift.price} coin evaziga sovg'a yuborish`;
+            confirmBtn.onclick = () => sendGift(gift, receiver);
+        }
+        
+        function sendGift(gift, receiver) {
+            console.log('Sending gift:', gift, 'to:', receiver);
+            
+            // Bu yerda serverga so'rov yuboriladi
+            // Hozircha test rejimida ishlatamiz
+            const userCoins = parseInt(localStorage.getItem('userCoins')) || 100;
+            
+            if (userCoins >= gift.price) {
+                // Coinlarni kamaytirish
+                const newCoins = userCoins - gift.price;
+                localStorage.setItem('userCoins', newCoins.toString());
+                
+                // UI ni yangilash
+                document.getElementById('giftBalanceCoins').textContent = newCoins;
+                if (document.getElementById('coinsCount')) {
+                    document.getElementById('coinsCount').textContent = newCoins;
+                }
+                
+                // Sovg'ani yuborish haqida bildirishnoma
+                showGiftNotification({
+                    sender: { name: 'Siz' },
+                    gift: { name: gift.name, icon: gift.icon },
+                    receiver: { name: receiver.name }
+                });
+                
+                // Sovg'a tarixiga qo'shish
+                saveGiftToHistory(gift, receiver, 'sent');
+                
+                // Modalni yopish
+                closeGiftModal();
+                
+                // Bildirishnoma
+                showNotification('🎁 Sovg\'a yuborildi!', 
+                    `${receiver.name} ga ${gift.name} sovg'asini yubordingiz!`);
+            } else {
+                showNotification('Xato', 'Coinlaringiz yetarli emas!');
+            }
+        }
+        
+        function showGiftNotification(data) {
+            const notification = document.createElement('div');
+            notification.className = 'gift-notification';
+            notification.innerHTML = `
+                <div class="gift-notification-content">
+                    <div class="gift-icon-large">${data.gift.icon}</div>
+                    <div class="gift-notification-text">
+                        <h3>🎁 Sovg'a yuborildi!</h3>
+                        <p>${data.sender.name} ${data.receiver.name} ga ${data.gift.name} sovg'asini yubordi!</p>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 5000);
+        }
+        
+        function saveGiftToHistory(gift, receiver, type) {
+            const historyKey = type === 'sent' ? 'sentGifts' : 'receivedGifts';
+            let history = JSON.parse(localStorage.getItem(historyKey)) || [];
+            
+            history.unshift({
+                gift: gift,
+                [type === 'sent' ? 'receiver' : 'sender']: receiver,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Faqat oxirgi 50 ta sovg'ani saqlash
+            if (history.length > 50) {
+                history = history.slice(0, 50);
+            }
+            
+            localStorage.setItem(historyKey, JSON.stringify(history));
+        }
+        
+        function showGiftHistory() {
+            const sentGifts = JSON.parse(localStorage.getItem('sentGifts')) || [];
+            const receivedGifts = JSON.parse(localStorage.getItem('receivedGifts')) || [];
+            
+            const modal = document.getElementById('giftHistoryModal');
+            const sentList = document.getElementById('sentGiftsList');
+            const receivedList = document.getElementById('receivedGiftsList');
+            
+            if (!modal || !sentList || !receivedList) return;
+            
+            // Yuborilgan sovg'alar
+            if (sentGifts.length > 0) {
+                sentList.innerHTML = sentGifts.map(gift => `
+                    <div class="gift-history-item">
+                        <div class="gift-history-icon">${gift.gift.icon}</div>
+                        <div class="gift-history-info">
+                            <div class="gift-history-name">${gift.gift.name}</div>
+                            <div class="gift-history-receiver">${gift.receiver.name} ga</div>
+                            <div class="gift-history-time">${new Date(gift.timestamp).toLocaleString('uz-UZ')}</div>
+                        </div>
+                        <div class="gift-history-price">-${gift.gift.price}</div>
+                    </div>
+                `).join('');
+            } else {
+                sentList.innerHTML = `
+                    <div class="empty-history">
+                        <i class="fas fa-paper-plane"></i>
+                        <p>Hali sovg'a yuborilmagan</p>
+                    </div>
+                `;
+            }
+            
+            // Qabul qilingan sovg'alar
+            if (receivedGifts.length > 0) {
+                receivedList.innerHTML = receivedGifts.map(gift => `
+                    <div class="gift-history-item received">
+                        <div class="gift-history-icon">${gift.gift.icon}</div>
+                        <div class="gift-history-info">
+                            <div class="gift-history-name">${gift.gift.name}</div>
+                            <div class="gift-history-sender">${gift.sender.name} dan</div>
+                            <div class="gift-history-time">${new Date(gift.timestamp).toLocaleString('uz-UZ')}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                receivedList.innerHTML = `
+                    <div class="empty-history">
+                        <i class="fas fa-gift"></i>
+                        <p>Hali sovg'a qabul qilinmagan</p>
+                    </div>
+                `;
+            }
+            
+            // Modalni ochish
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // Global funksiyalarni qo'shish
+        window.openGiftModal = openGiftModal;
+        window.closeGiftModal = closeGiftModal;
+        window.closeGiftHistoryModal = closeGiftHistoryModal;
+        window.showGiftHistory = showGiftHistory;
+        
+        // Notification funksiyasi
+        function showNotification(title, message) {
+            const notification = document.getElementById('notification');
+            const titleElement = document.getElementById('notificationTitle');
+            const messageElement = document.getElementById('notificationMessage');
+            
+            if (notification && titleElement && messageElement) {
+                titleElement.textContent = title;
+                messageElement.textContent = message;
+                notification.classList.add('active');
+                
+                setTimeout(() => {
+                    notification.classList.remove('active');
+                }, 3000);
+            }
+        }
+    </script>
+    
     <script src="main.js"></script>
 </body>
 </html>
